@@ -149,6 +149,48 @@ jobs:
   # Container image. Built on every run so a Dockerfile break is caught early;
   # pushed only from the protected branches.
   # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Frontend
+  #
+  # Typecheck, lint and build, plus the tests that guard the design rules of
+  # ARCHITECTURE.md section 9.5 - no icon package, no physical direction
+  # utilities, no third hue, no token in browser storage. Those are acceptance
+  # criteria that erode quietly, so they are checked on every push rather than
+  # at review.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
   container:
     name: Container image
     runs-on: ubuntu-latest
