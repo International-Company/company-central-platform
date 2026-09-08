@@ -68,7 +68,11 @@
     "sessionExpiredTitle": "انتهت جلستك",
     "sessionExpiredDescription": "سجّل الدخول مجددًا للمتابعة.",
     "lockedTitle": "الحساب مقفل",
-    "lockedDescription": "محاولات فاشلة كثيرة. أعد المحاولة لاحقًا أو تواصل مع المسؤول."
+    "lockedDescription": "محاولات فاشلة كثيرة. أعد المحاولة لاحقًا أو تواصل مع المسؤول.",
+    "changeTitle": "غيّر كلمة المرور",
+    "changeDescription": "هذا الحساب يتطلّب كلمة مرور جديدة قبل المتابعة.",
+    "currentPassword": "كلمة المرور الحالية",
+    "changed": "تم تغيير كلمة المرور."
   },
   "errors": {
     "generic": "حدث خطأ. حاول مرة أخرى.",

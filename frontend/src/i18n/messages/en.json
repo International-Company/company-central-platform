@@ -68,7 +68,11 @@
     "sessionExpiredTitle": "Your session ended",
     "sessionExpiredDescription": "Sign in again to continue.",
     "lockedTitle": "Account locked",
-    "lockedDescription": "Too many failed attempts. Try again later or contact an administrator."
+    "lockedDescription": "Too many failed attempts. Try again later or contact an administrator.",
+    "changeTitle": "Change your password",
+    "changeDescription": "This account requires a new password before you continue.",
+    "currentPassword": "Current password",
+    "changed": "Your password has been changed."
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

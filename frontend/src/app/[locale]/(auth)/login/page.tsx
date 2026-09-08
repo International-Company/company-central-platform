@@ -64,11 +64,16 @@ export default function LoginPage() {
         mustChangePassword: boolean;
       };
 
+      // change-password, not reset-password. Reset proves identity with an
+      // emailed token; this account is already signed in and proves itself
+      // with the password it is replacing. Sending it to reset was a dead end —
+      // mail delivery does not exist until Phase 9, so the token would never
+      // arrive.
       router.push(
         body.requiresMfa
           ? '/mfa'
           : body.mustChangePassword
-            ? '/reset-password'
+            ? '/change-password'
             : '/dashboard',
       );
     } catch {
