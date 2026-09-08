@@ -1,0 +1,8 @@
+# Keep the build context small, and keep local secrets and build output out of
+# the image entirely.
+node_modules
+.next
+.env
+.env.*
+!.env.example
+npm-debug.log*
