@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Modules\Organization\CCP.Modules.Organization.Infrastructure\CCP.Modules.Organization.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Authorization\CCP.Modules.Authorization.Infrastructure\CCP.Modules.Authorization.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Security\CCP.Modules.Security.Infrastructure\CCP.Modules.Security.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\CCP.Modules.Audit.Infrastructure\CCP.Modules.Audit.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -32,6 +32,23 @@ public sealed class RateLimitOptions
     [Range(1, 100_000)]
     public int Authentication { get; set; } = 10;
 
+    /// <summary>
+    /// Authentication attempts allowed from one source address per minute,
+    /// across all accounts.
+    /// <para>
+    /// The other direction from <see cref="Authentication"/>: that one bounds
+    /// guessing against a single account however many machines try; this one
+    /// bounds a single machine working through many accounts.
+    /// </para>
+    /// <para>
+    /// Sixty, because a whole office shares one public address and this must not
+    /// become the NAT problem again — while still being far below what spraying
+    /// needs to be worth doing.
+    /// </para>
+    /// </summary>
+    [Range(1, 100_000)]
+    public int AuthenticationPerAddress { get; set; } = 60;
+
     /// <summary>Anonymous endpoints that carry no credential, such as JWKS.</summary>
     [Range(1, 100_000)]
     public int Anonymous { get; set; } = 60;

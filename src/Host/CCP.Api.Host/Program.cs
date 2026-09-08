@@ -150,17 +150,27 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddPlatformPolicies(rateLimits);
 
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User.FindFirst("sub")?.Value
-                ?? context.Connection.RemoteIpAddress?.ToString()
-                ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 600,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
+    // Two chained limiters, both of which must admit a request.
+    //
+    // The first is the ordinary backstop for anything that declares no policy.
+    // The second bounds authentication attempts per source address — the other
+    // direction from the per-account limit the auth endpoints carry. Per-account
+    // alone would let one machine try ten attempts against each of a thousand
+    // names, which is precisely credential stuffing; per-address alone collapses
+    // behind office NAT. Neither is sufficient, so both apply.
+    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst("sub")?.Value
+                    ?? context.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 600,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                })),
+        RateLimitPolicies.CreateAuthenticationSourceLimiter(rateLimits.AuthenticationPerAddress));
 });
 
 // CORS: a strict origin allow-list. Wildcards are prohibited
@@ -262,6 +272,10 @@ app.UseSerilogRequestLogging(options =>
         var requestContext = httpContext.RequestServices.GetRequiredService<RequestContextAccessor>();
         diagnosticContext.Set("CorrelationId", requestContext.CorrelationId);
     });
+
+// Before the limiter, because the limiter partitions authentication attempts by
+// the account being targeted and the account is in the request body.
+app.UseMiddleware<AuthenticationTargetMiddleware>();
 
 app.UseRateLimiter();
 app.UseCors();

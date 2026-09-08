@@ -915,7 +915,7 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 20 | TOTP is not phishing-resistant | Medium | A convincing fake login page can collect and replay a code within thirty seconds. WebAuthn is the answer and is kept as an extension point. Accepted and recorded, not overlooked. |
 | 21 | Rate limits are per-process | Low | A multi-instance deployment multiplies the effective limit by the instance count. Needs shared limiter state if it becomes material. |
 | 22 | Argon2id parameters are defaults, not measured | Medium | Carried from Phase 2. Needs measurement on the deployment hardware. |
-| 23 | **Authentication rate limiting is partitioned by IP, which fails behind NAT** | **High** | Every employee in one office shares one public address and therefore one budget, so 10/min is really "ten sign-ins a minute for the whole company" — the eleventh person arriving on Sunday morning is refused. Surfaced by the integration suite, which trips the limit for exactly this reason: a test process behind one address is a perfect simulation of an office behind one NAT. **Deferred by decision, not oversight.** The fix is to partition the authentication class by the account being attacked as well as by source, keeping a much looser per-IP limit as a backstop; account lockout stays the third defence. Must be resolved before real users. |
+| 23 | ~~Authentication rate limiting is partitioned by IP, which fails behind NAT~~ | — | ✅ **Resolved.** Authentication is now partitioned by the account being targeted, with a separate per-address limit chained onto the global limiter for the other direction and account lockout as the third layer. `NatRateLimitTests` reproduces an office behind one address. (was:) | Every employee in one office shares one public address and therefore one budget, so 10/min is really "ten sign-ins a minute for the whole company" — the eleventh person arriving on Sunday morning is refused. Surfaced by the integration suite, which trips the limit for exactly this reason: a test process behind one address is a perfect simulation of an office behind one NAT. **Deferred by decision, not oversight.** The fix is to partition the authentication class by the account being attacked as well as by source, keeping a much looser per-IP limit as a backstop; account lockout stays the third defence. Must be resolved before real users. |
 | 24 | Rate limits are raised in the integration suite | Low | The suite shares one address, so at the production limit everything after the first ten sign-ins fails with 429. `RateLimitTests` runs at a limit of 3 and asserts the rejection and its `Retry-After` header, so the limiter itself stays covered. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
@@ -969,12 +969,9 @@ mirroring, tables as the primary interface, white and blue, no icons by default.
 
 **Close first, before Phase 7:**
 
-1. **Debt #23 — the NAT rate limit.** Ten sign-ins a minute for a whole office.
-   Deferred by decision; it must be resolved before real users, not after.
-2. **The bootstrap administrator on the deployment.** Nothing can be administered
+1. **The bootstrap administrator on the deployment.** Nothing can be administered
    until one account exists.
-3. **An integration test that attempts an UPDATE on the audit schema** and
-   asserts the database refuses it. Append-only is enforced but unproven.
+2. **Phase 7 — the frontend.** Nothing has a user interface yet.
 
 Still outstanding across all phases:
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using CCP.Kernel.Infrastructure.Persistence;
+using CCP.Modules.Audit.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Persistence;
 using CCP.Modules.Organization.Infrastructure.Persistence;
@@ -169,6 +170,7 @@ public class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await MigrateAsync<AuthorizationDbContext>(
             AuthorizationDbContext.SchemaName, o => new AuthorizationDbContext(o));
         await MigrateAsync<SecurityDbContext>(SecurityDbContext.SchemaName, o => new SecurityDbContext(o));
+        await MigrateAsync<AuditDbContext>(AuditDbContext.SchemaName, o => new AuditDbContext(o));
     }
 
     private async Task MigrateAsync<TContext>(

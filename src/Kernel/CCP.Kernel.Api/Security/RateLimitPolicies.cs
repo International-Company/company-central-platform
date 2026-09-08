@@ -103,20 +103,31 @@ public static class RateLimitPolicies
     }
 
     /// <summary>
-    /// The authentication limiter.
+    /// The authentication limiter, partitioned by <b>the account being
+    /// attacked</b> rather than by where the attempt came from.
     /// <para>
-    /// Ten attempts a minute from one address by default. That is far more than
-    /// a person mistyping a password and far less than useful for guessing —
-    /// combined with the account's own progressive lockout, credential stuffing
-    /// becomes impractical rather than merely slow.
+    /// Ten attempts a minute against any one account. That is far more than a
+    /// person mistyping a password and far less than useful for guessing, and —
+    /// crucially — it holds however many addresses an attacker spreads across.
     /// </para>
     /// <para>
-    /// <b>Partitioned by address, which is a known weakness behind NAT.</b>
-    /// Every employee in one office shares one public address and therefore one
-    /// budget, so this limit is really "ten sign-ins a minute per office". That
-    /// is recorded as technical debt rather than solved here; the fix is to
-    /// partition by the account being attacked as well as by source. See
-    /// docs/security/rate-limiting.md §3.
+    /// <b>Partitioning by address was the obvious design and it collapses behind
+    /// NAT.</b> Every employee in one office shares one public address, so a
+    /// per-address budget is really "ten sign-ins a minute for the whole
+    /// company": the eleventh person arriving on Sunday morning is refused, and
+    /// nothing they can do helps. Keying on the target instead means fifty
+    /// colleagues signing in at nine o'clock occupy fifty separate budgets.
+    /// </para>
+    /// <para>
+    /// The source is not thereby unguarded. A separate address-partitioned limit
+    /// covers the other direction — one machine spraying many accounts — and the
+    /// account's own progressive lockout is the third layer. Each stops
+    /// something the others do not; see docs/security/rate-limiting.md §3.
+    /// </para>
+    /// <para>
+    /// The username is falls back to the address when it cannot be determined,
+    /// which is the safe direction: an unparseable body is limited as before
+    /// rather than escaping the limiter.
     /// </para>
     /// <para>
     /// A sliding window rather than a fixed one, deliberately: a fixed window
@@ -127,7 +138,7 @@ public static class RateLimitPolicies
     /// </summary>
     private static Func<HttpContext, RateLimitPartition<string>> PartitionAuthentication(int permitLimit)
         => context => RateLimitPartition.GetSlidingWindowLimiter(
-            $"auth:{ClientAddress(context)}",
+            AuthenticationTarget(context),
             _ => new SlidingWindowRateLimiterOptions
             {
                 PermitLimit = permitLimit,
@@ -180,6 +191,48 @@ public static class RateLimitPolicies
                     QueueLimit = 0
                 });
         };
+
+    /// <summary>
+    /// The partition key for an authentication attempt: the account being
+    /// targeted, or the source address when no account can be read.
+    /// </summary>
+    private static string AuthenticationTarget(HttpContext context)
+        => context.Items.TryGetValue(AuthenticationTargetMiddleware.HttpContextKey, out object? value)
+            && value is string username
+                ? $"auth:user:{username}"
+                : $"auth:ip:{ClientAddress(context)}";
+
+    /// <summary>
+    /// The other direction: one machine working through many accounts.
+    /// <para>
+    /// Returned as a chained global limiter rather than an endpoint policy,
+    /// because an endpoint carries one policy and the authentication endpoints
+    /// already carry the per-account one. Both have to apply — per-account alone
+    /// would let a single machine try ten attempts against each of a thousand
+    /// names, which is exactly what credential stuffing is.
+    /// </para>
+    /// <para>
+    /// Generous enough for an office behind one address, far below useful for
+    /// spraying. Every other path is unlimited here and left to its own policy.
+    /// </para>
+    /// </summary>
+    public static PartitionedRateLimiter<HttpContext> CreateAuthenticationSourceLimiter(int permitLimit)
+        => PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            IsAuthenticationPath(context)
+                ? RateLimitPartition.GetSlidingWindowLimiter(
+                    $"auth-source:{ClientAddress(context)}",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = Window,
+                        SegmentsPerWindow = 6,
+                        QueueLimit = 0
+                    })
+                : RateLimitPartition.GetNoLimiter<string>("unlimited"));
+
+    private static bool IsAuthenticationPath(HttpContext context)
+        => context.Request.Path.Value is { } path
+        && path.Contains("/auth/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// The caller's address, as the proxy reported it.

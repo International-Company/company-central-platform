@@ -2,6 +2,7 @@ using CCP.Kernel.Primitives;
 using CCP.Modules.Audit.Application;
 using CCP.Modules.Audit.Application.Abstractions;
 using CCP.Modules.Audit.Domain;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -80,8 +81,19 @@ public sealed class AuditRecorder(
 /// is a job that fires when nobody is watching.
 /// </para>
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>It resolves a scope per pass rather than taking the repository directly.</b>
+/// A hosted service is a singleton and the repository is scoped, so injecting it
+/// would be a captive dependency: one instance, created at startup, held for the
+/// lifetime of the process. The container refuses to build at all when scope
+/// validation is on — which is how this was caught, by the integration suite,
+/// before it reached a deployment where validation is off by default and the
+/// same mistake would merely have been silent.
+/// </para>
+/// </remarks>
 public sealed class AuditPartitionMaintenance(
-    IAuditRepository repository,
+    IServiceScopeFactory scopeFactory,
     IClock clock,
     IOptions<AuditOptions> options,
     ILogger<AuditPartitionMaintenance> logger) : BackgroundService
@@ -95,6 +107,11 @@ public sealed class AuditPartitionMaintenance(
             try
             {
                 DateTimeOffset now = clock.UtcNow;
+
+                using IServiceScope scope = scopeFactory.CreateScope();
+
+                IAuditRepository repository =
+                    scope.ServiceProvider.GetRequiredService<IAuditRepository>();
 
                 // One month behind as well as several ahead: an event may arrive
                 // late, and a partition that no longer exists for last month

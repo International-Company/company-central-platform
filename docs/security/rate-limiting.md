@@ -47,28 +47,44 @@ same problem.** Rate limiting bounds one source attacking many accounts;
 account lockout bounds many sources attacking one account. Neither substitutes
 for the other, and the Platform has both.
 
-### The known defect: NAT
+### Two directions, two limits
 
-**Behind a corporate NAT, legitimate traffic looks exactly like one source
-attacking many accounts.** Every employee in the office shares one public
-address, so the authentication limit is in practice *ten sign-ins a minute for
-the entire company*. On a Sunday morning the eleventh person to arrive is
-refused, and nothing they can do will help.
+Sign-in needs guarding against two different attacks, and one limit cannot do
+both.
 
-This was surfaced by the integration suite, which trips the limit for precisely
-this reason — a test process behind one address is an accurate simulation of an
+| Attack | Bounded by | Default |
+|---|---|---|
+| Many machines guessing **one account** | Per-account limit on the authentication endpoints | 10 / min |
+| One machine working through **many accounts** | Per-address limit, chained onto the global limiter | 60 / min |
+| Sustained guessing of one account | That account's progressive lockout (Phase 2) | — |
+
+**The per-account key is what fixes NAT.** Partitioning authentication by source
+address was the obvious design, and it collapses in an office: every employee
+shares one public address, so a ten-a-minute budget is ten sign-ins a minute for
+the whole company — the eleventh person to arrive on Sunday morning is refused,
+and nothing they can do helps.
+
+This was surfaced by the integration suite, which tripped the limit for exactly
+that reason: a test process behind one address is an accurate simulation of an
 office behind one NAT.
 
-It is **deferred by decision, not overlooked** (DEVELOPMENT_STATUS.md §7, debt
-#23). The intended fix is to partition the authentication class by *the account
-being attacked* as well as by source: a strict per-account budget stops one
-account being guessed no matter how many addresses try, while the per-address
-limit becomes a much looser backstop against broad scanning. Account lockout
-remains the third defence.
+Keying on the account being attacked means fifty colleagues signing in at nine
+o'clock occupy fifty separate budgets, while an attacker still gets ten attempts
+per account **however many addresses they spread across** — which is strictly
+better than the address-based version it replaced.
 
-Until then the limits are configuration (`RateLimits:Authentication` and
-friends), so a deployment that hits this can raise the number without waiting
-for a release. That is a mitigation, not the fix.
+**The account name comes from the request body**, so `AuthenticationTargetMiddleware`
+buffers the body and lifts it out before the limiter runs. It lower-cases the
+name to match storage — otherwise `Amira` and `amira` would receive separate
+budgets, and there are a great many spellings. A body it cannot parse falls back
+to the address, which is the safe direction to fail in; validation refuses the
+request properly a moment later.
+
+The per-address limit is chained onto the global limiter rather than attached to
+the endpoints, because an endpoint carries one policy and the authentication
+endpoints already carry the per-account one. Both have to apply: per-account
+alone would let a single machine try ten attempts against each of a thousand
+names, which is exactly what credential stuffing is.
 
 ---
 
