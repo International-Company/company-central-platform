@@ -44,17 +44,38 @@ public sealed class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncL
             StringComparison.Ordinal);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
+        => builder.UseEnvironment("Development");
+
+    /// <summary>
+    /// Publishes this test's settings as environment variables.
+    /// <para>
+    /// <b>Environment variables, not <c>ConfigureAppConfiguration</c>.</b> The
+    /// composition root reads the connection string straight off
+    /// <c>builder.Configuration</c> before <c>builder.Build()</c> is ever
+    /// called, so that it can fail fast on a misconfigured deployment. Anything
+    /// the factory contributes through <c>ConfigureAppConfiguration</c> is
+    /// applied while the host is being built — which is after that read has
+    /// already happened and thrown.
+    /// </para>
+    /// <para>
+    /// The host does call <c>AddEnvironmentVariables(prefix: "CCP_")</c> before
+    /// the read, so setting them here reaches the code that needs them. This is
+    /// also closer to how a real deployment supplies configuration
+    /// (ARCHITECTURE.md §12.7), which makes the test path and the production
+    /// path the same path.
+    /// </para>
+    /// <para>
+    /// Called from <c>InitializeAsync</c> rather than from
+    /// <c>ConfigureWebHost</c> so the ordering is unambiguous: it happens before
+    /// any client, and therefore before any host, exists.
+    /// </para>
+    /// </summary>
+    private void PublishConfiguration()
     {
-        builder.UseEnvironment("Development");
+        Environment.SetEnvironmentVariable("CCP_ConnectionStrings__Platform", TestConnectionString);
 
-        builder.ConfigureAppConfiguration((_, configuration) =>
-            configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:Platform"] = TestConnectionString,
-
-                // A short poll keeps outbox tests fast without sleeping.
-                ["Outbox:PollInterval"] = "00:00:01"
-            }));
+        // A short poll keeps outbox tests fast without sleeping.
+        Environment.SetEnvironmentVariable("CCP_Outbox__PollInterval", "00:00:01");
     }
 
     // Explicit interface implementation: xUnit's IAsyncLifetime declares
@@ -65,6 +86,8 @@ public sealed class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncL
     {
         await CreateDatabaseAsync();
         await ApplyMigrationsAsync();
+
+        PublishConfiguration();
     }
 
     async Task IAsyncLifetime.DisposeAsync()
