@@ -13,18 +13,29 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /source
 
-# Copy the project graph first so restore is cached independently of source
-# changes. Editing a .cs file then costs a compile, not a full restore.
-COPY global.json Directory.Build.props ./
-COPY src/Kernel/CCP.Kernel/*.csproj                 src/Kernel/CCP.Kernel/
-COPY src/Kernel/CCP.Kernel.Application/*.csproj     src/Kernel/CCP.Kernel.Application/
-COPY src/Kernel/CCP.Kernel.Infrastructure/*.csproj  src/Kernel/CCP.Kernel.Infrastructure/
-COPY src/Kernel/CCP.Kernel.Api/*.csproj             src/Kernel/CCP.Kernel.Api/
-COPY src/Host/CCP.Api.Host/*.csproj                 src/Host/CCP.Api.Host/
+# The whole source tree, then restore.
+#
+# An earlier version copied each .csproj individually so that restore could be
+# cached independently of source edits. That list was written in Phase 1 and
+# named five projects; by Phase 5 there were twenty. Restore skipped the ones it
+# could not find - "Skipping project ... because it was not found", a warning,
+# not an error - and publish then failed on the missing assets files. A list
+# that must be edited every time a module is added is a list that will be wrong,
+# and this one was wrong for four phases without anyone noticing, because the
+# image was never actually built.
+#
+# Copying everything costs the restore cache on any source change. That is the
+# right trade for a codebase that gains a module every phase or two: a slower
+# build is a cost, a build that silently omits projects is a defect.
+#
+# .editorconfig is not optional here. Directory.Build.props turns warnings into
+# errors, and the analyzer suppressions that make that survivable - each with a
+# written justification - live in .editorconfig. Without it the build fails on
+# CA1716 in the kernel.
+COPY global.json Directory.Build.props .editorconfig ./
+COPY src/ src/
 
 RUN dotnet restore src/Host/CCP.Api.Host/CCP.Api.Host.csproj
-
-COPY src/ src/
 
 RUN dotnet publish src/Host/CCP.Api.Host/CCP.Api.Host.csproj \
     --configuration Release \
