@@ -93,7 +93,8 @@
     "statusActive": "Active",
     "statusDisabled": "Disabled",
     "statusLocked": "Locked",
-    "searchPlaceholder": "Search by name, username or email"
+    "searchPlaceholder": "Search by name, username or email",
+    "username": "Username"
   },
   "audit": {
     "title": "Audit",
@@ -112,5 +113,27 @@
     "resultDenied": "Denied",
     "dateRangeRequired": "Choose a date range to search.",
     "dateRangeTooWide": "The range is too wide. Narrow it to 90 days or fewer."
+  },
+  "employees": {
+    "title": "Employees",
+    "description": "People, their unit and their position.",
+    "employeeNumber": "Number",
+    "fullName": "Name",
+    "unit": "Unit",
+    "position": "Position",
+    "workEmail": "Work email",
+    "searchPlaceholder": "Search by name or number",
+    "linkedAccount": "Account",
+    "notLinked": "Not linked"
+  },
+  "roles": {
+    "title": "Roles",
+    "description": "What a role grants, and where.",
+    "code": "Code",
+    "name": "Name",
+    "permissionCount": "Permissions",
+    "system": "System",
+    "systemRole": "System role",
+    "customRole": "Custom"
   }
 }

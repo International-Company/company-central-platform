@@ -9,6 +9,7 @@ import { DataTable, type Column } from '@/components/shared/data-table';
 import { Pagination } from '@/components/shared/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
+import { IfPermitted } from '@/lib/permissions';
 import type { PagedResult, UserDto } from '@/types/platform';
 
 /**
@@ -93,7 +94,7 @@ export function UsersScreen() {
     },
     {
       key: 'username',
-      header: tCommon('search'),
+      header: t('username'),
       render: (user) => user.username,
     },
     {
@@ -155,7 +156,14 @@ export function UsersScreen() {
       <PageHeader
         title={t('title')}
         description={t('description')}
-        action={<Button variant="primary">{t('createUser')}</Button>}
+        action={
+          // Hidden when the caller cannot create users, so they are not offered
+          // an action that would be refused. The Platform refuses it anyway —
+          // this only spares them the surprise.
+          <IfPermitted permission="platform.users.create">
+            <Button variant="primary">{t('createUser')}</Button>
+          </IfPermitted>
+        }
       />
 
       <form

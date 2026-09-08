@@ -4,7 +4,7 @@
 |---|---|
 | Last updated | 2026-09-08 |
 | Current phase | **Phase 7 — Frontend Foundation** |
-| Phase status | 🟡 **Foundation built — design system, i18n/RTL, BFF, shell, sign-in. Administration screens outstanding** |
+| Phase status | 🟡 **Nine screens built in both locales. Create/edit forms, OpenAPI types and E2E outstanding** |
 | Next phase | Complete Phase 7, then **Phase 8 — Workflow** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — https://company-central-platform-production.up.railway.app |
@@ -22,7 +22,7 @@
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
 | 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
-| 7 | Frontend Foundation & Core Admin UI | 🟡 **Foundation** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives, sign-in. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. |
+| 7 | Frontend Foundation & Core Admin UI | 🟡 **Foundation** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. |
 | 8 | Workflow | ⬜ Not started | |
 | 9 | Notifications | ⬜ Not started | |
 | 10 | Documents | ⬜ Not started | |

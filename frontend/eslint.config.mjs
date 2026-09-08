@@ -16,6 +16,21 @@ export default tseslint.config(
   ...tseslint.configs.recommendedTypeChecked,
 
   {
+    // The build's own config files are not part of the TypeScript project, so
+    // type-aware rules cannot parse them. Linted without type information
+    // rather than excluded outright: they are still code, and a genuine mistake
+    // in one breaks the build for everyone.
+    //
+    // `next build` lints only `src`, which is why this only surfaced in CI —
+    // a reminder that "the build passed" is not the same as "the lint script
+    // passed".
+    files: ['**/*.mjs', '**/*.js'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+
     languageOptions: {
       parserOptions: {
         projectService: true,

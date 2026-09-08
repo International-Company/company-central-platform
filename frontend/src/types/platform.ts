@@ -33,6 +33,44 @@ export interface UserDto {
   createdAt: string;
 }
 
+/**
+ * A name in both languages.
+ *
+ * Both are required by the Platform, which is why this is two fields rather
+ * than an optional second one: an optional Arabic name becomes a permanently
+ * empty column, and the Arabic interface then shows English names.
+ */
+export interface LocalizedNameDto {
+  ar: string;
+  en: string;
+}
+
+export interface EmployeeDto {
+  id: string;
+  employeeNumber: string;
+  fullName: LocalizedNameDto;
+  userId: string | null;
+  unitId: string;
+  unitCode: string;
+  positionId: string | null;
+  positionCode: string | null;
+  managerId: string | null;
+  workEmail: string | null;
+  workPhone: string | null;
+  hireDate: string | null;
+}
+
+export interface RoleDto {
+  id: string;
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  description: string | null;
+  isSystem: boolean;
+  isActive: boolean;
+  permissionCount: number;
+}
+
 export interface AuditEventDto {
   id: string;
   occurredAt: string;

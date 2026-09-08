@@ -93,7 +93,8 @@
     "statusActive": "نشط",
     "statusDisabled": "معطّل",
     "statusLocked": "مقفل",
-    "searchPlaceholder": "ابحث بالاسم أو اسم المستخدم أو البريد"
+    "searchPlaceholder": "ابحث بالاسم أو اسم المستخدم أو البريد",
+    "username": "اسم المستخدم"
   },
   "audit": {
     "title": "سجل التدقيق",
@@ -112,5 +113,27 @@
     "resultDenied": "رفض",
     "dateRangeRequired": "اختر نطاقًا زمنيًا للبحث.",
     "dateRangeTooWide": "النطاق واسع. ضيّقه إلى 90 يومًا أو أقل."
+  },
+  "employees": {
+    "title": "الموظفون",
+    "description": "الأشخاص ووحداتهم ومناصبهم.",
+    "employeeNumber": "الرقم",
+    "fullName": "الاسم",
+    "unit": "الوحدة",
+    "position": "المنصب",
+    "workEmail": "بريد العمل",
+    "searchPlaceholder": "ابحث بالاسم أو الرقم",
+    "linkedAccount": "الحساب",
+    "notLinked": "غير مرتبط"
+  },
+  "roles": {
+    "title": "الأدوار",
+    "description": "ما يمنحه الدور، وأين.",
+    "code": "الرمز",
+    "name": "الاسم",
+    "permissionCount": "الصلاحيات",
+    "system": "النظام",
+    "systemRole": "دور نظام",
+    "customRole": "مخصّص"
   }
 }
