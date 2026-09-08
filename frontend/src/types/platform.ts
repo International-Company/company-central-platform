@@ -1,14 +1,43 @@
 /**
  * The Platform's contracts, as this application sees them.
  *
- * Hand-written for now, and that is a stated gap rather than a preference:
- * Phase 7 task 11 is to generate these from the OpenAPI document, so a backend
- * change that breaks a screen fails the build instead of failing in front of a
- * user. Until then these are kept in one file, so there is exactly one place to
- * correct when the contract moves.
+ * **Generated, not written.** Every type here is an alias onto
+ * `platform-api.ts`, which `openapi-typescript` produces from
+ * `contracts/platform-api.json` — the document the API itself emits at build
+ * time. A backend change that alters a response now breaks this build instead
+ * of failing in front of a user.
+ *
+ * That is not a theoretical benefit. The hand-written version this replaces got
+ * two fields wrong: it said `expiresIn` where the contract says
+ * `expiresInSeconds`, so the session expiry computed to NaN; and it put
+ * `mustChangePassword` at the top level where the contract nests it under
+ * `user`, so a first sign-in was never sent to the change-password screen. Both
+ * compiled. Both shipped.
+ *
+ * The aliases exist so screens read `UserDto` rather than
+ * `components['schemas']['UserDto']`, and so this file stays the single place to
+ * look when a name changes.
  */
 
-/** The envelope every list endpoint returns (ADR-008). */
+import type { components } from './platform-api';
+
+type Schemas = components['schemas'];
+
+export type UserDto = Schemas['UserDto'];
+export type CurrentUserDto = Schemas['CurrentUserDto'];
+export type AuthenticationResultDto = Schemas['AuthenticationResultDto'];
+export type EmployeeDto = Schemas['EmployeeDto'];
+export type LocalizedNameDto = Schemas['LocalizedNameDto'];
+export type RoleDto = Schemas['RoleDto'];
+export type AuditEventDto = Schemas['AuditEventDto'];
+
+/**
+ * The envelope every list endpoint returns (ADR-008).
+ *
+ * Kept as a generic here because the generated document expresses each closed
+ * form separately — `PagedResultOfUserDto`, `PagedResultOfEmployeeDto` — and a
+ * screen wants to say "a page of these" once.
+ */
 export interface PagedResult<T> {
   items: T[];
   page: number;
@@ -18,85 +47,7 @@ export interface PagedResult<T> {
   hasNext: boolean;
 }
 
-export interface UserDto {
-  id: string;
-  username: string;
-  email: string;
-  emailVerified: boolean;
-  displayName: string;
-
-  /** `Active`, `Disabled` or `Locked`, as the Platform spells it. */
-  status: string;
-
-  mustChangePassword: boolean;
-  lastLoginAt: string | null;
-  createdAt: string;
-}
-
-/**
- * A name in both languages.
- *
- * Both are required by the Platform, which is why this is two fields rather
- * than an optional second one: an optional Arabic name becomes a permanently
- * empty column, and the Arabic interface then shows English names.
- */
-export interface LocalizedNameDto {
-  ar: string;
-  en: string;
-}
-
-export interface EmployeeDto {
-  id: string;
-  employeeNumber: string;
-  fullName: LocalizedNameDto;
-  userId: string | null;
-  unitId: string;
-  unitCode: string;
-  positionId: string | null;
-  positionCode: string | null;
-  managerId: string | null;
-  workEmail: string | null;
-  workPhone: string | null;
-  hireDate: string | null;
-}
-
-export interface RoleDto {
-  id: string;
-  code: string;
-  nameAr: string;
-  nameEn: string;
-  description: string | null;
-  isSystem: boolean;
-  isActive: boolean;
-  permissionCount: number;
-}
-
-export interface AuditEventDto {
-  id: string;
-  occurredAt: string;
-  application: string;
-  module: string;
-  action: string;
-
-  /** `Success`, `Failure` or `Denied`. */
-  result: string;
-
-  resourceType: string | null;
-  resourceId: string | null;
-  actorUserId: string | null;
-
-  /** Denormalized, so the trail stays readable after a rename. */
-  actorUsername: string | null;
-
-  onBehalfOfUserId: string | null;
-  ipAddress: string | null;
-  correlationId: string | null;
-  oldValue: string | null;
-  newValue: string | null;
-  metadata: string | null;
-}
-
-/** RFC 9457, as the Platform returns it. */
+/** RFC 9457, as the Platform returns it on failure. */
 export interface ProblemResponse {
   code?: string;
   detail?: string;

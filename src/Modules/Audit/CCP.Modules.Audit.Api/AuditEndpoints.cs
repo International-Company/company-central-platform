@@ -64,6 +64,12 @@ public static class AuditEndpoints
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.audit.view"))
             .RequireRateLimiting(RateLimitPolicies.Read)
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request. The frontend generates its
+            // types from that document; without this the response shape is a guess
+            // written by hand, which is how `expiresIn` and a top-level
+            // `mustChangePassword` reached production.
+            .Produces<PagedResult<AuditEventDto>>(StatusCodes.Status200OK)
             .WithName("SearchAuditEvents")
             .WithSummary("Searches the audit trail. The date range is required and bounded.");
 

@@ -194,6 +194,12 @@ public static class OrganizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.employees.view"))
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request. The frontend generates its
+            // types from that document; without this the response shape is a guess
+            // written by hand, which is how `expiresIn` and a top-level
+            // `mustChangePassword` reached production.
+            .Produces<PagedResult<EmployeeDto>>(StatusCodes.Status200OK)
             .WithName("SearchEmployees")
             .WithSummary("Lists employees, optionally scoped to a unit and everything beneath it.");
 

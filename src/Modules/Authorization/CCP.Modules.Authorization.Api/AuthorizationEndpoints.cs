@@ -133,6 +133,9 @@ public static class AuthorizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.roles.view"))
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request.
+            .Produces<IReadOnlyList<RoleDto>>(StatusCodes.Status200OK)
             .WithName("GetRoles")
             .WithSummary("Lists roles.");
 

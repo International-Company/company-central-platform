@@ -57,6 +57,12 @@ public static class AuthenticationEndpoints
         })
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.Authentication)
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request. The frontend generates its
+            // types from that document; without this the response shape is a guess
+            // written by hand, which is how `expiresIn` and a top-level
+            // `mustChangePassword` reached production.
+            .Produces<AuthenticationResultDto>(StatusCodes.Status200OK)
             .WithName("SignIn")
             .WithSummary("Authenticates a user and starts a session.");
 
@@ -82,6 +88,9 @@ public static class AuthenticationEndpoints
         })
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicies.Authentication)
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request.
+            .Produces<AuthenticationResultDto>(StatusCodes.Status200OK)
             .WithName("RefreshToken")
             .WithSummary("Exchanges a refresh token for a new token pair.");
 

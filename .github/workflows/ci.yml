@@ -179,6 +179,13 @@ jobs:
       - name: Install
         run: npm ci
 
+      # The generated types must match the committed contract. If a backend
+      # change altered a response and nobody regenerated, this fails here rather
+      # than in front of a user — which is the entire reason the types are
+      # generated instead of written.
+      - name: Types match the contract
+        run: npm run verify:types
+
       - name: Typecheck
         run: npm run typecheck
 

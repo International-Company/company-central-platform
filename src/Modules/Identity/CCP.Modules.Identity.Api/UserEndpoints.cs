@@ -129,6 +129,12 @@ public static class UserEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.users.view"))
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request. The frontend generates its
+            // types from that document; without this the response shape is a guess
+            // written by hand, which is how `expiresIn` and a top-level
+            // `mustChangePassword` reached production.
+            .Produces<PagedResult<UserDto>>(StatusCodes.Status200OK)
             .WithName("SearchUsers")
             .WithSummary("Lists users, filtered and paged.");
 
@@ -145,6 +151,12 @@ public static class UserEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.users.view"))
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request. The frontend generates its
+            // types from that document; without this the response shape is a guess
+            // written by hand, which is how `expiresIn` and a top-level
+            // `mustChangePassword` reached production.
+            .Produces<UserDto>(StatusCodes.Status200OK)
             .WithName("GetUser")
             .WithSummary("Returns one user.");
 
@@ -176,6 +188,9 @@ public static class UserEndpoints
             // A new account is a new way in, and one an intruder controls the
             // password of.
             .WithMetadata(new RequireStepUpAttribute())
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request.
+            .Produces<UserDto>(StatusCodes.Status200OK)
             .WithName("CreateUser")
             .WithSummary("Creates a user who must change their password at first sign-in.");
 
@@ -201,6 +216,9 @@ public static class UserEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.users.edit"))
+            // Declares what a success returns, so the OpenAPI document describes
+            // the response and not merely the request.
+            .Produces<UserDto>(StatusCodes.Status200OK)
             .WithName("UpdateUser")
             .WithSummary("Updates a user's email and display name.");
 
