@@ -50,7 +50,7 @@ export function Pagination({
           needs to know the range changed, without being interrupted. */}
       <p
         aria-live="polite"
-        className="text-sm text-[--color-text-secondary]"
+        className="text-sm text-text-secondary"
         data-numeric
       >
         {labels.showing({ from, to, total: totalItems })}

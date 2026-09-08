@@ -175,7 +175,7 @@ export function UsersScreen() {
         <div className="flex min-w-56 flex-1 flex-col gap-1.5">
           <label
             htmlFor="user-search"
-            className="text-sm font-medium text-[--color-text]"
+            className="text-sm font-medium text-text"
           >
             {tCommon('search')}
           </label>
@@ -186,7 +186,7 @@ export function UsersScreen() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={t('searchPlaceholder')}
-            className="h-10 rounded-[--radius-md] border border-[--color-border-strong] bg-[--color-surface] px-3 text-sm"
+            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm"
           />
         </div>
 
@@ -209,7 +209,7 @@ export function UsersScreen() {
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
 
       {loading && !result ? (
-        <p role="status" className="text-sm text-[--color-text-secondary]">
+        <p role="status" className="text-sm text-text-secondary">
           {tCommon('loading')}
         </p>
       ) : result ? (

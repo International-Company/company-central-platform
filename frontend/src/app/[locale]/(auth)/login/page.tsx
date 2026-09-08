@@ -100,7 +100,7 @@ export default function LoginPage() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-      <h2 className="text-sm font-medium text-[--color-text-secondary]">
+      <h2 className="text-sm font-medium text-text-secondary">
         {t('signInTitle')}
       </h2>
 
@@ -150,7 +150,7 @@ export default function LoginPage() {
 
       <a
         href="forgot-password"
-        className="text-center text-sm text-[--color-primary-700] underline underline-offset-2"
+        className="text-center text-sm text-primary-700 underline underline-offset-2"
       >
         {t('forgotPassword')}
       </a>

@@ -18,10 +18,10 @@ export function PageHeader({
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 className="text-lg font-semibold text-[--color-text]">{title}</h1>
+        <h1 className="text-lg font-semibold text-text">{title}</h1>
 
         {description ? (
-          <p className="mt-0.5 text-sm text-[--color-text-secondary]">
+          <p className="mt-0.5 text-sm text-text-secondary">
             {description}
           </p>
         ) : null}

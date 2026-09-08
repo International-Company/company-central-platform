@@ -161,13 +161,13 @@ async function refresh(session: Session): Promise<Session | null> {
   const body = (await raw.json()) as {
     accessToken: string;
     refreshToken: string;
-    expiresIn: number;
+    expiresInSeconds: number;
   };
 
   const next: Session = {
     accessToken: body.accessToken,
     refreshToken: body.refreshToken,
-    expiresAt: Date.now() + body.expiresIn * 1000,
+    expiresAt: Date.now() + body.expiresInSeconds * 1000,
   };
 
   await writeSession(next);

@@ -47,14 +47,14 @@ export function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="text-sm font-medium text-[--color-text]"
+        className="text-sm font-medium text-text"
       >
         {label}
         {required && requiredLabel ? (
           // The word, not a red asterisk. An asterisk means nothing to a
           // screen reader and little to a user who has not been told the
           // convention.
-          <span className="ms-1 font-normal text-[--color-text-muted]">
+          <span className="ms-1 font-normal text-text-muted">
             ({requiredLabel})
           </span>
         ) : null}
@@ -66,18 +66,18 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={
-          'h-10 rounded-[--radius-md] border bg-[--color-surface] px-3 text-sm ' +
-          'text-[--color-text] placeholder:text-[--color-text-muted] ' +
+          'h-10 rounded-md border bg-surface px-3 text-sm ' +
+          'text-text placeholder:text-text-muted ' +
           (error
-            ? 'border-[--color-danger]'
-            : 'border-[--color-border-strong]') +
+            ? 'border-danger'
+            : 'border-border-strong') +
           ` ${className}`
         }
         {...rest}
       />
 
       {hint ? (
-        <p id={hintId} className="text-xs text-[--color-text-secondary]">
+        <p id={hintId} className="text-xs text-text-secondary">
           {hint}
         </p>
       ) : null}
@@ -86,7 +86,7 @@ export function Field({
         <p
           id={errorId}
           role="alert"
-          className="text-xs font-medium text-[--color-danger]"
+          className="text-xs font-medium text-danger"
         >
           {error}
         </p>
@@ -111,17 +111,17 @@ export function FormMessage({
 }) {
   const tones = {
     error:
-      'border-[--color-danger] bg-[--color-danger-surface] text-[--color-danger]',
+      'border-danger bg-danger-surface text-danger',
     success:
-      'border-[--color-success] bg-[--color-success-surface] text-[--color-success]',
-    info: 'border-[--color-border-strong] bg-[--color-surface-sunken] text-[--color-text-secondary]',
+      'border-success bg-success-surface text-success',
+    info: 'border-border-strong bg-surface-sunken text-text-secondary',
   } as const;
 
   return (
     <div
       // Errors interrupt; confirmations wait their turn. Both are announced.
       role={tone === 'error' ? 'alert' : 'status'}
-      className={`rounded-[--radius-md] border px-3 py-2 text-sm ${tones[tone]}`}
+      className={`rounded-md border px-3 py-2 text-sm ${tones[tone]}`}
     >
       {children}
     </div>

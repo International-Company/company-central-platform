@@ -98,7 +98,7 @@ export function RolesScreen() {
           }}
         />
       ) : !error ? (
-        <p role="status" className="text-sm text-[--color-text-secondary]">
+        <p role="status" className="text-sm text-text-secondary">
           {tCommon('loading')}
         </p>
       ) : null}

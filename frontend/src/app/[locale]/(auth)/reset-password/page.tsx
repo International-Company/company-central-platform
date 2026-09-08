@@ -83,7 +83,7 @@ export default function ResetPasswordPage() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-      <h2 className="text-sm font-medium text-[--color-text]">
+      <h2 className="text-sm font-medium text-text">
         {t('resetTitle')}
       </h2>
 

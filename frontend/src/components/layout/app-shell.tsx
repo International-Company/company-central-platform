@@ -57,7 +57,7 @@ export function AppShell({
           not have to walk the whole navigation on every page. */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded-[--radius-md] focus:bg-[--color-surface] focus:px-3 focus:py-2 focus:text-sm"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm"
       >
         {labels.skipToContent}
       </a>
@@ -66,7 +66,7 @@ export function AppShell({
         {/* Wide screens: a permanent sidebar. `border-e` is the *end* edge, so
             it is on the right in Arabic without a second rule. */}
         <aside
-          className="hidden w-60 shrink-0 border-e border-[--color-border] bg-[--color-surface] lg:block"
+          className="hidden w-60 shrink-0 border-e border-border bg-surface lg:block"
           data-print-hidden
         >
           <SidebarContent
@@ -78,7 +78,7 @@ export function AppShell({
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header
-            className="flex h-14 items-center justify-between gap-3 border-b border-[--color-border] bg-[--color-surface] px-4"
+            className="flex h-14 items-center justify-between gap-3 border-b border-border bg-surface px-4"
             data-print-hidden
           >
             <div className="flex items-center gap-3">
@@ -87,12 +87,12 @@ export function AppShell({
                 onClick={() => setDrawerOpen(true)}
                 aria-expanded={drawerOpen}
                 aria-controls="mobile-navigation"
-                className="rounded-[--radius-md] border border-[--color-border-strong] px-3 py-1.5 text-sm lg:hidden"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm lg:hidden"
               >
                 {labels.openMenu}
               </button>
 
-              <span className="text-sm font-semibold text-[--color-text]">
+              <span className="text-sm font-semibold text-text">
                 {labels.appName}
               </span>
             </div>
@@ -103,7 +103,7 @@ export function AppShell({
               <form action="/api/auth/sign-out" method="post">
                 <button
                   type="submit"
-                  className="text-sm text-[--color-primary-700] underline underline-offset-2"
+                  className="text-sm text-primary-700 underline underline-offset-2"
                 >
                   {labels.signOut}
                 </button>
@@ -125,18 +125,18 @@ export function AppShell({
             type="button"
             aria-label={labels.closeMenu}
             onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-[--color-text]/25"
+            className="absolute inset-0 bg-text/25"
           />
 
           <div
             id="mobile-navigation"
-            className="absolute inset-y-0 start-0 w-64 border-e border-[--color-border] bg-[--color-surface]"
+            className="absolute inset-y-0 start-0 w-64 border-e border-border bg-surface"
           >
             <div className="flex h-14 items-center justify-end px-4">
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-[--radius-md] border border-[--color-border-strong] px-3 py-1.5 text-sm"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm"
               >
                 {labels.closeMenu}
               </button>
@@ -183,10 +183,10 @@ function SidebarContent({
                 // user unable to tell where they are.
                 aria-current={active ? 'page' : undefined}
                 className={
-                  'block rounded-[--radius-md] px-3 py-2 text-sm ' +
+                  'block rounded-md px-3 py-2 text-sm ' +
                   (active
-                    ? 'bg-[--color-primary-50] font-medium text-[--color-primary-700]'
-                    : 'text-[--color-text-secondary] hover:bg-[--color-surface-sunken]')
+                    ? 'bg-primary-50 font-medium text-primary-700'
+                    : 'text-text-secondary hover:bg-surface-sunken')
                 }
               >
                 {item.label}
@@ -219,8 +219,8 @@ function LocaleSwitch({ current, label }: { current: Locale; label: string }) {
           aria-current={locale === current ? 'true' : undefined}
           className={
             locale === current
-              ? 'font-medium text-[--color-text]'
-              : 'text-[--color-primary-700] underline underline-offset-2'
+              ? 'font-medium text-text'
+              : 'text-primary-700 underline underline-offset-2'
           }
         >
           {localeLabel[locale]}

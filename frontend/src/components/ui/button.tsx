@@ -28,25 +28,25 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center rounded-[--radius-md] border font-medium ' +
+  'inline-flex items-center justify-center rounded-md border font-medium ' +
   'transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-55';
 
 const variants: Record<Variant, string> = {
   primary:
-    'border-transparent bg-[--color-primary-600] text-[--color-text-on-primary] ' +
-    'hover:bg-[--color-primary-700]',
+    'border-transparent bg-primary-600 text-text-on-primary ' +
+    'hover:bg-primary-700',
   secondary:
-    'border-[--color-border-strong] bg-[--color-surface] text-[--color-text] ' +
-    'hover:bg-[--color-surface-sunken]',
+    'border-border-strong bg-surface text-text ' +
+    'hover:bg-surface-sunken',
   quiet:
-    'border-transparent bg-transparent text-[--color-primary-700] underline ' +
-    'underline-offset-2 hover:text-[--color-primary-900]',
+    'border-transparent bg-transparent text-primary-700 underline ' +
+    'underline-offset-2 hover:text-primary-900',
 
   // Destructive actions read as destructive in *words* as well as colour: the
   // label says Delete and a confirmation states what will be removed. Colour
   // alone fails a colour-blind reader and vanishes on paper (§9.8).
   danger:
-    'border-transparent bg-[--color-danger] text-white hover:brightness-95',
+    'border-transparent bg-danger text-white hover:brightness-95',
 };
 
 const sizes: Record<Size, string> = {

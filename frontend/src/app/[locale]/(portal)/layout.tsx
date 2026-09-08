@@ -6,6 +6,20 @@ import { readSession } from '@/lib/session';
 import { isLocale } from '@/i18n/config';
 
 /**
+ * Rendered per request, never prerendered.
+ *
+ * Without this the portal pages were generated at build time — when there is no
+ * session — so the redirect to sign-in was baked into static HTML and served to
+ * everyone, signed in or not. A user could authenticate successfully and still
+ * be bounced back to the login page forever.
+ *
+ * `generateStaticParams` on the locale layout above enables static rendering for
+ * the whole subtree, which is right for the public pages and wrong for these.
+ * Every page here depends on who is asking.
+ */
+export const dynamic = 'force-dynamic';
+
+/**
  * Everything behind sign-in.
  *
  * The session is checked on the server, before anything renders. A client-side

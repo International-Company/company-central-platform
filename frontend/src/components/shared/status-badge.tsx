@@ -13,13 +13,13 @@ export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger';
 
 const tones: Record<StatusTone, string> = {
   neutral:
-    'border-[--color-border-strong] bg-[--color-surface-sunken] text-[--color-text-secondary]',
+    'border-border-strong bg-surface-sunken text-text-secondary',
   success:
-    'border-[--color-success] bg-[--color-success-surface] text-[--color-success]',
+    'border-success bg-success-surface text-success',
   warning:
-    'border-[--color-warning] bg-[--color-warning-surface] text-[--color-warning]',
+    'border-warning bg-warning-surface text-warning',
   danger:
-    'border-[--color-danger] bg-[--color-danger-surface] text-[--color-danger]',
+    'border-danger bg-danger-surface text-danger',
 };
 
 export function StatusBadge({
@@ -31,7 +31,7 @@ export function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-[--radius-sm] border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
+      className={`inline-block whitespace-nowrap rounded-sm border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
     >
       {children}
     </span>

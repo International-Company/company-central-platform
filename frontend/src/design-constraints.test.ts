@@ -130,6 +130,26 @@ describe('white and blue only', () => {
   });
 });
 
+describe('the design tokens actually reach the page', () => {
+  it('uses the utilities Tailwind generates, not arbitrary variable syntax', () => {
+    // Every custom colour was missing from the deployed site, and the failure
+    // was silent: `bg-[--color-primary-600]` produces no rule in Tailwind v4,
+    // so the class was emitted into the HTML and styled nothing. Standard
+    // utilities like `flex` and `gap-4` still worked, which made the page look
+    // merely unfinished rather than broken.
+    //
+    // `@theme { --color-primary-600: ... }` generates `bg-primary-600`. That is
+    // the form to use, and this is what notices if the other one comes back.
+    const arbitraryToken = /\[--(?:color|radius|shadow)-[a-z0-9-]+\]/;
+
+    const offenders = sourceFiles().filter((file) =>
+      arbitraryToken.test(codeOf(file)),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('no token reaches the browser', () => {
   it('never touches localStorage or sessionStorage', () => {
     // The reason the BFF exists. Any token a script can read is a token an XSS

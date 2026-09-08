@@ -86,7 +86,7 @@ export function DataTable<TRow>({
       {/* Wide screens: a real table. Bounded and scrollable on its own so the
           page never scrolls sideways. */}
       <div
-        className="hidden overflow-x-auto rounded-[--radius-md] border border-[--color-border] bg-[--color-surface] sm:block"
+        className="hidden overflow-x-auto rounded-md border border-border bg-surface sm:block"
         // Focusable so the scroll region is reachable by keyboard — a scrollable
         // area that only a mouse can move is unusable without one.
         tabIndex={0}
@@ -97,7 +97,7 @@ export function DataTable<TRow>({
           <caption className="sr-only">{caption}</caption>
 
           <thead>
-            <tr className="border-b border-[--color-border] bg-[--color-surface-sunken]">
+            <tr className="border-b border-border bg-surface-sunken">
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -112,7 +112,7 @@ export function DataTable<TRow>({
                       : undefined
                   }
                   className={
-                    'px-3 py-2.5 font-medium text-[--color-text-secondary] ' +
+                    'px-3 py-2.5 font-medium text-text-secondary ' +
                     (column.numeric ? 'text-end' : 'text-start') +
                     (column.secondary ? ' hidden md:table-cell' : '')
                   }
@@ -121,7 +121,7 @@ export function DataTable<TRow>({
                     <button
                       type="button"
                       onClick={() => onSortChange(column.key)}
-                      className="inline-flex items-center gap-1 hover:text-[--color-text]"
+                      className="inline-flex items-center gap-1 hover:text-text"
                     >
                       {column.header}
                       <SortIndicator
@@ -137,7 +137,7 @@ export function DataTable<TRow>({
               ))}
 
               {rowActions ? (
-                <th scope="col" className="px-3 py-2.5 text-end font-medium text-[--color-text-secondary]">
+                <th scope="col" className="px-3 py-2.5 text-end font-medium text-text-secondary">
                   {labels.actions}
                 </th>
               ) : null}
@@ -148,14 +148,14 @@ export function DataTable<TRow>({
             {rows.map((row) => (
               <tr
                 key={rowKey(row)}
-                className="border-b border-[--color-border] last:border-b-0 hover:bg-[--color-surface-sunken]"
+                className="border-b border-border last:border-b-0 hover:bg-surface-sunken"
               >
                 {columns.map((column) => (
                   <td
                     key={column.key}
                     {...(column.numeric ? { 'data-numeric': true } : {})}
                     className={
-                      'px-3 py-2.5 text-[--color-text] ' +
+                      'px-3 py-2.5 text-text ' +
                       (column.numeric ? 'text-end' : 'text-start') +
                       (column.secondary ? ' hidden md:table-cell' : '')
                     }
@@ -179,7 +179,7 @@ export function DataTable<TRow>({
         {rows.map((row) => (
           <li
             key={rowKey(row)}
-            className="rounded-[--radius-md] border border-[--color-border] bg-[--color-surface] p-3"
+            className="rounded-md border border-border bg-surface p-3"
           >
             <dl className="flex flex-col gap-1.5">
               {columns.map((column) => (
@@ -187,10 +187,10 @@ export function DataTable<TRow>({
                   key={column.key}
                   className="flex items-baseline justify-between gap-3"
                 >
-                  <dt className="text-xs text-[--color-text-secondary]">
+                  <dt className="text-xs text-text-secondary">
                     {column.header}
                   </dt>
-                  <dd className="text-sm text-[--color-text]">
+                  <dd className="text-sm text-text">
                     {column.render(row)}
                   </dd>
                 </div>
@@ -198,7 +198,7 @@ export function DataTable<TRow>({
             </dl>
 
             {rowActions ? (
-              <div className="mt-2 border-t border-[--color-border] pt-2">
+              <div className="mt-2 border-t border-border pt-2">
                 {rowActions(row)}
               </div>
             ) : null}
@@ -253,11 +253,11 @@ export function EmptyState({
   return (
     // No illustration. An empty state is a sentence explaining what is missing
     // and, where useful, the button that fixes it (§9.5).
-    <div className="rounded-[--radius-md] border border-[--color-border] bg-[--color-surface] px-6 py-10 text-center">
-      <p className="text-sm font-medium text-[--color-text]">{title}</p>
+    <div className="rounded-md border border-border bg-surface px-6 py-10 text-center">
+      <p className="text-sm font-medium text-text">{title}</p>
 
       {description ? (
-        <p className="mt-1 text-sm text-[--color-text-secondary]">
+        <p className="mt-1 text-sm text-text-secondary">
           {description}
         </p>
       ) : null}

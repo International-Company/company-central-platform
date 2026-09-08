@@ -64,11 +64,11 @@ export default function MfaPage() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
       <div>
-        <h2 className="text-sm font-medium text-[--color-text]">
+        <h2 className="text-sm font-medium text-text">
           {t('mfaTitle')}
         </h2>
 
-        <p className="mt-1 text-sm text-[--color-text-secondary]">
+        <p className="mt-1 text-sm text-text-secondary">
           {t('mfaDescription')}
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function MfaPage() {
         requiredLabel={tCommon('required')}
       />
 
-      <label className="flex items-center gap-2 text-sm text-[--color-text-secondary]">
+      <label className="flex items-center gap-2 text-sm text-text-secondary">
         <input
           type="checkbox"
           checked={isRecoveryCode}

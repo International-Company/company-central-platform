@@ -20,12 +20,32 @@ const SignInRequest = z.object({
   password: z.string().min(1).max(256),
 });
 
+/**
+ * The Platform's actual response.
+ *
+ * Written from the contract rather than from memory, after the first version
+ * guessed `expiresIn` and a top-level `mustChangePassword`. Both were wrong:
+ * the field is `expiresInSeconds`, so the session expiry computed to NaN, and
+ * the flag lives on the nested user, so a first sign-in was never routed to the
+ * change-password screen.
+ *
+ * This is precisely what Phase 7 task 11 — generating these types from the
+ * OpenAPI document — exists to prevent. Until that is done, a hand-written
+ * interface is a guess that compiles.
+ */
 interface AuthenticationResult {
   accessToken: string;
   refreshToken: string;
-  expiresIn: number;
-  requiresMfa?: boolean;
-  mustChangePassword?: boolean;
+  expiresInSeconds: number;
+  tokenType: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    displayName: string;
+    mustChangePassword: boolean;
+    sessionId: string;
+  };
 }
 
 export async function POST(request: Request) {
@@ -66,11 +86,16 @@ export async function POST(request: Request) {
   await writeSession({
     accessToken: result.data.accessToken,
     refreshToken: result.data.refreshToken,
-    expiresAt: Date.now() + result.data.expiresIn * 1000,
+    expiresAt: Date.now() + result.data.expiresInSeconds * 1000,
   });
 
+  // The Platform does not yet report a pending MFA challenge on sign-in: a
+  // second factor is demanded at the privileged action, through step-up, rather
+  // than at the door (see docs/security/mfa.md). Reported as false rather than
+  // guessed at, so the screen does not send anyone to a challenge that is not
+  // waiting for them.
   return NextResponse.json({
-    requiresMfa: result.data.requiresMfa ?? false,
-    mustChangePassword: result.data.mustChangePassword ?? false,
+    requiresMfa: false,
+    mustChangePassword: result.data.user.mustChangePassword,
   });
 }
