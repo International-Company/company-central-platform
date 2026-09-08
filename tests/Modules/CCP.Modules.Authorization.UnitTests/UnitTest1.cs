@@ -1,0 +1,10 @@
+﻿namespace CCP.Modules.Authorization.UnitTests;
+
+public class UnitTest1
+{
+    [Fact]
+    public void Test1()
+    {
+
+    }
+}

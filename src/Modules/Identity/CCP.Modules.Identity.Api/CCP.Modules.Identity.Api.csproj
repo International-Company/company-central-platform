@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Api\CCP.Kernel.Api.csproj" />
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Identity.Application\CCP.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Identity.Contracts\CCP.Modules.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

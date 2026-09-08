@@ -1,0 +1,44 @@
+<Project>
+
+  <!--
+    Settings applied to every project in the solution.
+
+    Nullable reference types are enabled and warnings are errors, deliberately.
+    A nullability warning is a null reference exception that has not happened
+    yet; allowing it to accumulate as a warning means it is never fixed.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <Company>Company Central Platform</Company>
+    <Product>Company Central Platform</Product>
+  </PropertyGroup>
+
+  <!-- Deterministic builds so the same source always produces the same output. -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Test projects: relax the documentation-style rules that add noise, and
+       mark them as test projects so `dotnet test` discovers them correctly. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!--
+      CA1707  underscores in test method names are the convention here.
+      CA2007  ConfigureAwait is meaningless in a test host with no sync context.
+      CA1859  prefers concrete types for performance; tests deliberately go
+              through the abstraction, which is the thing under test.
+    -->
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1859</NoWarn>
+  </PropertyGroup>
+
+</Project>

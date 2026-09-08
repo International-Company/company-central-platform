@@ -1,0 +1,180 @@
+# ============================================================================
+# Company Central Platform — continuous integration
+#
+# Present from Phase 1, not Phase 18 (PROJECT_PLAN.md §2c). A pipeline added
+# near the end of a project never ran against the code that most needed it.
+#
+# Gates, in order of how fast they fail:
+#   build → unit tests → architecture tests → integration tests
+#         → format → secret scan → dependency audit → container build
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# A newer push supersedes an in-flight run on the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Build and the tests that need no external dependency. Fails fastest.
+  # -------------------------------------------------------------------------
+  build-and-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_only_not_a_real_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # Version comes from global.json, so CI and every developer machine
+          # build with the same SDK.
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Verify formatting
+        run: dotnet format --verify-no-changes --no-restore
+
+      - name: Unit tests
+        run: >-
+          dotnet test tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=unit.trx"
+          --collect:"XPlat Code Coverage"
+
+      # The architecture rules of ARCHITECTURE.md §6, as executable assertions.
+      # A violation fails the build rather than being noticed in review, or not.
+      - name: Architecture tests
+        run: >-
+          dotnet test tests/CCP.Architecture.Tests/CCP.Architecture.Tests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=architecture.trx"
+
+      - name: Integration tests
+        env:
+          CCP_TEST_POSTGRES: "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=ci_only_not_a_real_secret"
+        run: >-
+          dotnet test tests/CCP.Api.IntegrationTests/CCP.Api.IntegrationTests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=integration.trx"
+          --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/**"
+          retention-days: 14
+
+  # -------------------------------------------------------------------------
+  # Security gates. Separate job so a failure here is unambiguous.
+  # -------------------------------------------------------------------------
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: a secret committed and then removed is still a leaked
+          # secret, and scanning only the tip would miss it.
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # ARCHITECTURE.md P8. This is the control; discipline alone is not one.
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Vulnerable dependency audit
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee audit.txt
+          if grep -q -E "Critical|High" audit.txt; then
+            echo "::error::High or critical severity vulnerability found in dependencies."
+            exit 1
+          fi
+
+      - name: Deprecated dependency report
+        continue-on-error: true
+        run: dotnet list package --deprecated
+
+  # -------------------------------------------------------------------------
+  # Container image. Built on every run so a Dockerfile break is caught early;
+  # pushed only from the protected branches.
+  # -------------------------------------------------------------------------
+  container:
+    name: Container image
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: build/api.Dockerfile
+          push: false
+          tags: ccp-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ccp-api:${{ github.sha }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true

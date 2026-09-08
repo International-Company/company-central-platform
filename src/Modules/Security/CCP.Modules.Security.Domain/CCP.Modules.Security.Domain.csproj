@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Security.Contracts\CCP.Modules.Security.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Base32Encode is internal because encoding is an implementation detail of
+      the provisioning URI, not part of the contract. The tests need it to check
+      the encoding against the RFC 4648 vectors - a QR code that scans and then
+      never works is exactly the failure that vector check prevents.
+    -->
+    <InternalsVisibleTo Include="CCP.Modules.Security.UnitTests" />
+  </ItemGroup>
+
+</Project>

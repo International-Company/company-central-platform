@@ -1,0 +1,144 @@
+# ============================================================================
+# Company Central Platform — .gitignore
+#
+# Written BEFORE the first commit, deliberately (ARCHITECTURE.md P8).
+# A .gitignore added after a secret has been committed does not help:
+# git history is permanent. If a secret ever reaches a commit, the secret
+# must be rotated — removing it from history is not sufficient.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# SECRETS — never commit any of these
+# ----------------------------------------------------------------------------
+*.env
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.pem
+*.crt
+*.cer
+secrets.json
+appsettings.Local.json
+appsettings.*.Local.json
+**/secrets/
+*.secrets.*
+
+# ----------------------------------------------------------------------------
+# .NET
+# ----------------------------------------------------------------------------
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Bb]uild/
+[Bb]uilds/
+artifacts/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+project.lock.json
+project.fragment.lock.json
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+*.dbmdl
+*.jfm
+*.publishsettings
+PublishScripts/
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.binlog
+
+# Test results and coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+TestResults/
+.coverlet/
+
+# ----------------------------------------------------------------------------
+# Node / Next.js (frontend/)
+# ----------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+.swc/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/versions
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# ----------------------------------------------------------------------------
+# Local development data — never commit database or storage volumes
+# ----------------------------------------------------------------------------
+.data/
+docker/volumes/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ----------------------------------------------------------------------------
+# Logs
+# ----------------------------------------------------------------------------
+logs/
+*.log
+
+# ----------------------------------------------------------------------------
+# OS / editor noise
+# ----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+
+# ----------------------------------------------------------------------------
+# Temporary
+# ----------------------------------------------------------------------------
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej

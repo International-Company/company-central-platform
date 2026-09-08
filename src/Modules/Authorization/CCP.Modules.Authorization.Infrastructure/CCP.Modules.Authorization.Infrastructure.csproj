@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Infrastructure\CCP.Kernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Authorization.Domain\CCP.Modules.Authorization.Domain.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Authorization.Application\CCP.Modules.Authorization.Application.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Authorization.Contracts\CCP.Modules.Authorization.Contracts.csproj" />
+    <ProjectReference Include="..\..\Organization\CCP.Modules.Organization.Contracts\CCP.Modules.Organization.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Api\CCP.Kernel.Api.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Authorization.Api\CCP.Modules.Authorization.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The seeder reads endpoint metadata to derive the Platform's permission
+      list, which needs ASP.NET Core routing types. This is the one place
+      Infrastructure touches them, and it is why the reference is here rather
+      than in the module's other layers.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

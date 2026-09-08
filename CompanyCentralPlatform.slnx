@@ -1,0 +1,52 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/CCP.Api.Host/CCP.Api.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/Kernel/">
+    <Project Path="src/Kernel/CCP.Kernel.Api/CCP.Kernel.Api.csproj" />
+    <Project Path="src/Kernel/CCP.Kernel.Application/CCP.Kernel.Application.csproj" />
+    <Project Path="src/Kernel/CCP.Kernel.Infrastructure/CCP.Kernel.Infrastructure.csproj" />
+    <Project Path="src/Kernel/CCP.Kernel/CCP.Kernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Authorization/">
+    <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Api/CCP.Modules.Authorization.Api.csproj" />
+    <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Application/CCP.Modules.Authorization.Application.csproj" />
+    <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Contracts/CCP.Modules.Authorization.Contracts.csproj" />
+    <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Domain/CCP.Modules.Authorization.Domain.csproj" />
+    <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Infrastructure/CCP.Modules.Authorization.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/CCP.Modules.Identity.Api/CCP.Modules.Identity.Api.csproj" />
+    <Project Path="src/Modules/Identity/CCP.Modules.Identity.Application/CCP.Modules.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/CCP.Modules.Identity.Contracts/CCP.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/CCP.Modules.Identity.Domain/CCP.Modules.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/CCP.Modules.Identity.Infrastructure/CCP.Modules.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Organization/">
+    <Project Path="src/Modules/Organization/CCP.Modules.Organization.Api/CCP.Modules.Organization.Api.csproj" />
+    <Project Path="src/Modules/Organization/CCP.Modules.Organization.Application/CCP.Modules.Organization.Application.csproj" />
+    <Project Path="src/Modules/Organization/CCP.Modules.Organization.Contracts/CCP.Modules.Organization.Contracts.csproj" />
+    <Project Path="src/Modules/Organization/CCP.Modules.Organization.Domain/CCP.Modules.Organization.Domain.csproj" />
+    <Project Path="src/Modules/Organization/CCP.Modules.Organization.Infrastructure/CCP.Modules.Organization.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Security/">
+    <Project Path="src/Modules/Security/CCP.Modules.Security.Api/CCP.Modules.Security.Api.csproj" />
+    <Project Path="src/Modules/Security/CCP.Modules.Security.Application/CCP.Modules.Security.Application.csproj" />
+    <Project Path="src/Modules/Security/CCP.Modules.Security.Contracts/CCP.Modules.Security.Contracts.csproj" />
+    <Project Path="src/Modules/Security/CCP.Modules.Security.Domain/CCP.Modules.Security.Domain.csproj" />
+    <Project Path="src/Modules/Security/CCP.Modules.Security.Infrastructure/CCP.Modules.Security.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CCP.Api.IntegrationTests/CCP.Api.IntegrationTests.csproj" />
+    <Project Path="tests/CCP.Architecture.Tests/CCP.Architecture.Tests.csproj" />
+    <Project Path="tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Modules/">
+    <Project Path="tests/Modules/CCP.Modules.Authorization.UnitTests/CCP.Modules.Authorization.UnitTests.csproj" />
+    <Project Path="tests/Modules/CCP.Modules.Identity.UnitTests/CCP.Modules.Identity.UnitTests.csproj" />
+    <Project Path="tests/Modules/CCP.Modules.Organization.UnitTests/CCP.Modules.Organization.UnitTests.csproj" />
+    <Project Path="tests/Modules/CCP.Modules.Security.UnitTests/CCP.Modules.Security.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Authorization.Domain\CCP.Modules.Authorization.Domain.csproj" />
+    <ProjectReference Include="..\CCP.Modules.Authorization.Contracts\CCP.Modules.Authorization.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\CCP.Modules.Identity.Contracts\CCP.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Organization\CCP.Modules.Organization.Contracts\CCP.Modules.Organization.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

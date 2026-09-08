@@ -1,0 +1,81 @@
+# ============================================================================
+# Company Central Platform — editor and analyzer configuration
+# ============================================================================
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{json,yml,yaml,js,jsx,ts,tsx,css,scss,html,md}]
+indent_size = 2
+
+[*.{csproj,props,targets,xml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# ----------------------------------------------------------------------------
+# Analyzer rules — suppressions, each with a stated reason.
+#
+# A suppression without a reason is technical debt. If a rule is turned off
+# here, the justification must explain why the rule does not apply to this
+# codebase — not merely that it was inconvenient.
+# ----------------------------------------------------------------------------
+[*.cs]
+
+# CA1716: type names should not match a reserved keyword in another CLR
+# language (chiefly Visual Basic). The Platform is C#-only and exposes no
+# CLS-consumable library to other languages; `Error` and `Result` are the
+# established names for this pattern and renaming them would make the code
+# less recognisable for no benefit.
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1062: public methods should validate parameters for null. Nullable
+# reference types are enabled solution-wide and warnings are errors, which
+# gives stronger, compile-time enforcement than a runtime null check.
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1848: use LoggerMessage delegates for high-performance logging. Worth
+# adopting on genuinely hot logging paths; requiring it everywhere adds
+# ceremony to ordinary code. Revisit if logging shows up in a profile.
+dotnet_diagnostic.CA1848.severity = suggestion
+
+# CA1515: types in an application assembly could be internal. The host
+# assembly is referenced by the architecture tests, which must see its types.
+dotnet_diagnostic.CA1515.severity = none
+
+# Style: prefer explicit types where the type is not apparent from the right
+# hand side. Readability in review matters more than brevity.
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Namespaces: file-scoped, to reduce a level of indentation.
+csharp_style_namespace_declarations = file_scoped:warning
+
+# CA1711: type names should not end with a reserved suffix such as
+# 'EventHandler'. That rule targets the .NET `EventHandler` delegate
+# convention. `IIntegrationEventHandler<T>` is a domain event handler in the
+# established sense of that pattern, not a CLR event subscriber; renaming it
+# would make it less recognisable, not more.
+dotnet_diagnostic.CA1711.severity = none
+
+# ----------------------------------------------------------------------------
+# EF Core migrations are generated code. Applying hand-written style rules to
+# them would mean editing every generated file by hand forever, and a migration
+# that has been applied to a database must not be rewritten anyway.
+# Correctness rules still apply; only style and documentation rules are relaxed.
+# ----------------------------------------------------------------------------
+[**/Migrations/*.cs]
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0301.severity = none
+dotnet_diagnostic.CA1861.severity = none
+generated_code = true

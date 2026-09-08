@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\..\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
+    <ProjectReference Include="..\..\Kernel\CCP.Kernel.Infrastructure\CCP.Kernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Kernel\CCP.Kernel.Api\CCP.Kernel.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\CCP.Modules.Identity.Api\CCP.Modules.Identity.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\CCP.Modules.Identity.Infrastructure\CCP.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Organization\CCP.Modules.Organization.Api\CCP.Modules.Organization.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Organization\CCP.Modules.Organization.Infrastructure\CCP.Modules.Organization.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Authorization\CCP.Modules.Authorization.Api\CCP.Modules.Authorization.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Authorization\CCP.Modules.Authorization.Infrastructure\CCP.Modules.Authorization.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Security\CCP.Modules.Security.Api\CCP.Modules.Security.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Security\CCP.Modules.Security.Infrastructure\CCP.Modules.Security.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

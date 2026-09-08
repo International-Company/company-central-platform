@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A class library, not an application. FrameworkReference is how a library
+    consumes ASP.NET Core types without becoming a web project itself.
+    Common properties (target framework, nullable, warnings as errors) come
+    from Directory.Build.props and are deliberately not repeated here.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
+  </ItemGroup>
+
+</Project>

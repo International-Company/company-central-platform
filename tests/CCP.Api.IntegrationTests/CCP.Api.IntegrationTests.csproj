@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Host\CCP.Api.Host\CCP.Api.Host.csproj" />
+    <ProjectReference Include="..\..\src\Kernel\CCP.Kernel.Infrastructure\CCP.Kernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\CCP.Modules.Identity.Infrastructure\CCP.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Organization\CCP.Modules.Organization.Infrastructure\CCP.Modules.Organization.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Authorization\CCP.Modules.Authorization.Infrastructure\CCP.Modules.Authorization.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Security\CCP.Modules.Security.Infrastructure\CCP.Modules.Security.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
