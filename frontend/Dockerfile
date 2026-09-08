@@ -5,8 +5,9 @@
 # else: no source, no node_modules, no build tooling — a much smaller surface
 # than a single-stage build.
 #
-# Build from the frontend directory:
-#   docker build -t ccp-frontend frontend/
+# Built from the repository root, like the API image, so both services share
+# one context and one set of ignore rules:
+#   docker build -f frontend/Dockerfile -t ccp-frontend .
 # =============================================================================
 
 # --- Dependencies ------------------------------------------------------------
@@ -16,7 +17,7 @@ WORKDIR /app
 # The lockfile alone first, so this layer is reused whenever only source
 # changed. `npm ci` installs exactly what the lockfile pins - never a resolved
 # range, which is how a build stops being reproducible.
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 # --- Build -------------------------------------------------------------------
@@ -24,7 +25,7 @@ FROM node:24-alpine AS build
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY frontend/ ./
 
 # Typecheck and lint run in CI, not here. A container build that also lints
 # fails for two unrelated reasons and takes twice as long to tell you which.

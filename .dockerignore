@@ -9,7 +9,11 @@
 .github/
 docs/
 tests/
-frontend/
+# The frontend source is part of the context because its image is built from
+# the repository root, like the API's. Its build output and dependencies are
+# not - they are large, reproducible, and belong in neither image.
+frontend/.next/
+frontend/node_modules/
 .env
 .env.*
 !.env.example
