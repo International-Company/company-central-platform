@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Security.Application.Abstractions;
@@ -131,6 +132,7 @@ public sealed class ConfirmMfaEnrolmentHandler(
     IRecoveryCodeGenerator recoveryCodeGenerator,
     ISecurityEventRecorder eventRecorder,
     ISecurityUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock,
     IOptions<SecurityOptions> options)
 {
@@ -194,6 +196,19 @@ public sealed class ConfirmMfaEnrolmentHandler(
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Audited as well as recorded as a security event. The security log
+        // answers "what is being attempted"; the trail answers "who changed
+        // what", and turning a second factor on is a change to how an account
+        // is protected. Nothing about the secret or the codes is carried.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "security",
+                "mfa.enrolled",
+                AuditOutcome.Success,
+                "user",
+                command.UserId.ToString()),
+            cancellationToken);
 
         // Shown once. They are stored hashed, so this is the only moment they
         // exist in readable form — which the response makes explicit.
@@ -369,6 +384,7 @@ public sealed class DisableMfaHandler(
     IRecoveryCodeGenerator recoveryCodeGenerator,
     ISecurityEventRecorder eventRecorder,
     ISecurityUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -422,6 +438,18 @@ public sealed class DisableMfaHandler(
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Removing a second factor is exactly what an attacker does after
+        // taking an account, and it is the kind of change the real owner and a
+        // later investigator both need to find.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "security",
+                "mfa.disabled",
+                AuditOutcome.Success,
+                "user",
+                command.UserId.ToString()),
+            cancellationToken);
 
         return Result.Success();
     }

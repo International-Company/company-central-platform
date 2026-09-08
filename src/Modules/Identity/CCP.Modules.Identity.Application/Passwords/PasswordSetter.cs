@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Identity.Application.Abstractions;
@@ -27,6 +28,7 @@ public sealed class PasswordSetter(
     IIdentityRepository repository,
     IPasswordHasher passwordHasher,
     IBreachedPasswordChecker breachedPasswordChecker,
+    IAuditTrail auditTrail,
     IClock clock,
     IOptions<IdentityOptions> options)
 {
@@ -115,6 +117,19 @@ public sealed class PasswordSetter(
         {
             await RevokeOtherSessionsAsync(user.Id, currentSessionId, now, cancellationToken);
         }
+
+        // The single choke point for every route to a new password, which makes
+        // it the one place this can be recorded without a caller being able to
+        // forget. No value is carried: the whole point of the field policy is
+        // that a password never reaches the trail, redacted or otherwise.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "identity",
+                "password.changed",
+                AuditOutcome.Success,
+                "user",
+                user.Id.ToString()),
+            cancellationToken);
 
         return Result.Success();
     }

@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Authorization.Application.Abstractions;
@@ -44,8 +45,12 @@ public sealed class GrantRoleHandler(
     IPermissionVersionStore versionStore,
     IAuthorizationOutbox outbox,
     IAuthorizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
+    /// <summary>The module name every event from here carries.</summary>
+    private const string ModuleName = "authorization";
+
     public async Task<Result> HandleAsync(
         GrantRoleCommand command,
         CancellationToken cancellationToken = default)
@@ -71,6 +76,19 @@ public sealed class GrantRoleHandler(
 
         if (escalationCheck.IsFailure)
         {
+            // Recorded as Denied, not merely refused. Someone trying to grant
+            // more than they hold is either confused or probing, and both are
+            // worth being able to see later.
+            await auditTrail.RecordAsync(
+                new AuditEntry(
+                    ModuleName,
+                    "role.grant",
+                    AuditOutcome.Denied,
+                    "user",
+                    command.UserId.ToString(),
+                    Metadata: $$"""{"roleId":"{{command.RoleId}}","reason":"{{escalationCheck.Errors[0].Code}}"}"""),
+                cancellationToken);
+
             return escalationCheck;
         }
 
@@ -105,6 +123,19 @@ public sealed class GrantRoleHandler(
         // for a change that might then roll back, which is wasteful; bumping
         // after means the new grant is visible from the next request onward.
         await versionStore.BumpAsync(cancellationToken);
+
+        // After the commit. An audit record of a grant that then rolled back
+        // would be a record of something that never happened, which is worse
+        // than a missing one.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                ModuleName,
+                "role.granted",
+                AuditOutcome.Success,
+                "user",
+                command.UserId.ToString(),
+                NewValue: $$"""{"role":"{{role.Code}}","scope":"{{command.ScopeType}}","scopeUnitId":"{{command.ScopeUnitId}}","expiresAt":"{{command.ExpiresAt}}"}"""),
+            cancellationToken);
 
         return Result.Success();
     }
@@ -166,8 +197,11 @@ public sealed class RevokeRoleHandler(
     IEffectivePermissionCache cache,
     IAuthorizationOutbox outbox,
     IAuthorizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
+    private const string ModuleName = "authorization";
+
     public async Task<Result> HandleAsync(
         RevokeRoleCommand command,
         CancellationToken cancellationToken = default)
@@ -209,6 +243,19 @@ public sealed class RevokeRoleHandler(
         // recomputation on this one.
         await versionStore.BumpAsync(cancellationToken);
         cache.Invalidate(assignment.UserId);
+
+        // Revocation matters as much as the grant. Stripping an administrator's
+        // access is what an intruder does to buy time, and the trail is how
+        // anyone finds out afterwards.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                ModuleName,
+                "role.revoked",
+                AuditOutcome.Success,
+                "user",
+                assignment.UserId.ToString(),
+                OldValue: $$"""{"role":"{{role?.Code ?? "(unknown)"}}","assignmentId":"{{assignment.Id}}"}"""),
+            cancellationToken);
 
         return Result.Success();
     }

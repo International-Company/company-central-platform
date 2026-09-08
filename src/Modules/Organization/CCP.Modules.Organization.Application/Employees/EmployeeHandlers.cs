@@ -1,4 +1,5 @@
 using CCP.Kernel.Paging;
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Organization.Application.Abstractions;
@@ -28,6 +29,7 @@ public sealed class CreateEmployeeHandler(
     IOrganizationRepository repository,
     IOrganizationOutbox outbox,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result<EmployeeDto>> HandleAsync(
@@ -125,6 +127,16 @@ public sealed class CreateEmployeeHandler(
         await CreateUnitHandler.PublishDomainEventsAsync(employee, outbox, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "employee.created",
+                AuditOutcome.Success,
+                "employee",
+                employee.Id.ToString(),
+                NewValue: $$"""{"employeeNumber":"{{employee.EmployeeNumber}}","unit":"{{unit.Code}}"}"""),
+            cancellationToken);
+
         return Result.Success(OrganizationMapper.ToDto(employee, unit.Code, position?.Code));
     }
 
@@ -184,6 +196,7 @@ public sealed class TransferEmployeeHandler(
     IOrganizationRepository repository,
     IOrganizationOutbox outbox,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -246,6 +259,16 @@ public sealed class TransferEmployeeHandler(
         await CreateUnitHandler.PublishDomainEventsAsync(employee, outbox, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "employee.transferred",
+                AuditOutcome.Success,
+                "employee",
+                command.EmployeeId.ToString(),
+                NewValue: $$"""{"newUnitId":"{{command.NewUnitId}}","newPositionId":"{{command.NewPositionId}}"}"""),
+            cancellationToken);
+
         return Result.Success();
     }
 }
@@ -265,6 +288,7 @@ public sealed class LinkEmployeeUserHandler(
     IOrganizationRepository repository,
     IOrganizationOutbox outbox,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -290,6 +314,16 @@ public sealed class LinkEmployeeUserHandler(
 
         await CreateUnitHandler.PublishDomainEventsAsync(employee, outbox, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "employee.user_linked",
+                AuditOutcome.Success,
+                "employee",
+                command.EmployeeId.ToString(),
+                NewValue: $$"""{"userId":"{{command.UserId}}"}"""),
+            cancellationToken);
 
         return Result.Success();
     }

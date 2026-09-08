@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Auditing;
 using CCP.Modules.Audit.Application;
 using CCP.Modules.Audit.Application.Abstractions;
 using CCP.Modules.Audit.Infrastructure.Persistence;
@@ -36,6 +37,12 @@ public static class AuditInfrastructureRegistration
 
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IAuditRecorder, AuditRecorder>();
+
+        // Replaces the kernel's no-op trail. Every module writes through
+        // IAuditTrail and none of them references this one (ARCHITECTURE.md
+        // §6.2); registering the real implementation here is what turns those
+        // calls from silence into records.
+        services.AddScoped<IAuditTrail, PlatformAuditTrail>();
 
         services.AddHostedService<AuditPartitionMaintenance>();
 

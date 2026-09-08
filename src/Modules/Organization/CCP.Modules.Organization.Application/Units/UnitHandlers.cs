@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Organization.Application.Abstractions;
@@ -19,6 +20,7 @@ public sealed class CreateUnitHandler(
     IOrganizationRepository repository,
     IOrganizationOutbox outbox,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result<OrganizationUnitDto>> HandleAsync(
@@ -73,6 +75,16 @@ public sealed class CreateUnitHandler(
         await PublishDomainEventsAsync(creation.Value, outbox, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "unit.created",
+                AuditOutcome.Success,
+                "organization_unit",
+                creation.Value.Id.ToString(),
+                NewValue: $$"""{"code":"{{creation.Value.Code}}","path":"{{creation.Value.Path}}"}"""),
+            cancellationToken);
+
         return Result.Success(OrganizationMapper.ToDto(creation.Value));
     }
 
@@ -115,6 +127,7 @@ public sealed class MoveUnitHandler(
     IOrganizationRepository repository,
     IOrganizationOutbox outbox,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -172,6 +185,16 @@ public sealed class MoveUnitHandler(
         // descendant commit together or not at all.
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "unit.moved",
+                AuditOutcome.Success,
+                "organization_unit",
+                command.UnitId.ToString(),
+                NewValue: $$"""{"newParentId":"{{command.NewParentId}}"}"""),
+            cancellationToken);
+
         return Result.Success();
     }
 }
@@ -182,6 +205,7 @@ public sealed record RenameUnitCommand(Guid UnitId, string NameAr, string NameEn
 public sealed class RenameUnitHandler(
     IOrganizationRepository repository,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result<OrganizationUnitDto>> HandleAsync(
@@ -208,6 +232,15 @@ public sealed class RenameUnitHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "unit.renamed",
+                AuditOutcome.Success,
+                "organization_unit",
+                unit.Id.ToString()),
+            cancellationToken);
+
         return Result.Success(OrganizationMapper.ToDto(unit));
     }
 }
@@ -228,6 +261,7 @@ public sealed class DeactivateUnitHandler(
     IOrganizationRepository repository,
     IOrganizationOutbox outbox,
     IOrganizationUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -262,6 +296,15 @@ public sealed class DeactivateUnitHandler(
 
         await CreateUnitHandler.PublishDomainEventsAsync(unit, outbox, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "organization",
+                "unit.deactivated",
+                AuditOutcome.Success,
+                "organization_unit",
+                command.UnitId.ToString()),
+            cancellationToken);
 
         return Result.Success();
     }

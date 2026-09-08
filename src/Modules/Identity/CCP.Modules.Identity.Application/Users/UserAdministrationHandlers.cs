@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Identity.Application.Abstractions;
@@ -30,6 +31,7 @@ public sealed class CreateUserHandler(
     PasswordSetter passwordSetter,
     IIdentityOutbox outbox,
     IIdentityUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result<UserDto>> HandleAsync(
@@ -84,6 +86,19 @@ public sealed class CreateUserHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // A new account is a new way in. Recorded after the commit, so the
+        // trail never claims something that then rolled back. The initial
+        // password is not carried - it never reaches the trail at all.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "identity",
+                "user.created",
+                AuditOutcome.Success,
+                "user",
+                user.Id.ToString(),
+                NewValue: $$"""{"username":"{{user.Username}}","email":"{{user.Email}}","displayName":"{{user.DisplayName}}"}"""),
+            cancellationToken);
+
         return Result.Success(UserMapper.ToDto(user));
     }
 }
@@ -96,6 +111,7 @@ public sealed class UpdateUserHandler(
     IIdentityRepository repository,
     IIdentityOutbox outbox,
     IIdentityUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result<UserDto>> HandleAsync(
@@ -133,6 +149,16 @@ public sealed class UpdateUserHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "identity",
+                "user.updated",
+                AuditOutcome.Success,
+                "user",
+                user.Id.ToString(),
+                NewValue: $$"""{"email":"{{user.Email}}","displayName":"{{user.DisplayName}}"}"""),
+            cancellationToken);
+
         return Result.Success(UserMapper.ToDto(user));
     }
 }
@@ -161,6 +187,7 @@ public sealed class ChangeUserStatusHandler(
     IIdentityRepository repository,
     IIdentityOutbox outbox,
     IIdentityUnitOfWork unitOfWork,
+    IAuditTrail auditTrail,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -237,6 +264,19 @@ public sealed class ChangeUserStatusHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Enabling restores a way in that something deliberately closed;
+        // disabling is how an intruder removes the person who would notice;
+        // unlocking undoes a lockout that was doing its job. All three belong
+        // on the record.
+        await auditTrail.RecordAsync(
+            new AuditEntry(
+                "identity",
+                $"user.{command.Action.ToString().ToLowerInvariant()}",
+                AuditOutcome.Success,
+                "user",
+                command.UserId.ToString()),
+            cancellationToken);
 
         return Result.Success();
     }

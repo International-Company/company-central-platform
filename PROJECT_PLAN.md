@@ -562,14 +562,14 @@ Full Audit module, plus an audit sweep of all earlier modules.
 | 7 | Asynchronous signed export | ⬜ **Not built.** The 90-day cap has no escape hatch until it exists |
 | 8 | Database-level append-only enforcement | ✅ Privileges revoked to INSERT+SELECT, including on future partitions. **See the deployment caveat in docs/audit/README.md §3** |
 | 9 | Retention and archival by partition detach | ⬜ Not built |
-| 10 | Retrofit audit coverage across Phases 2–5 | ⬜ **Not built — the largest gap.** The trail records no Platform activity today |
+| 10 | Retrofit audit coverage across Phases 2–5 | ✅ 15 state-changing handlers across four modules, through a neutral kernel seam. Pinned by `AuditCoverageTests` in both directions |
 | 11 | `docs/audit/` | ✅ |
 
 ### Acceptance criteria — actual result
 
 | Criterion | Result |
 |---|---|
-| Every security-relevant action in Phases 2–5 produces an audit event | ❌ **False today.** Task 10 is not done |
+| Every security-relevant action in Phases 2–5 produces an audit event | 🟡 Every state-changing handler records, and a test fails the build if one stops. Sign-in and refresh still go only to the security event log — a deliberate split, but it means "every security-relevant action" is not literally true |
 | Audit rows cannot be modified or deleted | 🟡 Enforced in code and by privilege; **the integration test that attempts an UPDATE and expects failure is not written** |
 | A rolled-back transaction produces no audit event | 🟡 True of the outbox path, which does not exist yet; direct writes commit independently by design |
 | Search over 10 million events within 2 s | ⬜ Unmeasured |
@@ -578,8 +578,7 @@ Full Audit module, plus an audit sweep of all earlier modules.
 | Coverage ≥ 80% | ⬜ Not measured |
 
 ### Known Issues
-1. **The trail is empty of Platform activity.** Task 10 is the first thing to close.
-2. **Append-only is unproven at the database.** The privilege revocation runs, but no test yet attempts an UPDATE and asserts it fails.
+1. **Append-only is unproven at the database.** The privilege revocation runs, but no test yet attempts an UPDATE and asserts it fails.
 3. **The migration warns rather than fails** if it cannot tighten privileges — necessary, because a schema must be creatable by a restricted role, but it means a deployment can silently end up without enforcement. Covered by a checklist item, not by code.
 4. **No export**, so an investigation wider than 90 days has no supported path.
 

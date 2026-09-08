@@ -6,6 +6,7 @@ using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Application.Abstractions;
+using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Application.Events;
 using CCP.Kernel.Infrastructure.Outbox;
 using CCP.Kernel.Infrastructure.Persistence;
@@ -80,6 +81,17 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 
 builder.Services.AddScoped<RequestContextAccessor>();
 builder.Services.AddScoped<IRequestContext>(sp => sp.GetRequiredService<RequestContextAccessor>());
+
+// Declared in Phase 1 and unimplemented until now: audit needs an actor to
+// attribute events to, and it must come from the validated token rather than
+// from anything a caller could assert.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+
+// The default trail records nothing, so a host without the Audit module still
+// starts. The Audit module replaces it; registration order makes that work,
+// since the last registration of a service type wins.
+builder.Services.AddScoped<IAuditTrail, NullAuditTrail>();
 
 builder.Services.AddScoped<IOutbox, OutboxWriter>();
 builder.Services.AddScoped<IIntegrationEventDispatcher, IntegrationEventDispatcher>();

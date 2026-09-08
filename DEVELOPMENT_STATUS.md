@@ -21,7 +21,7 @@
 | 3 | Organization | 🟡 **Core complete** | Unit hierarchy with materialized path, arbitrary depth, atomic moves, cycle prevention, bilingual names, employees, positions, company. 48 unit tests. Position/company endpoints and integration tests outstanding. |
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
-| 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search. Privileges revoked to INSERT+SELECT at the database. 50 unit tests. **Not yet called from Phases 2–5 — the trail records nothing today.** |
+| 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
 | 7 | Frontend Foundation & Core Admin UI | ⬜ Not started | |
 | 8 | Workflow | ⬜ Not started | |
 | 9 | Notifications | ⬜ Not started | |
@@ -778,14 +778,34 @@ impossible for five consecutive reasons.
 not verification.** Five phases of local testing did not find what one push found
 in an afternoon.
 
-### 3E.6 Not built
+### 3E.6 Closing the retrofit
+
+The phase first shipped with the trail built and **empty**: the module existed,
+the seam existed, and no handler called it. Task 10 closed that.
+
+`IAuditTrail` lives in **the kernel**, not in the Audit module. Identity,
+Organization, Authorization and Security all have to record, and no module may
+reference another (§6.2) — so the contract belongs to the kernel and the
+behaviour to Audit, the same split as the neutral `ScopeFilter` and the step-up
+requirement. An architecture test asserts the seam stays there and that no module
+takes a direct reference on Audit.
+
+`ICurrentUser` was declared in Phase 1 and had never been implemented or used by
+anything. Audit needed an actor to attribute events to, so it exists now, reading
+only from the validated token: an actor a caller could assert is an actor a
+caller could forge, and a trail whose actor field is chosen by the person being
+audited is worse than none, because it carries the authority of a record while
+being fiction.
+
+The entry a module supplies is deliberately incomplete — module, action, resource
+and what changed. Who, from where, and under which correlation id are filled in
+from the ambient request. A module that had to pass the actor on every call would
+eventually pass the wrong one.
+
+### 3E.7 Not built
 
 - **Asynchronous signed export** (task 7). Until it exists the 90-day search cap
   has no escape hatch for a wider investigation.
-- **Retrofit across Phases 2–5** (task 10). The module is ready and the seam
-  exists, but Identity, Organization, Authorization and Security do not yet call
-  it — **so the trail is currently empty of Platform activity.** This is the
-  largest gap in the phase and the first thing to close.
 - **Retention and archival by partition detach** (task 9).
 - **The outbox consumer** (task 3). Events are written directly rather than
   riding along with the transaction that produced them.
@@ -949,13 +969,12 @@ mirroring, tables as the primary interface, white and blue, no icons by default.
 
 **Close first, before Phase 7:**
 
-1. **Wire audit into Phases 2–5.** The module is built and the trail is empty of
-   Platform activity. Every acceptance criterion of Phase 6 that says "every
-   security-relevant action produces an audit event" is currently false.
-2. **Debt #23 — the NAT rate limit.** Ten sign-ins a minute for a whole office.
+1. **Debt #23 — the NAT rate limit.** Ten sign-ins a minute for a whole office.
    Deferred by decision; it must be resolved before real users, not after.
-3. **The bootstrap administrator on the deployment.** Nothing can be administered
+2. **The bootstrap administrator on the deployment.** Nothing can be administered
    until one account exists.
+3. **An integration test that attempts an UPDATE on the audit schema** and
+   asserts the database refuses it. Append-only is enforced but unproven.
 
 Still outstanding across all phases:
 

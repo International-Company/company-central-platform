@@ -64,6 +64,7 @@ public sealed class AccessDenialRecorder(
     IAuthorizationOutbox outbox,
     IAuthorizationUnitOfWork unitOfWork,
     IRequestContext requestContext,
+    CCP.Kernel.Application.Auditing.IAuditTrail auditTrail,
     Kernel.Primitives.IClock clock,
     Microsoft.Extensions.Logging.ILogger<AccessDenialRecorder> logger) : IAccessDenialRecorder
 {
@@ -79,6 +80,17 @@ public sealed class AccessDenialRecorder(
                 clock.UtcNow));
 
             await unitOfWork.SaveChangesAsync();
+
+            // The trail as well as the outbox. One denial is noise; the value
+            // is in being able to ask later "what was this account refused, and
+            // when" alongside everything else it did - which is a question only
+            // the audit trail can answer, because only it holds both.
+            await auditTrail.RecordAsync(new CCP.Kernel.Application.Auditing.AuditEntry(
+                "authorization",
+                "access.denied",
+                CCP.Kernel.Application.Auditing.AuditOutcome.Denied,
+                "permission",
+                permission));
         }
         catch (Exception exception)
         {

@@ -112,16 +112,35 @@ a breach.
 
 ### From inside the Platform
 
+Modules write through `IAuditTrail`, which lives in **the kernel**. Identity,
+Organization, Authorization and Security all record, and no module may reference
+another (§6.2) — so the contract belongs to the kernel and the implementation to
+this module. A module never learns that an Audit module exists.
+
 ```csharp
-await auditRecorder.RecordAsync(AuditEvent.Record(
-    application: "platform",
-    module: "identity",
-    action: "user.created",
-    occurredAt: clock.UtcNow,
-    resourceType: "user", resourceId: id.ToString(),
-    actorUserId: actor, actorUsername: actorName,
-    newValue: serializedUser));
+await auditTrail.RecordAsync(
+    new AuditEntry(
+        "identity",
+        "user.created",
+        AuditOutcome.Success,
+        "user",
+        user.Id.ToString(),
+        NewValue: serializedUser),
+    cancellationToken);
 ```
+
+**The entry is deliberately incomplete.** It carries only what the module knows.
+Who was acting, from what address, under which correlation id and on behalf of
+which application are filled in from the ambient request by `PlatformAuditTrail`.
+
+A module that had to supply the actor on every call would eventually supply the
+wrong one, or none — and every call site would repeat the same six lines of
+plumbing until somebody shortened them.
+
+The actor comes from the validated token and nowhere else. An actor a caller
+could assert is an actor a caller could forge, and a trail whose actor field is
+chosen by the person being audited is worse than no trail: it carries the
+authority of a record while being fiction.
 
 **A failure here is logged, never thrown.** An audit write must not fail the
 operation it records (§15.6) — refusing a legitimate role grant because the trail
@@ -172,16 +191,42 @@ bounded query into a scan of a table designed to grow forever.**
 
 ---
 
-## 8. Not built in Phase 6
+## 8. What the Platform records
+
+Fifteen state-changing handlers write to the trail through `IAuditTrail`:
+
+| Module | Actions |
+|---|---|
+| `authorization` | `role.granted`, `role.revoked`, `role.grant` (Denied on escalation), `access.denied` |
+| `identity` | `user.created`, `user.updated`, `user.enable`/`disable`/`unlock`, `password.changed` |
+| `organization` | `unit.created`, `unit.moved`, `unit.renamed`, `unit.deactivated`, `employee.created`, `employee.transferred`, `employee.user_linked` |
+| `security` | `mfa.enrolled`, `mfa.disabled` |
+
+Organization changes are audited because **organizational scope is computed from
+the unit path**: moving a unit changes who can see what, which makes a
+restructure an access change wearing a different hat.
+
+Every record is written **after** the commit. A trail entry for a change that
+then rolled back would be a record of something that never happened, which is
+worse than a missing one.
+
+`AuditCoverageTests` pins the list. A state-changing handler that cannot record
+fails the build, and a handler renamed out of the list fails it too — which is
+how a coverage list stops quietly rotting.
+
+The test checks that a handler *takes* `IAuditTrail`, not that it calls it on
+every path. Reflection cannot see call sites, and claiming otherwise would be a
+test that reassures without checking. It catches the failure that actually
+happened: a handler with no way to record anything at all.
+
+---
+
+## 9. Not built in Phase 6
 
 Recorded rather than implied:
 
 - **Asynchronous signed export.** Planned task 7. Until it exists, the 90-day
   search cap has no escape hatch for a wider investigation.
-- **Retrofit across Phases 2–5.** Planned task 10. The module is ready and the
-  seam exists, but Identity, Organization, Authorization and Security do not yet
-  call it — so **the trail is currently empty of Platform activity**. This is the
-  largest gap in the phase.
 - **Retention and archival by partition detach.** Partitions exist; nothing yet
   detaches or archives them.
 - **The outbox consumer.** Events are written directly rather than ridden along
