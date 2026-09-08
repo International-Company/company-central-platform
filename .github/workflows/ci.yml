@@ -166,6 +166,11 @@ jobs:
           context: .
           file: build/api.Dockerfile
           push: false
+          # Load the result into the local Docker daemon. Without this, buildx's
+          # docker-container driver leaves the image in the build cache only,
+          # and the scan below fails with "unable to find the specified image"
+          # - which reads like a scanner problem and is not one.
+          load: true
           tags: ccp-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
