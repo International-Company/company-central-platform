@@ -76,7 +76,8 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
     [Fact]
     public async Task Enrol_Twice_ReplacesThePendingEnrolment_LeavingExactlyOneRow()
     {
-        using HttpClient client = await SignedInClientAsync();
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+        using HttpClient _ = client;
 
         await EnrolAsync(client);
         await EnrolAsync(client);
@@ -86,7 +87,7 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
         // The unique index on user_id is what makes this a database guarantee
         // rather than a convention. Two active factors would make "which one
         // counts" ambiguous at exactly the moment it must not be.
-        Assert.Equal(1, await context.MfaEnrolments.CountAsync());
+        Assert.Equal(1, await context.MfaEnrolments.CountAsync(e => e.UserId == userId));
     }
 
     [Fact]
@@ -111,7 +112,8 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
     [Fact]
     public async Task Confirm_RejectsAWrongCodeAndLeavesTheEnrolmentPending()
     {
-        using HttpClient client = await SignedInClientAsync();
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+        using HttpClient _ = client;
 
         await EnrolAsync(client);
 
@@ -121,7 +123,7 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         await using SecurityDbContext context = CreateSecurityContext();
-        MfaEnrolment enrolment = await context.MfaEnrolments.SingleAsync();
+        MfaEnrolment enrolment = await context.MfaEnrolments.SingleAsync(e => e.UserId == userId);
 
         Assert.Equal(MfaEnrolmentStatus.Pending, enrolment.Status);
     }
@@ -169,7 +171,8 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
     [Fact]
     public async Task Verify_AcceptsACurrentCodeAndRecordsAStepUpConfirmation()
     {
-        using HttpClient client = await SignedInClientAsync();
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+        using HttpClient _ = client;
 
         JsonElement enrolment = await EnrolAsync(client);
         await ConfirmAsync(client, enrolment);
@@ -187,7 +190,7 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
 
         await using SecurityDbContext context = CreateSecurityContext();
 
-        Assert.Equal(1, await context.StepUpConfirmations.CountAsync());
+        Assert.Equal(1, await context.StepUpConfirmations.CountAsync(c => c.UserId == userId));
     }
 
     [Fact]
@@ -243,7 +246,8 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
     [Fact]
     public async Task Disable_RequiresTheCurrentCode()
     {
-        using HttpClient client = await SignedInClientAsync();
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+        using HttpClient _ = client;
 
         JsonElement enrolment = await EnrolAsync(client);
         await ConfirmAsync(client, enrolment);
@@ -257,7 +261,9 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
 
         await using SecurityDbContext context = CreateSecurityContext();
 
-        Assert.Equal(MfaEnrolmentStatus.Active, (await context.MfaEnrolments.SingleAsync()).Status);
+        Assert.Equal(
+            MfaEnrolmentStatus.Active,
+            (await context.MfaEnrolments.SingleAsync(e => e.UserId == userId)).Status);
     }
 
     [Fact]
@@ -405,11 +411,35 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
+    /// <summary>
+    /// Seeds a user, signs them in, and returns a client carrying the token
+    /// together with that user's id.
+    /// <para>
+    /// The id matters for any assertion that reads the database directly. Every
+    /// test class shares one database, so by the fifth test the tables hold the
+    /// rows of the four before it — a query that does not name its user is
+    /// asserting about someone else's data.
+    /// </para>
+    /// </summary>
+    private async Task<(HttpClient Client, Guid UserId)> SignedInClientWithIdAsync()
+    {
+        (Guid userId, string username) = await SeedUserAsync();
+
+        HttpClient client = await SignInAsync(username);
+
+        return (client, userId);
+    }
+
     /// <summary>Seeds a user, signs them in, and returns a client carrying the token.</summary>
     private async Task<HttpClient> SignedInClientAsync()
     {
-        string username = await SeedUserAsync();
+        (_, string username) = await SeedUserAsync();
 
+        return await SignInAsync(username);
+    }
+
+    private async Task<HttpClient> SignInAsync(string username)
+    {
         HttpClient client = factory.CreateClient();
 
         using HttpResponseMessage login = await client.PostAsJsonAsync(
@@ -426,7 +456,7 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
         return client;
     }
 
-    private async Task<string> SeedUserAsync()
+    private async Task<(Guid Id, string Username)> SeedUserAsync()
     {
         string username = $"user{Guid.CreateVersion7():N}"[..20];
 
@@ -451,7 +481,7 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
 
         await context.SaveChangesAsync();
 
-        return user.Username;
+        return (user.Id, user.Username);
     }
 
     private IdentityDbContext CreateIdentityContext()

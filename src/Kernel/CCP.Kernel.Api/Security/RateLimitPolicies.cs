@@ -50,9 +50,17 @@ public static class RateLimitPolicies
     public const string Read = "read";
 
     /// <summary>Registers every policy and the rejection behaviour.</summary>
-    public static RateLimiterOptions AddPlatformPolicies(this RateLimiterOptions options)
+    /// <param name="options">The framework's limiter options.</param>
+    /// <param name="limits">
+    /// The per-minute budgets. Supplied rather than hard-coded so a deployment
+    /// can tune them without a code change — see <see cref="RateLimitOptions"/>.
+    /// </param>
+    public static RateLimiterOptions AddPlatformPolicies(
+        this RateLimiterOptions options,
+        RateLimitOptions limits)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(limits);
 
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
@@ -70,10 +78,10 @@ public static class RateLimitPolicies
             return ValueTask.CompletedTask;
         };
 
-        options.AddPolicy(Authentication, PartitionAuthentication);
-        options.AddPolicy(Anonymous, PartitionAnonymous);
-        options.AddPolicy(Write, PartitionByIdentity(permitLimit: 120, window: TimeSpan.FromMinutes(1)));
-        options.AddPolicy(Read, PartitionByIdentity(permitLimit: 600, window: TimeSpan.FromMinutes(1)));
+        options.AddPolicy(Authentication, PartitionAuthentication(limits.Authentication));
+        options.AddPolicy(Anonymous, PartitionAnonymous(limits.Anonymous));
+        options.AddPolicy(Write, PartitionByIdentity(limits.Write, TimeSpan.FromMinutes(1)));
+        options.AddPolicy(Read, PartitionByIdentity(limits.Read, TimeSpan.FromMinutes(1)));
 
         return options;
     }
@@ -81,10 +89,18 @@ public static class RateLimitPolicies
     /// <summary>
     /// The authentication limiter.
     /// <para>
-    /// Ten attempts a minute from one address. That is far more than a person
-    /// mistyping a password and far less than useful for guessing — combined
-    /// with the account's own progressive lockout, credential stuffing becomes
-    /// impractical rather than merely slow.
+    /// Ten attempts a minute from one address by default. That is far more than
+    /// a person mistyping a password and far less than useful for guessing —
+    /// combined with the account's own progressive lockout, credential stuffing
+    /// becomes impractical rather than merely slow.
+    /// </para>
+    /// <para>
+    /// <b>Partitioned by address, which is a known weakness behind NAT.</b>
+    /// Every employee in one office shares one public address and therefore one
+    /// budget, so this limit is really "ten sign-ins a minute per office". That
+    /// is recorded as technical debt rather than solved here; the fix is to
+    /// partition by the account being attacked as well as by source. See
+    /// docs/security/rate-limiting.md §3.
     /// </para>
     /// <para>
     /// A sliding window rather than a fixed one, deliberately: a fixed window
@@ -93,12 +109,12 @@ public static class RateLimitPolicies
     /// boundary.
     /// </para>
     /// </summary>
-    private static RateLimitPartition<string> PartitionAuthentication(HttpContext context)
-        => RateLimitPartition.GetSlidingWindowLimiter(
+    private static Func<HttpContext, RateLimitPartition<string>> PartitionAuthentication(int permitLimit)
+        => context => RateLimitPartition.GetSlidingWindowLimiter(
             $"auth:{ClientAddress(context)}",
             _ => new SlidingWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = permitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 SegmentsPerWindow = 6,
 
@@ -108,12 +124,12 @@ public static class RateLimitPolicies
                 QueueLimit = 0
             });
 
-    private static RateLimitPartition<string> PartitionAnonymous(HttpContext context)
-        => RateLimitPartition.GetSlidingWindowLimiter(
+    private static Func<HttpContext, RateLimitPartition<string>> PartitionAnonymous(int permitLimit)
+        => context => RateLimitPartition.GetSlidingWindowLimiter(
             $"anon:{ClientAddress(context)}",
             _ => new SlidingWindowRateLimiterOptions
             {
-                PermitLimit = 60,
+                PermitLimit = permitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 SegmentsPerWindow = 6,
                 QueueLimit = 0

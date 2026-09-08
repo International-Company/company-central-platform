@@ -106,9 +106,22 @@ builder.Services.AddHealthChecks()
 //
 // The global limiter remains as a backstop for anything that declares no policy,
 // so an endpoint added without one is still bounded.
+// The budgets are configuration, not constants: the right number depends on how
+// many people sit behind one public address and how chatty the frontend turns
+// out to be, neither of which is knowable from here.
+RateLimitOptions rateLimits = builder.Configuration
+    .GetSection(RateLimitOptions.SectionName)
+    .Get<RateLimitOptions>() ?? new RateLimitOptions();
+
+builder.Services
+    .AddOptions<RateLimitOptions>()
+    .Bind(builder.Configuration.GetSection(RateLimitOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddPlatformPolicies();
+    options.AddPlatformPolicies(rateLimits);
 
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetFixedWindowLimiter(

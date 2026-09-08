@@ -47,6 +47,29 @@ same problem.** Rate limiting bounds one source attacking many accounts;
 account lockout bounds many sources attacking one account. Neither substitutes
 for the other, and the Platform has both.
 
+### The known defect: NAT
+
+**Behind a corporate NAT, legitimate traffic looks exactly like one source
+attacking many accounts.** Every employee in the office shares one public
+address, so the authentication limit is in practice *ten sign-ins a minute for
+the entire company*. On a Sunday morning the eleventh person to arrive is
+refused, and nothing they can do will help.
+
+This was surfaced by the integration suite, which trips the limit for precisely
+this reason — a test process behind one address is an accurate simulation of an
+office behind one NAT.
+
+It is **deferred by decision, not overlooked** (DEVELOPMENT_STATUS.md §7, debt
+#23). The intended fix is to partition the authentication class by *the account
+being attacked* as well as by source: a strict per-account budget stops one
+account being guessed no matter how many addresses try, while the per-address
+limit becomes a much looser backstop against broad scanning. Account lockout
+remains the third defence.
+
+Until then the limits are configuration (`RateLimits:Authentication` and
+friends), so a deployment that hits this can raise the number without waiting
+for a release. That is a mitigation, not the fix.
+
 ---
 
 ## 4. What this does not solve

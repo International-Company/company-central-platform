@@ -120,7 +120,9 @@ public sealed class AuthenticationFlowTests(PlatformApiFactory factory) : IClass
         // credential stuffing looks like, and are invisible if not recorded.
         using HttpClient client = factory.CreateClient();
 
-        string attempted = $"ghost-{Guid.CreateVersion7():N}"[..40];
+        // "ghost-" plus 32 hex characters is 38, not 40. The original slice
+        // asked for more than the string holds and threw.
+        string attempted = $"ghost-{Guid.CreateVersion7():N}";
 
         using HttpResponseMessage response = await client.PostAsJsonAsync(
             new Uri("/api/v1/auth/login", UriKind.Relative),

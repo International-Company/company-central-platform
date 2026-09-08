@@ -1,3 +1,4 @@
+using System.Globalization;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Persistence;
@@ -25,7 +26,7 @@ namespace CCP.Api.IntegrationTests;
 /// afterwards, so tests cannot interfere with one another.
 /// </para>
 /// </summary>
-public sealed class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly string _databaseName = $"ccp_test_{Guid.NewGuid():N}";
 
@@ -76,7 +77,34 @@ public sealed class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncL
 
         // A short poll keeps outbox tests fast without sleeping.
         Environment.SetEnvironmentVariable("CCP_Outbox__PollInterval", "00:00:01");
+
+        Environment.SetEnvironmentVariable(
+            "CCP_RateLimits__Authentication",
+            AuthenticationRateLimit.ToString(CultureInfo.InvariantCulture));
     }
+
+    /// <summary>
+    /// The authentication budget this suite runs under.
+    /// <para>
+    /// Raised far above the production default, because every test in the
+    /// process reaches the server from one address and therefore shares one
+    /// partition. At the real limit the suite exhausts its budget after ten
+    /// sign-ins and everything afterwards fails with 429 — which says nothing
+    /// about the code under test.
+    /// </para>
+    /// <para>
+    /// The limiter is not thereby left untested: <see cref="RateLimitTests"/>
+    /// overrides this with a small number and asserts that the rejection, and
+    /// its <c>Retry-After</c> header, actually happen.
+    /// </para>
+    /// <para>
+    /// That the suite tripped this at all is worth recording rather than merely
+    /// working around. A test process behind one address is exactly what an
+    /// office behind one NAT looks like, and the production limit has the same
+    /// problem for real users (DEVELOPMENT_STATUS.md §7, debt #23).
+    /// </para>
+    /// </summary>
+    protected virtual int AuthenticationRateLimit => 10_000;
 
     // Explicit interface implementation: xUnit's IAsyncLifetime declares
     // Task-returning members, while WebApplicationFactory already defines a
