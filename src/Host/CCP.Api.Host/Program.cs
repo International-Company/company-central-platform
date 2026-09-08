@@ -13,6 +13,7 @@ using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
 using CCP.Modules.Identity.Application;
 using CCP.Modules.Identity.Infrastructure;
+using CCP.Modules.Identity.Infrastructure.Bootstrap;
 using CCP.Modules.Identity.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Security;
 using CCP.Modules.Audit.Infrastructure;
@@ -349,6 +350,34 @@ if (databaseOptions.ApplyMigrationsOnStartup)
             migrationScope.ServiceProvider.GetRequiredService<SecurityDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<AuditDbContext>()
         ]);
+}
+
+// ---------------------------------------------------------------------------
+// First administrator
+// ---------------------------------------------------------------------------
+// Off unless explicitly enabled, and it refuses to run once any user exists, so
+// it can only ever create the *first* account and never becomes a back door
+// into a running system.
+//
+// Before authorization seeding, because the account it creates needs the
+// permissions that seeding declares.
+//
+// Failure is logged, not fatal: a Platform that cannot bootstrap should still
+// come up and report itself, rather than crash-loop while hiding the reason.
+try
+{
+    BootstrapOutcome outcome = await app.Services
+        .GetRequiredService<BootstrapAdministratorSeeder>()
+        .RunAsync();
+
+    if (app.Logger.IsEnabled(LogLevel.Information))
+    {
+        app.Logger.LogInformation("Bootstrap: {Outcome}.", outcome);
+    }
+}
+catch (Exception exception)
+{
+    app.Logger.LogError(exception, "Bootstrapping the first administrator failed.");
 }
 
 try
