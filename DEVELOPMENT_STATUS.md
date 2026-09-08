@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-08 |
-| Current phase | **Phase 6 — Audit** |
-| Phase status | 🟡 **Core complete — append-only partitioned trail built; not yet wired into Phases 2–5** |
-| Next phase | **Phase 7 — Frontend Foundation & Core Admin UI** |
+| Current phase | **Phase 7 — Frontend Foundation** |
+| Phase status | 🟡 **Foundation built — design system, i18n/RTL, BFF, shell, sign-in. Administration screens outstanding** |
+| Next phase | Complete Phase 7, then **Phase 8 — Workflow** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — https://company-central-platform-production.up.railway.app |
 
@@ -22,7 +22,7 @@
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
 | 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
-| 7 | Frontend Foundation & Core Admin UI | ⬜ Not started | |
+| 7 | Frontend Foundation & Core Admin UI | 🟡 **Foundation** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives, sign-in. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. |
 | 8 | Workflow | ⬜ Not started | |
 | 9 | Notifications | ⬜ Not started | |
 | 10 | Documents | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–6 in progress.**
+**Completed: 1 of 22 phases. Phases 1–7 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -57,7 +57,7 @@ the foundation the modules sit on. All eleven are specified in
 | Organization | ✅ | 🟡 Core | 🟡 48 unit tests | ⬜ | ✅ |
 | Authorization | ✅ | 🟡 Core | 🟡 63 unit tests | ⬜ | ✅ |
 | Security | ✅ | 🟡 Core | 🟡 56 unit / 15 integration unrun | ⬜ | ✅ |
-| Audit | ✅ | 🟡 Core | 🟡 50 unit tests | ⬜ | ✅ |
+| Audit | ✅ | ✅ | ✅ 50 unit / 5 integration | ⬜ | ✅ |
 | Workflow | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Notifications | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Documents | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |

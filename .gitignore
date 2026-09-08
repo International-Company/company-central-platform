@@ -150,3 +150,11 @@ temp/
 *.bak
 *.orig
 *.rej
+
+# --- Frontend ---------------------------------------------------------------
+# Build output and dependencies. `frontend/.next` is generated on every build
+# and `node_modules` is reproducible from the lockfile.
+frontend/.next/
+frontend/node_modules/
+frontend/next-env.d.ts
+frontend/tsconfig.tsbuildinfo
