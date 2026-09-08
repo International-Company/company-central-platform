@@ -1,4 +1,4 @@
-﻿namespace CCP.Architecture.Tests;
+namespace CCP.Architecture.Tests;
 
 public class UnitTest1
 {

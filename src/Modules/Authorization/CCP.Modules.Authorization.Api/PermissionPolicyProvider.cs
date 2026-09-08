@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Api.Security;
+using CCP.Kernel.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 

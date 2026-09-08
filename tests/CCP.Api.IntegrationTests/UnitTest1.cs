@@ -1,4 +1,4 @@
-﻿namespace CCP.Api.IntegrationTests;
+namespace CCP.Api.IntegrationTests;
 
 public class UnitTest1
 {

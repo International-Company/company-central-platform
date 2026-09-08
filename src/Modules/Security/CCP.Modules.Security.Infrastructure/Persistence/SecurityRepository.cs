@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Domain;
 using CCP.Kernel.Infrastructure.Outbox;

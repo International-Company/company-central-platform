@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Threading.RateLimiting;
 using CCP.Api.Host.Configuration;
 using CCP.Api.Host.Modules;

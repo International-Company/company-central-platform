@@ -1,4 +1,4 @@
-﻿namespace CCP.Modules.Organization.UnitTests;
+namespace CCP.Modules.Organization.UnitTests;
 
 public class UnitTest1
 {

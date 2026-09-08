@@ -1,4 +1,4 @@
-﻿namespace CCP.Modules.Authorization.UnitTests;
+namespace CCP.Modules.Authorization.UnitTests;
 
 public class UnitTest1
 {

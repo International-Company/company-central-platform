@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Infrastructure.Outbox;
+using CCP.Kernel.Infrastructure.Outbox;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Modules.Security.Domain.Events;
 using CCP.Modules.Security.Domain.Mfa;

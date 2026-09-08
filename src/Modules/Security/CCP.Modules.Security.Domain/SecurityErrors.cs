@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Results;
+using CCP.Kernel.Results;
 
 namespace CCP.Modules.Security.Domain;
 

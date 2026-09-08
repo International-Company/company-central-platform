@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Infrastructure.Persistence;
+using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Persistence;
 using CCP.Modules.Organization.Infrastructure.Persistence;

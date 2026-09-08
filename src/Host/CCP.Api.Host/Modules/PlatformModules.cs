@@ -1,4 +1,4 @@
-﻿using CCP.Api.Host.Modules.Diagnostics;
+using CCP.Api.Host.Modules.Diagnostics;
 using CCP.Modules.Authorization.Api;
 using CCP.Modules.Identity.Api;
 using CCP.Modules.Organization.Api;

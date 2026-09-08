@@ -96,27 +96,27 @@ public sealed class EffectivePermissions
 
                 case ScopeType.Unit:
                 case ScopeType.UnitAndBelow:
-                {
-                    string? path = scope.UnitPath ?? callerUnitPath;
-
-                    // A holder-relative scope on a caller with no unit resolves
-                    // to nothing. Treating it as "all" would be a catastrophic
-                    // default; treating it as "self" would silently widen it.
-                    if (path is null)
                     {
-                        continue;
+                        string? path = scope.UnitPath ?? callerUnitPath;
+
+                        // A holder-relative scope on a caller with no unit resolves
+                        // to nothing. Treating it as "all" would be a catastrophic
+                        // default; treating it as "self" would silently widen it.
+                        if (path is null)
+                        {
+                            continue;
+                        }
+
+                        anyGranted = true;
+                        prefixes.Add(path);
+
+                        if (scope.Type > widest)
+                        {
+                            widest = scope.Type;
+                        }
+
+                        break;
                     }
-
-                    anyGranted = true;
-                    prefixes.Add(path);
-
-                    if (scope.Type > widest)
-                    {
-                        widest = scope.Type;
-                    }
-
-                    break;
-                }
 
                 default:
                     continue;

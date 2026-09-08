@@ -1,4 +1,4 @@
-﻿namespace CCP.Modules.Identity.UnitTests;
+namespace CCP.Modules.Identity.UnitTests;
 
 public class UnitTest1
 {

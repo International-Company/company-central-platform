@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Api.Security;
+using CCP.Kernel.Api.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;

@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Application.Abstractions;
+using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Application.Events;
 using CCP.Modules.Security.Domain.Events;
 using CCP.Modules.Security.Domain.Mfa;

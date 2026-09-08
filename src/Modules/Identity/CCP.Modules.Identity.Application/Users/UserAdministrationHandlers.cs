@@ -189,47 +189,47 @@ public sealed class ChangeUserStatusHandler(
         switch (command.Action)
         {
             case UserStatusAction.Disable:
-            {
-                Result result = user.Disable(now);
-
-                if (result.IsFailure)
                 {
-                    return result;
+                    Result result = user.Disable(now);
+
+                    if (result.IsFailure)
+                    {
+                        return result;
+                    }
+
+                    await RevokeAllSessionsAsync(
+                        user.Id, SessionRevocationReasons.AccountDisabled, now, cancellationToken);
+
+                    await outbox.EnqueueAsync(
+                        new UserDisabledEvent(user.Id, user.Username, now), cancellationToken);
+
+                    break;
                 }
-
-                await RevokeAllSessionsAsync(
-                    user.Id, SessionRevocationReasons.AccountDisabled, now, cancellationToken);
-
-                await outbox.EnqueueAsync(
-                    new UserDisabledEvent(user.Id, user.Username, now), cancellationToken);
-
-                break;
-            }
 
             case UserStatusAction.Enable:
-            {
-                Result result = user.Enable(now);
-
-                if (result.IsFailure)
                 {
-                    return result;
+                    Result result = user.Enable(now);
+
+                    if (result.IsFailure)
+                    {
+                        return result;
+                    }
+
+                    await outbox.EnqueueAsync(
+                        new UserEnabledEvent(user.Id, user.Username, now), cancellationToken);
+
+                    break;
                 }
 
-                await outbox.EnqueueAsync(
-                    new UserEnabledEvent(user.Id, user.Username, now), cancellationToken);
-
-                break;
-            }
-
             case UserStatusAction.Unlock:
-            {
-                user.Unlock(now);
+                {
+                    user.Unlock(now);
 
-                await outbox.EnqueueAsync(
-                    new UserUnlockedEvent(user.Id, user.Username, now), cancellationToken);
+                    await outbox.EnqueueAsync(
+                        new UserUnlockedEvent(user.Id, user.Username, now), cancellationToken);
 
-                break;
-            }
+                    break;
+                }
 
             default:
                 return Result.Failure(Error.Rule(

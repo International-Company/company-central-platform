@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Api.Modules;
+using CCP.Kernel.Api.Modules;
 using CCP.Kernel.Application.Modules;
 using CCP.Modules.Security.Application.Mfa;
 using Microsoft.AspNetCore.Authorization;

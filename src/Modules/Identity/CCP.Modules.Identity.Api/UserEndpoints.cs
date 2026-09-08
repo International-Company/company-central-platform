@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Api.Context;
+using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Paging;

@@ -1,4 +1,4 @@
-﻿using CCP.Kernel.Primitives;
+using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Security.Application.Abstractions;
 using CCP.Modules.Security.Contracts.Dtos;
