@@ -50,6 +50,27 @@ public sealed class FileSigningKeyProvider : ISigningKeyProvider
     {
         ArgumentNullException.ThrowIfNull(environment);
 
+        string? inlineKey = options.Value.SigningKey;
+
+        if (!string.IsNullOrWhiteSpace(inlineKey)
+            && !inlineKey.StartsWith("REPLACE_WITH", StringComparison.Ordinal))
+        {
+            using RSA supplied = RSA.Create();
+            supplied.ImportFromPem(DecodePem(inlineKey));
+
+            if (supplied.KeySize < 2048)
+            {
+                throw new InvalidOperationException(
+                    $"The configured token signing key is {supplied.KeySize} bits. "
+                    + "RSA keys used for token signing must be at least 2048 bits.");
+            }
+
+            _privateKeyBytes = supplied.ExportRSAPrivateKey();
+            KeyId = ComputeKeyId(supplied);
+
+            return;
+        }
+
         string? path = options.Value.SigningKeyPath;
 
         if (!string.IsNullOrWhiteSpace(path) && !path.StartsWith("REPLACE_WITH", StringComparison.Ordinal))
@@ -80,9 +101,11 @@ public sealed class FileSigningKeyProvider : ISigningKeyProvider
         if (!environment.IsDevelopment())
         {
             throw new InvalidOperationException(
-                "Identity:SigningKeyPath is not configured. A token signing key must be supplied "
-                + "explicitly outside Development; the Platform will not generate one, because a "
-                + "generated key would change on every deployment and invalidate every token.");
+                "Neither Identity:SigningKeyPath nor Identity:SigningKey is configured. A token "
+                + "signing key must be supplied explicitly outside Development; the Platform will "
+                + "not generate one, because a generated key would change on every deployment and "
+                + "invalidate every token. Prefer the path; use the key itself only where the "
+                + "platform offers no mounted files.");
         }
 
         using RSA generated = RSA.Create(3072);
@@ -94,6 +117,34 @@ public sealed class FileSigningKeyProvider : ISigningKeyProvider
             + "(KeyId={KeyId}). All tokens become invalid when this process restarts. "
             + "This is permitted in Development only.",
             KeyId);
+    }
+
+    /// <summary>
+    /// Accepts a PEM document either as-is or base64-encoded.
+    /// <para>
+    /// PEM is multi-line, and a good many secret stores and CI forms mangle or
+    /// refuse newlines. Allowing the base64 form removes the most common reason
+    /// a correct key is rejected as malformed.
+    /// </para>
+    /// </summary>
+    private static string DecodePem(string value)
+    {
+        string trimmed = value.Trim();
+
+        if (trimmed.StartsWith("-----BEGIN", StringComparison.Ordinal))
+        {
+            return trimmed;
+        }
+
+        try
+        {
+            return System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(trimmed));
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidOperationException(
+                "Identity:SigningKey is neither a PEM document nor valid base64.", exception);
+        }
     }
 
     public string KeyId { get; }

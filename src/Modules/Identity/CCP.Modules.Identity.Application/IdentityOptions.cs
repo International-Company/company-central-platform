@@ -65,4 +65,27 @@ public sealed class IdentityOptions
     /// </para>
     /// </summary>
     public string? SigningKeyPath { get; set; }
+
+    /// <summary>
+    /// The RSA private key itself, as PEM or as base64-encoded PEM.
+    /// <para>
+    /// <b>A deliberate, documented weakening of the rule above, and the reason
+    /// is worth stating plainly.</b> A path keeps key material out of the
+    /// process environment, where it is visible to anything that can read
+    /// <c>/proc</c>, appears in crash dumps and container inspection output, and
+    /// is printed by any diagnostic that dumps configuration. That is strictly
+    /// better, and it remains the preferred form.
+    /// </para>
+    /// <para>
+    /// But several managed platforms offer no mounted files at all — a secret
+    /// there is an environment variable or it does not exist. Refusing to read
+    /// one would not make those deployments more secure; it would make them
+    /// impossible, and the realistic outcome of that is a key committed to Git
+    /// by someone in a hurry. This is the lesser risk, taken knowingly.
+    /// </para>
+    /// <para>
+    /// <see cref="SigningKeyPath"/> wins when both are set.
+    /// </para>
+    /// </summary>
+    public string? SigningKey { get; set; }
 }

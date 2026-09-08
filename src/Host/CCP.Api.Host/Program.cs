@@ -12,17 +12,22 @@ using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
 using CCP.Modules.Identity.Application;
 using CCP.Modules.Identity.Infrastructure;
+using CCP.Modules.Identity.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Security;
 using CCP.Modules.Authorization.Infrastructure;
+using CCP.Modules.Authorization.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure.Seeding;
 using CCP.Modules.Organization.Infrastructure;
+using CCP.Modules.Organization.Infrastructure.Persistence;
 using CCP.Modules.Security.Infrastructure;
+using CCP.Modules.Security.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
@@ -78,10 +83,18 @@ builder.Services.AddScoped<IOutbox, OutboxWriter>();
 builder.Services.AddScoped<IIntegrationEventDispatcher, IntegrationEventDispatcher>();
 builder.Services.AddHostedService<OutboxRelay>();
 
-string connectionString = builder.Configuration.GetConnectionString("Platform")
+// Accepts either the Platform's own setting or the DATABASE_URL that managed
+// platforms publish, which Npgsql cannot parse on its own.
+string connectionString = ConnectionStringResolver.Resolve(builder.Configuration)
     ?? throw new InvalidOperationException(
-        "Connection string 'Platform' is not configured. Set CCP_ConnectionStrings__Platform. "
-        + "See .env.example.");
+        "No database connection is configured. Set CCP_ConnectionStrings__Platform, or "
+        + "DATABASE_URL if your platform publishes one. See .env.example.");
+
+builder.Services
+    .AddOptions<DatabaseOptions>()
+    .Bind(builder.Configuration.GetSection(DatabaseOptions.SectionName));
+
+builder.Services.AddSingleton<DatabaseMigrator>();
 
 builder.Services.AddDbContext<KernelDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql =>
@@ -280,6 +293,34 @@ if (app.Environment.IsDevelopment())
 // Failure is logged, not fatal: a Platform that cannot reach the database at
 // startup should still come up and report itself unhealthy, rather than
 // crash-looping and hiding the reason.
+// ---------------------------------------------------------------------------
+// Schema
+// ---------------------------------------------------------------------------
+// Before anything reads or writes. Off unless asked for: on a serious
+// deployment a schema change is a reviewed step, not a side effect of a
+// restart. Enabled where the platform offers nowhere else to run it.
+//
+// Unlike the seeding below, a failure here is fatal. An application whose schema
+// did not apply cannot serve a single request correctly, and starting anyway
+// would turn one clear error into a stream of confusing ones.
+DatabaseOptions databaseOptions =
+    app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+
+if (databaseOptions.ApplyMigrationsOnStartup)
+{
+    using IServiceScope migrationScope = app.Services.CreateScope();
+
+    await app.Services.GetRequiredService<DatabaseMigrator>().MigrateAsync(
+        connectionString,
+        [
+            migrationScope.ServiceProvider.GetRequiredService<KernelDbContext>(),
+            migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>(),
+            migrationScope.ServiceProvider.GetRequiredService<OrganizationDbContext>(),
+            migrationScope.ServiceProvider.GetRequiredService<AuthorizationDbContext>(),
+            migrationScope.ServiceProvider.GetRequiredService<SecurityDbContext>()
+        ]);
+}
+
 try
 {
     var seeder = app.Services.GetRequiredService<AuthorizationSeeder>();

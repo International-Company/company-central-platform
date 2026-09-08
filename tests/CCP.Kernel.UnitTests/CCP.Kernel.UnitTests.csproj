@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
+    <ProjectReference Include="..\..\src\Kernel\CCP.Kernel.Infrastructure\CCP.Kernel.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
     <ProjectReference Include="..\..\src\Kernel\CCP.Kernel.Api\CCP.Kernel.Api.csproj" />
   </ItemGroup>

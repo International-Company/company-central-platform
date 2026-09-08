@@ -22,6 +22,27 @@ public sealed class MfaProtectionOptions
     /// </summary>
     [MaxLength(4096)]
     public string? KeyPath { get; set; }
+
+    /// <summary>
+    /// The 256-bit key itself, base64-encoded.
+    /// <para>
+    /// <b>A deliberate, documented weakening of the rule above.</b> A path keeps
+    /// key material out of the process environment, where it is visible to
+    /// anything that can read <c>/proc</c>, appears in crash dumps and container
+    /// inspection output, and is printed by any diagnostic that dumps
+    /// configuration. That remains the preferred form.
+    /// </para>
+    /// <para>
+    /// Several managed platforms offer no mounted files at all — a secret there
+    /// is an environment variable or it does not exist. Refusing to read one
+    /// would not make those deployments safer, only impossible, and the
+    /// realistic outcome of that is a key committed to Git by someone in a
+    /// hurry. This is the lesser risk, taken knowingly.
+    /// </para>
+    /// <para><see cref="KeyPath"/> wins when both are set.</para>
+    /// </summary>
+    [MaxLength(512)]
+    public string? Key { get; set; }
 }
 
 /// <summary>
@@ -60,6 +81,35 @@ public sealed class MfaSecretProtector : IMfaSecretProtector, IDisposable
         ILogger<MfaSecretProtector> logger)
     {
         ArgumentNullException.ThrowIfNull(environment);
+
+        string? inlineKey = options.Value.Key;
+
+        if (!string.IsNullOrWhiteSpace(inlineKey)
+            && !inlineKey.StartsWith("REPLACE_WITH", StringComparison.Ordinal))
+        {
+            byte[] supplied;
+
+            try
+            {
+                supplied = Convert.FromBase64String(inlineKey.Trim());
+            }
+            catch (FormatException exception)
+            {
+                throw new InvalidOperationException(
+                    "Security:MfaProtection:Key is not valid base64.", exception);
+            }
+
+            if (supplied.Length != KeySize)
+            {
+                throw new InvalidOperationException(
+                    $"Security:MfaProtection:Key is {supplied.Length * 8} bits. "
+                    + "It must be exactly 256 bits.");
+            }
+
+            _key = supplied;
+
+            return;
+        }
 
         string? path = options.Value.KeyPath;
 
@@ -103,10 +153,11 @@ public sealed class MfaSecretProtector : IMfaSecretProtector, IDisposable
             // second factor would become undecryptable on the next deployment,
             // and every user would be locked out with no explanation.
             throw new InvalidOperationException(
-                "Security:MfaProtection:KeyPath is not configured. A key must be supplied "
-                + "explicitly outside Development; the Platform will not generate one, because "
-                + "a generated key would change on every deployment and make every enrolled "
-                + "second factor unusable.");
+                "Neither Security:MfaProtection:KeyPath nor Security:MfaProtection:Key is "
+                + "configured. A key must be supplied explicitly outside Development; the Platform "
+                + "will not generate one, because a generated key would change on every deployment "
+                + "and make every enrolled second factor unusable. Prefer the path; use the key "
+                + "itself only where the platform offers no mounted files.");
         }
 
         _key = RandomNumberGenerator.GetBytes(KeySize);
