@@ -10,6 +10,13 @@
     <Project Path="src/Kernel/CCP.Kernel/CCP.Kernel.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Audit/">
+    <Project Path="src/Modules/Audit/CCP.Modules.Audit.Api/CCP.Modules.Audit.Api.csproj" />
+    <Project Path="src/Modules/Audit/CCP.Modules.Audit.Application/CCP.Modules.Audit.Application.csproj" />
+    <Project Path="src/Modules/Audit/CCP.Modules.Audit.Contracts/CCP.Modules.Audit.Contracts.csproj" />
+    <Project Path="src/Modules/Audit/CCP.Modules.Audit.Domain/CCP.Modules.Audit.Domain.csproj" />
+    <Project Path="src/Modules/Audit/CCP.Modules.Audit.Infrastructure/CCP.Modules.Audit.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Authorization/">
     <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Api/CCP.Modules.Authorization.Api.csproj" />
     <Project Path="src/Modules/Authorization/CCP.Modules.Authorization.Application/CCP.Modules.Authorization.Application.csproj" />
@@ -44,6 +51,7 @@
     <Project Path="tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tests/Modules/">
+    <Project Path="tests/Modules/CCP.Modules.Audit.UnitTests/CCP.Modules.Audit.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Authorization.UnitTests/CCP.Modules.Authorization.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Identity.UnitTests/CCP.Modules.Identity.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Organization.UnitTests/CCP.Modules.Organization.UnitTests.csproj" />

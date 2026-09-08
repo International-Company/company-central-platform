@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document | PROJECT_PLAN.md |
-| Status | **Phases 1–5 core complete; Phase 6 next — see DEVELOPMENT_STATUS.md** |
+| Status | **Phases 1–6 core complete; deployed to Railway; Phase 7 next — see DEVELOPMENT_STATUS.md** |
 | Version | 0.1 |
 | Last updated | 2026-09-08 |
 | Companion documents | [ARCHITECTURE.md](ARCHITECTURE.md) · [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) · [ADRs](docs/architecture/adr/) |
@@ -549,17 +549,46 @@ Full Audit module, plus an audit sweep of all earlier modules.
 - [ ] Coverage ≥ 80%
 
 ### Status
-⬜ Not started
+🟡 **Core complete.** Tasks 1, 2, 4, 5, 6, 8 and 11 delivered.
+
+| # | Task | Status |
+|---|---|---|
+| 1 | `AuditEvent` with the full §15.2 field set | ✅ |
+| 2 | Monthly range partitioning + maintenance job | ✅ Three months ahead, one behind, plus a DEFAULT partition so a late job costs a misfiled row rather than a lost event |
+| 3 | Internal ingestion via an outbox consumer | 🟡 **Direct writes only.** The recorder commits on its own context; events do not yet ride the transaction that produced them |
+| 4 | External ingestion, single and batch | ✅ Application taken from the caller's identity, never the body |
+| 5 | Redaction before storage | ✅ Deny by field name, whole-subtree, 30 tests |
+| 6 | Search with mandatory bounds and matched indexes | ✅ Required range, capped at 90 days, six composite indexes |
+| 7 | Asynchronous signed export | ⬜ **Not built.** The 90-day cap has no escape hatch until it exists |
+| 8 | Database-level append-only enforcement | ✅ Privileges revoked to INSERT+SELECT, including on future partitions. **See the deployment caveat in docs/audit/README.md §3** |
+| 9 | Retention and archival by partition detach | ⬜ Not built |
+| 10 | Retrofit audit coverage across Phases 2–5 | ⬜ **Not built — the largest gap.** The trail records no Platform activity today |
+| 11 | `docs/audit/` | ✅ |
+
+### Acceptance criteria — actual result
+
+| Criterion | Result |
+|---|---|
+| Every security-relevant action in Phases 2–5 produces an audit event | ❌ **False today.** Task 10 is not done |
+| Audit rows cannot be modified or deleted | 🟡 Enforced in code and by privilege; **the integration test that attempts an UPDATE and expects failure is not written** |
+| A rolled-back transaction produces no audit event | 🟡 True of the outbox path, which does not exist yet; direct writes commit independently by design |
+| Search over 10 million events within 2 s | ⬜ Unmeasured |
+| No password, token or secret in any record | ✅ 30 redaction tests, including nested objects, arrays and whole subtrees |
+| A simulated external application ingests events | 🟡 Endpoints built and unit-tested; no end-to-end simulation |
+| Coverage ≥ 80% | ⬜ Not measured |
 
 ### Known Issues
-None yet.
+1. **The trail is empty of Platform activity.** Task 10 is the first thing to close.
+2. **Append-only is unproven at the database.** The privilege revocation runs, but no test yet attempts an UPDATE and asserts it fails.
+3. **The migration warns rather than fails** if it cannot tighten privileges — necessary, because a schema must be creatable by a restricted role, but it means a deployment can silently end up without enforcement. Covered by a checklist item, not by code.
+4. **No export**, so an investigation wider than 90 days has no supported path.
 
 ### Risks
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Audit write latency degrades every operation | High | Outbox-based async write; measure the added latency explicitly |
-| Table growth outpaces the plan | Medium | Partitioning from day one; monitor size; confirm retention (Q8) |
-| Sensitive data leaks into old/new values | High | Redaction by declared policy, tested; a review checklist item |
+| Risk | Impact | Mitigation | Outcome |
+|---|---|---|---|
+| Audit write latency degrades every operation | High | Outbox-based async write; measure it | 🟡 Writes are on a separate context and never throw, but they are synchronous with the request and **the added latency is unmeasured** |
+| Table growth outpaces the plan | Medium | Partitioning from day one; monitor size | ✅ Partitioned from the first migration; ⬜ no retention job yet |
+| Sensitive data leaks into old/new values | High | Redaction by declared policy, tested | ✅ Redacted before storage, 30 tests. The strongest part of the phase |
 
 ---
 

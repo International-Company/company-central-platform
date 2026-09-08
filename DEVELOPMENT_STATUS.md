@@ -3,10 +3,11 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-08 |
-| Current phase | **Phase 5 — Security Hardening** |
-| Phase status | 🟡 **Core complete — MFA, step-up and per-endpoint rate limits built; integration tests still unrun** |
-| Next phase | **Phase 6 — Audit** |
+| Current phase | **Phase 6 — Audit** |
+| Phase status | 🟡 **Core complete — append-only partitioned trail built; not yet wired into Phases 2–5** |
+| Next phase | **Phase 7 — Frontend Foundation & Core Admin UI** |
 | Blocked | ⚠️ Partially — see §4 |
+| Deployed | ✅ **Live on Railway** — https://company-central-platform-production.up.railway.app |
 
 ---
 
@@ -20,7 +21,7 @@
 | 3 | Organization | 🟡 **Core complete** | Unit hierarchy with materialized path, arbitrary depth, atomic moves, cycle prevention, bilingual names, employees, positions, company. 48 unit tests. Position/company endpoints and integration tests outstanding. |
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
-| 6 | Audit | ⬜ Not started | |
+| 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search. Privileges revoked to INSERT+SELECT at the database. 50 unit tests. **Not yet called from Phases 2–5 — the trail records nothing today.** |
 | 7 | Frontend Foundation & Core Admin UI | ⬜ Not started | |
 | 8 | Workflow | ⬜ Not started | |
 | 9 | Notifications | ⬜ Not started | |
@@ -37,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–5 in progress.**
+**Completed: 1 of 22 phases. Phases 1–6 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -56,7 +57,7 @@ the foundation the modules sit on. All eleven are specified in
 | Organization | ✅ | 🟡 Core | 🟡 48 unit tests | ⬜ | ✅ |
 | Authorization | ✅ | 🟡 Core | 🟡 63 unit tests | ⬜ | ✅ |
 | Security | ✅ | 🟡 Core | 🟡 56 unit / 15 integration unrun | ⬜ | ✅ |
-| Audit | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Audit | ✅ | 🟡 Core | 🟡 50 unit tests | ⬜ | ✅ |
 | Workflow | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Notifications | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Documents | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -680,6 +681,118 @@ automated clients, not a label for humans.
 
 ---
 
+## 3E. Phase 6 report (Audit)
+
+### 3E.1 What this phase built
+
+An append-only, partitioned, company-wide trail — and, between phases, the
+first deployment: **the Platform is live on Railway**, and the integration
+suite ran against real PostgreSQL for the first time.
+
+### 3E.2 What was built
+
+**The event** — the full field set of §15.2. `occurred_at` is the time the thing
+happened, not the time it was written, and it is the partition key: audit writes
+land a moment later, and recording the write time would misorder events under
+load and file one in the wrong month at a boundary.
+
+**Immutability, twice over.** `IAuditRepository` offers append and search and
+nothing else; `AuditEvent` exposes no mutation. And the migration revokes
+everything on the `audit` schema from the application role, granting back
+`INSERT` and `SELECT` only — including on partitions created later, through
+`ALTER DEFAULT PRIVILEGES`. Code discipline without the privilege is a promise
+that lasts until someone opens `psql`; the privilege without the discipline is an
+accident waiting to be made.
+
+**Monthly range partitioning**, with a maintenance job creating three months
+ahead and one behind, on startup and daily. A partitioned table *rejects* a row
+with no partition, and the first minute of a new month is the worst time to find
+that out. A `DEFAULT` partition means a late job costs a misfiled row rather than
+a lost event — and rows appearing there are the signal that maintenance is
+behind.
+
+**Redaction before storage**, denying by field name rather than by value:
+recognising a secret by looking at it is guesswork, but a field called `password`
+holds one whatever it contains. Names match as case-insensitive substrings, and a
+sensitive name redacts the whole subtree — an object called `credentials` holds
+nothing worth keeping, and redacting it field by field would preserve exactly the
+structure an attacker wants.
+
+**Ingestion**, internal and external. The application is taken from the caller's
+identity and never from the request body: a caller able to name its own
+application could write entries attributed to Finance or HR, and a trail anyone
+can forge is evidence of nothing.
+
+**Bounded search.** The date range is required — not defaulted — and capped at 90
+days. A caller who omitted the dates would otherwise believe they had searched
+everything, which in an investigation is worse than an error.
+
+### 3E.3 The decision that shaped the phase
+
+**Audit and the security event log stay separate**, though they were built in
+consecutive phases and overlap in shape.
+
+Audit answers *who changed what*; security events answer *what is being
+attempted*. Different readers, different retention, different urgency. Merging
+them would mean either keeping attack noise for seven years or discarding
+evidence after ninety days.
+
+### 3E.4 Tests
+
+| Suite | Tests | Result |
+|---|---|---|
+| `CCP.Kernel.UnitTests` | 63 | ✅ |
+| `CCP.Architecture.Tests` | 25 | ✅ |
+| `CCP.Modules.Identity.UnitTests` | 116 | ✅ |
+| `CCP.Modules.Organization.UnitTests` | 48 | ✅ |
+| `CCP.Modules.Authorization.UnitTests` | 63 | ✅ |
+| `CCP.Modules.Security.UnitTests` | 56 | ✅ |
+| `CCP.Modules.Audit.UnitTests` | 50 | ✅ |
+| **Executed total** | **421** | **All passing** |
+| `CCP.Api.IntegrationTests` | 62 | ✅ **Now running in CI** |
+
+Audit coverage concentrates on redaction, which is the most consequential thing
+the module does: the table is append-only, so a secret written into it stays
+there — there is no update path to remove it and, by design, no privilege to try.
+
+### 3E.5 What the first deployment found
+
+Nine latent defects, none of which could have surfaced locally. Five were in the
+build pipeline and had been hiding one another behind a single sentence carried
+since Phase 1 — "CI builds and scans the image on the first push" — which was
+impossible for five consecutive reasons.
+
+| # | Defect | Age | Would have struck |
+|---|---|---|---|
+| 1 | Test factory migrated only the kernel schema | 3 phases | Tests |
+| 2 | The connection string never reached the host | 5 phases | Tests |
+| 3 | `SingleAsync` without filtering by user | 1 phase | Tests |
+| 4 | `[..40]` on a 38-character string | 3 phases | Tests |
+| 5 | **`Retry-After` absent from every 429** | 1 phase | **Production** |
+| 6 | **IP-partitioned rate limit collapses behind NAT** | 1 phase | **Production, day one** |
+| 7 | `trivy-action` pinned to a version that never existed | 5 phases | Pipeline |
+| 8 | `.gitignore` swallowed `build/`, so the Dockerfile was never committed | 5 phases | Pipeline |
+| 9 | Dockerfile copied 5 of 20 projects; `.editorconfig` absent; image never loaded for scanning | 5 phases | Pipeline |
+
+**The lesson worth keeping: a promise that a tool will verify something later is
+not verification.** Five phases of local testing did not find what one push found
+in an afternoon.
+
+### 3E.6 Not built
+
+- **Asynchronous signed export** (task 7). Until it exists the 90-day search cap
+  has no escape hatch for a wider investigation.
+- **Retrofit across Phases 2–5** (task 10). The module is ready and the seam
+  exists, but Identity, Organization, Authorization and Security do not yet call
+  it — **so the trail is currently empty of Platform activity.** This is the
+  largest gap in the phase and the first thing to close.
+- **Retention and archival by partition detach** (task 9).
+- **The outbox consumer** (task 3). Events are written directly rather than
+  riding along with the transaction that produced them.
+- **Search against 10 million seeded rows.** The 2-second budget is unmeasured.
+
+---
+
 ## 4. Blockers
 
 | # | Blocker | Severity | Blocks | Needed from |
@@ -760,7 +873,8 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 
 | # | Item | Severity | Plan |
 |---|---|---|---|
-| 1 | 52 integration tests written but never executed | **High** | Was Medium. Raised because Phase 5 found a latent defect (the test factory migrated only the kernel schema) that had been invisible for three phases — the blocker is not only delaying verification, it is hiding defects. |
+| 1 | ~~Integration tests written but never executed~~ | — | ✅ **Resolved.** 62 run on every push against PostgreSQL in CI, and the Platform is deployed. |
+| 1b | (was) 52 integration tests never executed | — | Was Medium. Raised because Phase 5 found a latent defect (the test factory migrated only the kernel schema) that had been invisible for three phases — the blocker is not only delaying verification, it is hiding defects. |
 | 2 | `build/api.Dockerfile` never built | Low | Docker unavailable locally; CI builds and scans it on the first push |
 | 3 | `RequirePermissionAttribute` declares intent but does not enforce | Low | By design — the handler arrives with Authorization in Phase 4. No endpoint needing enforcement exists yet. |
 | 4 | Outbox cleanup job for old processed rows not written | Low | Phase 17 (database hardening), or sooner if volume warrants |
@@ -824,32 +938,34 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 
 ## 9. Next step
 
-Five phases of the backend now exist and hold together: a kernel, identity,
-organization, authorization that enforces, and a security layer that bounds
-credential guessing and demands a second factor for privileged work.
+Six phases exist and, for the first time, are **proven rather than asserted**:
+421 unit and architecture tests, 62 integration tests against real PostgreSQL on
+every push, a container image that builds and passes a vulnerability scan, and a
+running deployment.
 
-**Phase 6 — Audit** is next: an append-only record of who changed what, distinct
-from the security event log built this phase. Security events answer *what is
-being attempted*; audit answers *who changed what*, and the two have different
-readers, retention and urgency.
+**Phase 7 — Frontend Foundation & Core Administration UI** is next: React,
+TypeScript, Next.js, Tailwind and shadcn/ui, Arabic and English with real RTL
+mirroring, tables as the primary interface, white and blue, no icons by default.
+
+**Close first, before Phase 7:**
+
+1. **Wire audit into Phases 2–5.** The module is built and the trail is empty of
+   Platform activity. Every acceptance criterion of Phase 6 that says "every
+   security-relevant action produces an audit event" is currently false.
+2. **Debt #23 — the NAT rate limit.** Ten sign-ins a minute for a whole office.
+   Deferred by decision; it must be resolved before real users, not after.
+3. **The bootstrap administrator on the deployment.** Nothing can be administered
+   until one account exists.
 
 Still outstanding across all phases:
 
-- **B1 — no database.** Five phases, 361 unit tests, and nothing has run against
-  real PostgreSQL. This phase demonstrated the cost concretely: the integration
-  test factory had been migrating only the kernel schema since Phase 2, so every
-  module integration test would have failed at its first CI run, and nobody could
-  have known. Constraints, transactions, the outbox under concurrency, the
-  permission join, the version stamp and every index remain unverified.
-- **Q10 — the bootstrap administrator.** Nothing can be administered until one
-  account exists, and the procedure needs approval.
-- **B3 — the requirements document** is still missing, six phases in.
+- **Q10 — the bootstrap administrator procedure** needs approval.
+- **B3 — the requirements document** is still missing, seven phases in. Every
+  decision so far has been made from ARCHITECTURE.md and the master prompt.
+- **The MFA protection key cannot be rotated**, and a user losing both phone and
+  recovery codes has no recovery path.
 
-**What has changed for the better:** the authentication surface is no longer
-effectively unlimited, and a stolen session can no longer grant itself a role.
-The remaining reasons not to face a network are the unverified database layer and
-the absent audit trail — not a missing security control.
-
-**What has not changed:** TOTP is not phishing-resistant, the MFA protection key
-cannot be rotated, and a user who loses both phone and recovery codes has no
-recovery path. All three are written down in §7 rather than left to be discovered.
+**What changed this phase, and it is the important one:** the project stopped
+taking its own word for things. Nine latent defects surfaced in a single
+afternoon of deployment — two of which would have reached real users — after five
+phases of local testing found none of them.
