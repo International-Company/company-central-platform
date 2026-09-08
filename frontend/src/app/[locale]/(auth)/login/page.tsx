@@ -92,7 +92,16 @@ export default function LoginPage() {
     }
 
     if (status === 401 || status === 422) {
-      return tErrors('unauthorized');
+      // "Sign in to continue" is what an expired session says. For a rejected
+      // credential it is actively confusing: the person is trying to sign in.
+      //
+      // The message also warns that repeated failures slow the next attempt,
+      // because the account lockout is progressive and silent — the Platform
+      // returns the same uniform failure whether the password was wrong or the
+      // account is waiting out a delay, so that an attacker cannot tell the
+      // difference. An honest user, having no such warning, concludes the
+      // system is broken.
+      return tErrors('invalidCredentials');
     }
 
     return tErrors('generic');

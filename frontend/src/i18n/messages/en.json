@@ -83,7 +83,8 @@
     "tooManyRequests": "Too many attempts. Wait a moment and try again.",
     "correlationId": "Reference: {id}",
     "fieldRequired": "This field is required.",
-    "passwordsDoNotMatch": "The passwords do not match."
+    "passwordsDoNotMatch": "The passwords do not match.",
+    "invalidCredentials": "The username or password is incorrect. Repeated failures delay further attempts."
   },
   "users": {
     "title": "Users",

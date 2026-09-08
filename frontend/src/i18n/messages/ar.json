@@ -83,7 +83,8 @@
     "tooManyRequests": "محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.",
     "correlationId": "المرجع: {id}",
     "fieldRequired": "هذا الحقل مطلوب.",
-    "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين."
+    "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين.",
+    "invalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة. تكرار الفشل يؤخّر المحاولات التالية."
   },
   "users": {
     "title": "المستخدمون",
