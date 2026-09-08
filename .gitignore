@@ -40,6 +40,14 @@ x86/
 [Bb]uild/
 [Bb]uilds/
 artifacts/
+
+# ...but /build at the repository root is ours, not MSBuild's. It holds the
+# Dockerfile. The rule above is aimed at compiler output, which lives in bin/
+# and obj/, and it silently swallowed a directory we author: the image build
+# failed in CI with "lstat build: no such file or directory" because the
+# Dockerfile had never been committed at all.
+!/build/
+!/build/**
 *.user
 *.suo
 *.userosscache
