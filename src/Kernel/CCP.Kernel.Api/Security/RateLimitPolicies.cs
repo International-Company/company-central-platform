@@ -49,6 +49,13 @@ public static class RateLimitPolicies
     /// <summary>Authenticated reads. The most generous.</summary>
     public const string Read = "read";
 
+    /// <summary>
+    /// The window every policy measures against. One minute, and one constant:
+    /// the <c>Retry-After</c> fallback is only honest while it matches the
+    /// window the limiter actually uses.
+    /// </summary>
+    private static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
+
     /// <summary>Registers every policy and the rejection behaviour.</summary>
     /// <param name="options">The framework's limiter options.</param>
     /// <param name="limits">
@@ -67,21 +74,30 @@ public static class RateLimitPolicies
         // Tells a well-behaved client when to come back, and gives an honest
         // client a way to back off rather than hammer. An attacker ignores it,
         // which costs nothing.
+        //
+        // The limiter does not always supply RetryAfter metadata — a sliding
+        // window rejects without one — so the window length is the fallback.
+        // Without it the header simply vanished on exactly the responses that
+        // needed it, which an integration test caught. A conservative answer is
+        // far better than none: a client with no guidance retries immediately
+        // and is refused again.
         options.OnRejected = static (context, cancellationToken) =>
         {
-            if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter))
-            {
-                context.HttpContext.Response.Headers.RetryAfter =
-                    ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
-            }
+            TimeSpan retryAfter =
+                context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan fromLease)
+                    ? fromLease
+                    : Window;
+
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
 
             return ValueTask.CompletedTask;
         };
 
         options.AddPolicy(Authentication, PartitionAuthentication(limits.Authentication));
         options.AddPolicy(Anonymous, PartitionAnonymous(limits.Anonymous));
-        options.AddPolicy(Write, PartitionByIdentity(limits.Write, TimeSpan.FromMinutes(1)));
-        options.AddPolicy(Read, PartitionByIdentity(limits.Read, TimeSpan.FromMinutes(1)));
+        options.AddPolicy(Write, PartitionByIdentity(limits.Write, Window));
+        options.AddPolicy(Read, PartitionByIdentity(limits.Read, Window));
 
         return options;
     }
@@ -115,7 +131,7 @@ public static class RateLimitPolicies
             _ => new SlidingWindowRateLimiterOptions
             {
                 PermitLimit = permitLimit,
-                Window = TimeSpan.FromMinutes(1),
+                Window = Window,
                 SegmentsPerWindow = 6,
 
                 // No queue. Holding an authentication attempt to serve it later
@@ -130,7 +146,7 @@ public static class RateLimitPolicies
             _ => new SlidingWindowRateLimiterOptions
             {
                 PermitLimit = permitLimit,
-                Window = TimeSpan.FromMinutes(1),
+                Window = Window,
                 SegmentsPerWindow = 6,
                 QueueLimit = 0
             });
