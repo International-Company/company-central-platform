@@ -36,15 +36,19 @@ public sealed class RateLimitTests(RateLimitedApiFactory factory) : IClassFixtur
 
         var statuses = new List<HttpStatusCode>();
 
-        // Deliberately more attempts than the budget allows. Credentials are
-        // wrong throughout: the limiter must not depend on whether the attempt
-        // would have succeeded, or an attacker learns which usernames exist by
-        // watching where the limit bites.
+        // One account throughout. The budget is partitioned by the account
+        // being attacked, so varying the username would hand each attempt a
+        // fresh budget and prove nothing — which is the whole point of the
+        // change, and exactly what NatRateLimitTests checks from the other side.
+        //
+        // Credentials are wrong every time: the limiter must not depend on
+        // whether an attempt would have succeeded, or an attacker learns which
+        // accounts exist by watching where the limit bites.
         for (int i = 0; i < RateLimitedApiFactory.Limit + 3; i++)
         {
             using HttpResponseMessage response = await client.PostAsJsonAsync(
                 new Uri("/api/v1/auth/login", UriKind.Relative),
-                new { username = $"nobody{i}", password = "wrong-password" });
+                new { username = "the-targeted-account", password = $"wrong-password-{i}" });
 
             statuses.Add(response.StatusCode);
         }
@@ -68,7 +72,7 @@ public sealed class RateLimitTests(RateLimitedApiFactory factory) : IClassFixtur
         {
             HttpResponseMessage response = await client.PostAsJsonAsync(
                 new Uri("/api/v1/auth/login", UriKind.Relative),
-                new { username = $"nobody{i}", password = "wrong-password" });
+                new { username = "the-retry-after-account", password = $"wrong-password-{i}" });
 
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {

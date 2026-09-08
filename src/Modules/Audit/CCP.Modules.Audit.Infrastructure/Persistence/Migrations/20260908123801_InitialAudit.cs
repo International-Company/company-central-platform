@@ -58,6 +58,33 @@ namespace CCP.Modules.Audit.Infrastructure.Persistence.Migrations
                 PARTITION OF audit.audit_events DEFAULT;
                 """);
 
+            // The months around now, created here rather than left to the
+            // maintenance job.
+            //
+            // The job runs on startup, but a migration can be applied by a
+            // deployment step with no application running at all - and then the
+            // very first audit event lands in the default partition, which is
+            // the one place rows are not supposed to be. A fresh schema should
+            // be correct on its own, not correct once something else has run.
+            migrationBuilder.Sql("""
+                DO $$
+                DECLARE
+                    month_start date := date_trunc('month', now())::date - interval '1 month';
+                    month_end   date;
+                BEGIN
+                    FOR i IN 0..4 LOOP
+                        month_end := (month_start + interval '1 month')::date;
+
+                        EXECUTE format(
+                            'CREATE TABLE IF NOT EXISTS audit.audit_events_%s '
+                            'PARTITION OF audit.audit_events FOR VALUES FROM (%L) TO (%L)',
+                            to_char(month_start, 'YYYY_MM'), month_start, month_end);
+
+                        month_start := month_end;
+                    END LOOP;
+                END $$;
+                """);
+
             migrationBuilder.CreateIndex(
                 name: "ix_audit_action_time",
                 schema: "audit",
