@@ -2,7 +2,7 @@ using CCP.Modules.Integrations.Application;
 using CCP.Modules.Integrations.Application.Abstractions;
 using CCP.Modules.Integrations.Infrastructure.Outbound;
 using CCP.Modules.Integrations.Infrastructure.Persistence;
-using CCP.Modules.Integrations.Infrastructure.Secrets;
+using CCP.Modules.Integrations.Infrastructure.SecretResolution;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

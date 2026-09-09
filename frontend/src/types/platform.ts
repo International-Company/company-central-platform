@@ -64,6 +64,11 @@ export type ApplicationCredentialDto = Schemas['ApplicationCredentialDto'];
 export type IssuedCredentialDto = Schemas['IssuedCredentialDto'];
 export type ApplicationRoleDto = Schemas['ApplicationRoleDto'];
 
+export type IntegrationProviderDto = Schemas['IntegrationProviderDto'];
+export type IntegrationEndpointDto = Schemas['IntegrationEndpointDto'];
+export type IntegrationCallDto = Schemas['IntegrationCallDto'];
+export type IntegrationHealthDto = Schemas['IntegrationHealthDto'];
+
 /**
  * The envelope every list endpoint returns (ADR-008).
  *

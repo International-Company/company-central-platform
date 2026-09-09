@@ -520,6 +520,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/webhooks/{providerCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepts a signed webhook from a registered provider.
+         * @description **Anonymous.** No token is needed to call this.
+         */
+        post: operations["ReceiveWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the Platform sent, and what came back.
+         * @description **Requires:** `platform.integrations.view`
+         */
+        get: operations["SearchIntegrationCalls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/company": {
         parameters: {
             query?: never;
@@ -1692,10 +1732,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every external service the Platform may call.
+         * @description **Requires:** `platform.integrations.view`
+         */
+        get: operations["GetIntegrationProviders"];
+        put?: never;
+        /**
+         * Registers an external service the Platform may call.
+         * @description **Requires:** `platform.integrations.manage`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
+        post: operations["RegisterIntegrationProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets resilience, redaction and the credential reference.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        put: operations["ConfigureIntegrationProvider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/providers/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Stops calls to a provider, or starts them again.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        put: operations["SetIntegrationProviderStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/providers/{id}/endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adds an operation to a provider.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        post: operations["AddIntegrationEndpoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/providers/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How each provider has been behaving, from its recent calls.
+         * @description **Requires:** `platform.integrations.view`
+         */
+        get: operations["GetIntegrationHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddEndpointRequest: {
+            key: string;
+            method: string;
+            pathTemplate: string;
+        };
         ApplicationCredentialDto: {
             /** Format: uuid */
             id: string;
@@ -1777,6 +1928,20 @@ export interface components {
             name: components["schemas"]["LocalizedNameDto"];
             defaultLocale: string;
             isActive: boolean;
+        };
+        ConfigureProviderRequest: {
+            /** Format: int32 */
+            timeoutSeconds: number | string;
+            /** Format: int32 */
+            maxRetries: number | string;
+            /** Format: int32 */
+            failuresBeforeBreaking: number | string;
+            /** Format: int32 */
+            breakDurationSeconds: number | string;
+            /** Format: int32 */
+            maxConcurrentCalls: number | string;
+            redactedFields: null | string[];
+            credentialReference: null | string;
         };
         CreateCompanyRequest: {
             code: string;
@@ -1992,6 +2157,74 @@ export interface components {
             newValue: null | string;
             metadata: null | string;
         };
+        IntegrationCallDto: {
+            /** Format: uuid */
+            id: string;
+            providerCode: string;
+            endpointKey: string;
+            method: string;
+            path: string;
+            correlationId: string;
+            requestPayload: string;
+            responsePayload: string;
+            /** Format: int32 */
+            statusCode: null | number | string;
+            outcome: string;
+            failureReason: null | string;
+            /** Format: int32 */
+            attempts: number | string;
+            /** Format: int32 */
+            durationMs: number | string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            completedAt: null | string;
+        };
+        IntegrationEndpointDto: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            method: string;
+            pathTemplate: string;
+        };
+        IntegrationHealthDto: {
+            providerCode: string;
+            name: string;
+            isEnabled: boolean;
+            /** Format: int32 */
+            recentCalls: number | string;
+            /** Format: int32 */
+            recentFailures: number | string;
+            /** Format: date-time */
+            lastCallAt: null | string;
+            /** Format: date-time */
+            lastSuccessAt: null | string;
+            status: string;
+        };
+        IntegrationProviderDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            baseAddress: string;
+            credentialReference: null | string;
+            isEnabled: boolean;
+            hasCredential: boolean;
+            /** Format: int32 */
+            timeoutSeconds: number | string;
+            /** Format: int32 */
+            maxRetries: number | string;
+            /** Format: int32 */
+            failuresBeforeBreaking: number | string;
+            /** Format: int32 */
+            breakDurationSeconds: number | string;
+            /** Format: int32 */
+            maxConcurrentCalls: number | string;
+            redactedFields: string[];
+            endpoints: components["schemas"]["IntegrationEndpointDto"][];
+            /** Format: date-time */
+            createdAt: string;
+        };
         IssueCredentialRequest: {
             label: string;
             /** Format: date-time */
@@ -2203,6 +2436,19 @@ export interface components {
             hasPrevious?: boolean;
             hasNext?: boolean;
         };
+        PagedResultOfIntegrationCallDto: {
+            items: components["schemas"]["IntegrationCallDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
         PagedResultOfNotificationDto: {
             items: components["schemas"]["NotificationDto"][];
             /** Format: int32 */
@@ -2338,6 +2584,11 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        RegisterProviderRequest: {
+            code: string;
+            name: string;
+            baseAddress: string;
+        };
         RenameCompanyRequest: {
             nameAr: string;
             nameEn: string;
@@ -2423,6 +2674,9 @@ export interface components {
             channel: string;
             isEnabled: boolean;
             parsedChannel?: components["schemas"]["NotificationChannel"];
+        };
+        SetProviderEnabledRequest: {
+            isEnabled: boolean;
         };
         SetRoleActiveRequest: {
             isActive: boolean;
@@ -3203,6 +3457,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentDto"][];
+                };
+            };
+        };
+    };
+    ReceiveWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SearchIntegrationCalls: {
+        parameters: {
+            query?: {
+                providerCode?: string;
+                outcome?: string;
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfIntegrationCallDto"];
                 };
             };
         };
@@ -4931,6 +5230,146 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetIntegrationProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationProviderDto"][];
+                };
+            };
+        };
+    };
+    RegisterIntegrationProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationProviderDto"];
+                };
+            };
+        };
+    };
+    ConfigureIntegrationProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigureProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationProviderDto"];
+                };
+            };
+        };
+    };
+    SetIntegrationProviderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetProviderEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AddIntegrationEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddEndpointRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationEndpointDto"];
+                };
+            };
+        };
+    };
+    GetIntegrationHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationHealthDto"][];
+                };
             };
         };
     };
