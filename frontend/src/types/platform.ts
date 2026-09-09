@@ -34,6 +34,7 @@ export type AuditEventDto = Schemas['AuditEventDto'];
 export type OrganizationUnitDto = Schemas['OrganizationUnitDto'];
 export type OrganizationUnitTreeDto = Schemas['OrganizationUnitTreeDto'];
 export type PermissionDto = Schemas['PermissionDto'];
+export type RoleDetailDto = Schemas['RoleDetailDto'];
 export type UserRoleDto = Schemas['UserRoleDto'];
 export type MyPermissionsDto = Schemas['MyPermissionsDto'];
 export type MfaStatusDto = Schemas['MfaStatusDto'];

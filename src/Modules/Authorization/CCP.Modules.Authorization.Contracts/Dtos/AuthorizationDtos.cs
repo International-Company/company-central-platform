@@ -11,6 +11,25 @@ public sealed record RoleDto(
     bool IsActive,
     int PermissionCount);
 
+/// <summary>
+/// One role with the permissions it actually carries.
+/// <para>
+/// Separate from <see cref="RoleDto"/>, which reports only a count. A screen
+/// that edits a role's permissions needs the set it is editing: without it the
+/// only honest thing it could do is start from empty, and saving would silently
+/// strip everything the role already had.
+/// </para>
+/// </summary>
+public sealed record RoleDetailDto(
+    Guid Id,
+    string Code,
+    string NameAr,
+    string NameEn,
+    string? Description,
+    bool IsSystem,
+    bool IsActive,
+    IReadOnlyList<Guid> PermissionIds);
+
 /// <summary>A declared permission.</summary>
 public sealed record PermissionDto(
     Guid Id,

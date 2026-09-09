@@ -2,6 +2,7 @@ using CCP.Kernel.Api.Modules;
 using CCP.Kernel.Application.Modules;
 using CCP.Modules.Authorization.Application.Applications;
 using CCP.Modules.Authorization.Application.Grants;
+using CCP.Modules.Authorization.Application.Roles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,10 @@ public sealed class AuthorizationModule : IPlatformModule, IModuleEndpoints
         // Scoped, because it resolves permissions through per-request services.
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
+        services.AddScoped<CreateRoleHandler>();
+        services.AddScoped<UpdateRoleHandler>();
+        services.AddScoped<SetRolePermissionsHandler>();
+        services.AddScoped<SetRoleActiveHandler>();
         services.AddScoped<GrantRoleHandler>();
         services.AddScoped<RevokeRoleHandler>();
         services.AddScoped<DeclarePermissionsHandler>();

@@ -282,9 +282,12 @@ jobs:
           echo "CCP_Identity__SigningKey=$(openssl genrsa 3072 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
           echo "CCP_Security__MfaProtection__Key=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
 
+      # Output to a file, not to the void. Both servers ran with their logs
+      # discarded, so a 500 in an end-to-end run said only "500" — the stack
+      # trace explaining it was written to a stream nothing was reading.
       - name: Start the API
         run: |
-          dotnet run --project src/Host/CCP.Api.Host --configuration Release --urls http://localhost:5080 &
+          dotnet run --project src/Host/CCP.Api.Host --configuration Release --urls http://localhost:5080             > api.log 2>&1 &
           for _ in $(seq 1 60); do
             if curl -sf http://localhost:5080/health/ready > /dev/null; then
               echo "API ready."
@@ -293,6 +296,7 @@ jobs:
             sleep 2
           done
           echo "The API did not become ready." >&2
+          cat api.log >&2
           exit 1
 
       - name: Install frontend
@@ -310,7 +314,7 @@ jobs:
       - name: Start the frontend
         working-directory: frontend
         run: |
-          npm start -- --port 3000 &
+          npm start -- --port 3000 > ../frontend.log 2>&1 &
           for _ in $(seq 1 60); do
             if curl -sf http://localhost:3000/ar/login > /dev/null; then
               echo "Frontend ready."
@@ -319,11 +323,25 @@ jobs:
             sleep 2
           done
           echo "The frontend did not become ready." >&2
+          cat ../frontend.log >&2
           exit 1
 
       - name: Run end-to-end tests
         working-directory: frontend
         run: npx playwright test
+
+      # The half of the story Playwright cannot see. A route handler that
+      # throws answers 500 with an empty body; the reason is in these logs and
+      # nowhere else.
+      - name: Show the server logs
+        if: failure()
+        run: |
+          echo "::group::API"
+          tail -n 200 api.log || echo "no API log"
+          echo "::endgroup::"
+          echo "::group::Frontend"
+          tail -n 200 frontend.log || echo "no frontend log"
+          echo "::endgroup::"
 
       - name: Upload traces
         if: failure()

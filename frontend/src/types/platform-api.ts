@@ -527,7 +527,8 @@ export interface paths {
         /** Lists roles. */
         get: operations["GetRoles"];
         put?: never;
-        post?: never;
+        /** Creates a role. It starts empty; its permissions are set separately. */
+        post: operations["CreateRole"];
         delete?: never;
         options?: never;
         head?: never;
@@ -545,6 +546,58 @@ export interface paths {
         get: operations["GetPermissions"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns one role with the permissions it carries. */
+        get: operations["GetRole"];
+        /** Renames a role. The code is fixed once created. */
+        put: operations["UpdateRole"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the permissions a role carries, refusing any the caller does not hold. */
+        put: operations["SetRolePermissions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivates a role, or brings it back. Never deletes one. */
+        post: operations["SetRoleStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -765,6 +818,12 @@ export interface components {
             workPhone?: null | string;
             /** Format: date */
             hireDate?: null | string;
+        };
+        CreateRoleRequest: {
+            code: string;
+            nameAr: string;
+            nameEn: string;
+            description?: null | string;
         };
         CreateUnitRequest: {
             /** Format: uuid */
@@ -987,6 +1046,17 @@ export interface components {
             token: string;
             newPassword: string;
         };
+        RoleDetailDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            nameAr: string;
+            nameEn: string;
+            description: null | string;
+            isSystem: boolean;
+            isActive: boolean;
+            permissionIds: string[];
+        };
         RoleDto: {
             /** Format: uuid */
             id: string;
@@ -1000,6 +1070,12 @@ export interface components {
             permissionCount: number | string;
         };
         ScopeType: number;
+        SetRoleActiveRequest: {
+            isActive: boolean;
+        };
+        SetRolePermissionsRequest: {
+            permissionIds: string[];
+        };
         TransferEmployeeRequest: {
             /** Format: uuid */
             newUnitId: string;
@@ -1007,6 +1083,11 @@ export interface components {
             newPositionId: null | string;
             /** Format: uuid */
             newManagerId: null | string;
+        };
+        UpdateRoleRequest: {
+            nameAr: string;
+            nameEn: string;
+            description?: null | string;
         };
         UpdateUserRequest: {
             email: string;
@@ -1802,6 +1883,30 @@ export interface operations {
             };
         };
     };
+    CreateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDto"];
+                };
+            };
+        };
+    };
     GetPermissions: {
         parameters: {
             query?: {
@@ -1821,6 +1926,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PermissionDto"][];
                 };
+            };
+        };
+    };
+    GetRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDetailDto"];
+                };
+            };
+        };
+    };
+    UpdateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDto"];
+                };
+            };
+        };
+    };
+    SetRolePermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetRolePermissionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDto"];
+                };
+            };
+        };
+    };
+    SetRoleStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetRoleActiveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
