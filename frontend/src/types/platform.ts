@@ -69,6 +69,11 @@ export type IntegrationEndpointDto = Schemas['IntegrationEndpointDto'];
 export type IntegrationCallDto = Schemas['IntegrationCallDto'];
 export type IntegrationHealthDto = Schemas['IntegrationHealthDto'];
 
+export type SettingDto = Schemas['SettingDto'];
+export type SettingValueDto = Schemas['SettingValueDto'];
+export type SettingChangeDto = Schemas['SettingChangeDto'];
+export type FeatureFlagDto = Schemas['FeatureFlagDto'];
+
 /**
  * The envelope every list endpoint returns (ADR-008).
  *

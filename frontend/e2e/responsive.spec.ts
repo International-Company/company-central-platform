@@ -34,6 +34,8 @@ const Screens = [
   'workflow',
   'documents',
   'applications',
+  'integrations',
+  'configuration',
   'audit',
 ] as const;
 

@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 14 — Observability** |
-| Phase status | 🟡 **One correlation id retrieves the log, the trace and the audit record. No screen yet.** |
-| Next phase | **Phase 15 — Administration Portal Completion** |
+| Current phase | **Phase 15 — Administration Portal Completion** |
+| Phase status | 🟢 **Every module with an API now has a screen. The Platform is no longer administered through a terminal.** |
+| Next phase | **Phase 16 — Platform Dashboard** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -30,7 +30,7 @@
 | 12 | Integrations | 🟢 **Complete** | Every outbound call passes one door: the address is checked against a **deny-by-default** allow-list, the credential is resolved from a *reference* so no column in the module could hold a secret, the request runs under a resilience pipeline built from the provider's own settings, and both halves are written to the call log with the provider's declared fields blanked **before storage**. The SSRF defence checks the name and every address it resolves to — the metadata service, the private ranges, non-HTTP schemes and credentials in the URL are all refused, and a caller is never told which check failed. Bulkhead, breaker, retry with jitter, timeout, in that order, because the order decides what each one protects. Inbound webhooks verify an HMAC over the raw body with the timestamp inside the signed material, and every accepted signature is remembered so the same request cannot be replayed. Health is derived from recent calls, never stored. Retention from the first day. 48 unit tests. |
 | 13 | Configuration & Feature Flags | 🟢 **Complete** | Settings are declared before they are set, in their owner's namespace, with a type and constraints checked at the moment somebody types a value. **A value that looks like a secret is refused outright** — a settings table is stored in plaintext, exported and backed up, and the sensitivity flag stops a value being read back rather than stopping it being there. Three scopes with narrowest winning; a row exists only where somebody overrode something. Every change keeps what it was, what it became, who and why — and for a sensitive setting says that it changed and not what to. Cached on a version stamp held in the database, so a change takes effect on the very next request and on every instance. Feature flags targeted by role or unit and nothing else, off by default, off when undeclared, and off meaning off however they are targeted. 52 unit tests. |
 | 14 | Observability | 🟡 **Partly complete** | OpenTelemetry traces and metrics, exported over OTLP where an endpoint is configured and instrumented unconditionally where one is not — so the code path in production is the one that ran locally. The correlation id is written onto the span by the middleware that decides it, so one identifier retrieves the log line, the trace and the audit record. Credentials are removed from log events **at the sink**, by name and by shape, because discipline does not scale to every log statement anybody will ever write. Five instruments the framework cannot supply, each with an alert defined against it. Readiness now distinguishes unhealthy from degraded: a bucket nobody can reach stops documents, not the Platform. 20 unit tests, a runbook. **No monitoring screen and no stored job history** — those belong with the dashboard. |
-| 15 | Administration Portal Completion | ⬜ Not started | |
+| 15 | Administration Portal Completion | 🟢 **Complete** | The two modules that had a complete API and no screen now have one. Integrations opens on the question an operator asks during an incident — is this provider working — with health first and the configuration below it; `Idle` is grey rather than green, because nothing has been asked of a provider that has not been called and a green light nobody earned is worse than an honest blank. Failures are shown as *3 of 4* rather than 75%, since the percentage hides how small the sample is. The call log shows both payloads in full, which is only safe because they were redacted **before** they were stored — what an administrator reads is what the database holds, and there is no unredacted copy for the next export to find. **No credential value appears on either screen, and not because the screen hides one**: the Platform stores a secret's *name* and has no field that could carry a value. Configuration shows what is in force, how many scopes overrode it, and the change history — what it was, what it became, who and why — and for a sensitive setting says that it changed without saying what to. Pasting a credential into a setting is refused by the Platform, and the screen explains the refusal in full rather than reporting it as a validation quibble. The health stamp records when health was **read**, not when the page last rendered, so the figure goes stale in front of whoever is watching it. Both locales, both directions, in the accessibility, responsive and signed-in sweeps.
 | 16 | Platform Dashboard | ⬜ Not started | |
 | 17 | Database Hardening, Backup & Recovery | ⬜ Not started | |
 | 18 | Developer Experience & Documentation | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–14 in progress.**
+**Completed: 1 of 22 phases. Phases 1–15 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -939,16 +939,19 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 44 | DNS rebinding is not closed | Medium | The outbound guard checks the host name and every address it resolves to, and then the HTTP client resolves the name again to connect. Between the two, whoever controls the name can point it somewhere else. Closing it means connecting to a checked address rather than to a name, which requires taking over socket connection in the handler. The allow-list narrows it a long way: an attacker needs control of a host somebody deliberately allowed. |
 | 45 | The email channel has not been moved onto the integration layer | Medium | Phase 12 lists it, and Phase 9 recorded it as debt (#33). The SMTP adapter still talks to a mail server directly, with no shared circuit breaker, no allow-list and no entry in the call log. SMTP is not HTTP, so it needs a second connector shape rather than a configuration change — which is the reason it is not done rather than an excuse for it. |
 | 46 | Outbound webhook subscriptions are not built | Medium | Deferred from Phase 11 to here, and not built here either. Receiving a signed webhook is done; publishing Platform events to an external URL is not. It needs delivery with retry, a per-subscription secret and the same allow-list — all of which now exist, so it is assembly rather than design. |
-| 47 | No integration administration screens | Low | The API is complete and there is no UI. A provider is registered and configured through the API today, which is workable for the handful of providers a company has and is not where this should end. |
+| 47 | ~~No integration administration screens~~ | — | ✅ **Resolved.** Providers, their health, and the call log with both redacted payloads. Enabling and disabling is on the screen; registering a provider and editing its resilience, redaction and credential reference is still an API call (#57). |
 | 49 | ~~A provider configured not to retry failed every call~~ | — | ✅ **Resolved.** Polly validates `MaxRetryAttempts` as at least one; the domain allows zero to mean *do not retry*, and the factory passed it through, so the pipeline threw while being built. Zero retries now means no retry strategy. Found by the stub-server tests within an hour of writing them, which is the clearest argument for having written them. |
 | 50 | The feature-state endpoint answers without the caller's roles or units | Medium | `GET /me/features/{key}` resolves neither, so a **targeted** flag reads as off for everybody through it. An undeclared or untargeted flag answers correctly, and the Platform's own code evaluates targeting properly because it already knows the caller. The endpoint needs the same subject resolution the Documents module has; until then a screen cannot be shown a targeted rollout. |
-| 51 | No configuration administration screens | Low | Same shape as the integrations gap: the API is complete and there is no UI. Settings are declared and changed through the API, which is workable and is not where this should end — a change history nobody can read is a change history that gets read once, during an incident, by somebody writing SQL. |
+| 51 | ~~No configuration administration screens~~ | — | ✅ **Resolved.** Settings with what is in force and their full change history, and flags with their reach. The history was the point: one that only SQL can read gets read once, during an incident. Editing is limited to Platform scope and flag targeting is not editable (#58). |
 | 52 | Nothing has been migrated onto the configuration module yet | Medium | Every retention period, size limit and interval written across Phases 9 to 12 is still an `appsettings` value that needs a deployment to change — which is precisely what this module exists to fix. The module works and nothing uses it, so the phase's benefit is available and unclaimed. |
 | 53 | ~~The tests about secrets put secret-shaped strings in the repository~~ | — | ✅ **Resolved.** The secret scanner failed the phase whose subject is keeping credentials out of places they do not belong, having found convincing tokens in my own fixtures — which is the scanner working, since it cannot tell a test from a leak. The fixtures are assembled at run time; an allow-list entry would have been a permanent hole opened so a test could keep its formatting. |
 | 54 | No stored background job history and no monitoring screen | Medium | Job runs and durations are emitted as metrics and nothing keeps a record of them, so "did last night's purge run?" is a query somebody writes during the incident rather than a page they open. Phase 14 lists both; they belong with the Platform dashboard in Phase 16. |
 | 55 | Alert definitions are written down and not deployed | Medium | The runbook names seven conditions with thresholds and a first action for each. Creating them is an operation in whichever backend the provider offers, and the provider is not chosen (Q4) — so the definitions exist as documentation and nothing is watching. |
 | 56 | Trace context is not propagated to business applications | Low | The Platform accepts an inbound correlation id and echoes it, and outbound integration calls carry W3C trace headers through the instrumented HTTP client. What is untested is the round trip: a business system's trace joining the Platform's and coming back. It needs a second service to test against. |
 | 48 | ~~The connector is not tested against a real HTTP server~~ | — | ✅ **Resolved.** A stub provider on a real socket, misbehaving on command: a retry works through two failures and the stub counts three arrivals, a 400 is not retried and the stub counts one, a timeout fires inside its budget while the stub sleeps five seconds, the breaker opens and the stub stops receiving anything, and a card number is absent from both halves of the stored log while the caller still gets it. The counts come from the far end of the socket rather than from the Platform's own log, so the log is not being tested against itself. |
+| 57 | A provider can only be turned on and off from the screen | Low | Registering one, and changing its resilience settings, its redacted field list or its credential reference, is still an API call. The BFF routes for both exist and no form calls them. Registration is a rare, careful act performed once per provider, which is why it is the part left for later rather than the part built first. |
+| 58 | Settings can only be changed at Platform scope from the screen | Medium | The API takes a scope and a scope id; the screen sends `Platform` and null. So the count of overrides is visible and a company- or application-scoped override can be neither set nor cleared from the portal — which is the case where narrowest-wins resolution actually earns its complexity. It needs a scope picker that knows which companies and applications exist. |
+| 59 | Flag targeting cannot be edited from the screen | Medium | The toggle sends the flag's existing role and unit ids back unchanged, so a flag can be turned on and off and cannot be aimed. A targeted rollout is still an API call — and #50 means the feature-state endpoint would answer *off* for everybody anyway, so aiming one is not useful until that is fixed. The two are one piece of work. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -1692,26 +1695,80 @@ with thresholds and a first action each — written down, and not yet watching.
 
 ---
 
-## 17. Next step
+## 17. Phase 15 report — the part that is not a screenshot
 
-**Phase 15 — Administration Portal Completion.** Three modules now have complete
-APIs and no screens: integrations, configuration, and the job history this phase
-measured but does not show. The Platform is administrable through a terminal,
-which is workable for the person who built it and for nobody else.
+Two modules had a complete API and no screen. Both now have one, and the whole
+portal is in the accessibility, responsive and signed-in sweeps in both locales.
+That is the summary. What follows is the part that is not obvious from a
+screenshot.
 
-Still outstanding across all phases:
+**The call log shows both payloads in full, and that is safe for exactly one
+reason.** The redaction happened before storage. What an administrator reads is
+what the database holds; there is no unredacted copy anywhere for the next
+export, backup or support ticket to find. Had redaction been a display concern,
+this screen could not exist — showing a payload would mean deciding, per field,
+per screen, forever, whether it was safe, and being wrong once. The decision
+that made this page possible was made three phases ago in a different module.
 
-- **B3 — the requirements document** is still missing, seven phases in. Every
-  decision so far has been made from ARCHITECTURE.md and the master prompt.
+**Neither screen shows a credential, and no line of code is responsible for
+that.** The Platform stores the *name* of a secret. There is no column, no DTO
+field and no response shape that could carry a value, so the integrations screen
+prints the reference because that is the only thing there is to print. The same
+holds for a sensitive setting: its value is absent from the Platform's own
+response, so the configuration screen is not hiding it — nothing arrived. A
+screen that hides a value it received is one careless render away from showing
+it. A screen that never receives one is not.
+
+**Idle is grey.** A provider nobody has called yet is not healthy; nothing is
+known about it. Painting it green would be the screen inventing an assurance
+from an absence of evidence, which is the failure mode of every status board
+that ever lied during an outage. Failures are shown as `3 / 4` rather than 75%,
+for the same reason: the fraction says how much the number is worth and the
+percentage does not.
+
+**One defect found by writing the screen.** The health line stamped itself with
+`new Date()` inside the render, so it printed the current clock every time
+anything on the page changed — a page reporting figures computed on mount and
+labelling them with the time an operator happened to click something else. It
+now records when health was read, so the stamp goes stale in front of whoever is
+watching it. Nothing refreshes on this page; that is the honest thing to show.
+
+**The refusal is explained, not reported.** Pasting a credential into a setting
+comes back as `CONFIG.SECRET_SHAPED_VALUE`, and the screen answers with why: a
+setting is stored in plaintext, appears in backups and exports, and a secret
+belongs in the secret store and is named here by reference. Rendered as a
+generic validation error, the reasonable next move is to try a value that gets
+past the check — which is the outcome the check exists to prevent.
+
+**What was left out, and recorded rather than glossed.** Registering a provider
+and editing its resilience, redaction and credential reference is still an API
+call (#57). Settings can only be changed at Platform scope from the portal
+(#58), which is the scope where narrowest-wins matters least. Flag targeting
+cannot be edited (#59) — and would not yet be useful if it could, because #50
+means the feature-state endpoint answers *off* for every targeted flag. Those
+two are one piece of work and are named as one.
+
+---
+
+## 18. Next step
+
+**Phase 16 — Platform Dashboard**, and the case for it is now stronger than it
+was when the plan was written. Phase 14 emits job runs and durations as metrics
+and stores none of them (#54), so *did last night's purge run* is a query
+somebody writes during the incident. Phase 14's alerts are seven documented
+conditions with nothing watching them (#55), because creating them is an
+operation in a backend nobody has chosen (Q4). The dashboard is where both of
+those stop being paragraphs.
+
+Still outstanding across all phases, unchanged by this one:
+
+- **B3 — the requirements document** is still missing. Every decision so far has
+  been made from ARCHITECTURE.md and the master prompt.
+- **Q4 — the cloud provider** is undecided, and Phase 19 cannot start without
+  it. It is also what is holding the alert definitions as documentation.
 - **Q10 — the bootstrap administrator procedure** needs approval.
-- **The MFA protection key cannot be rotated**, and a user losing both phone and
-  recovery codes has no recovery path.
-- **Password reset cannot complete** until Notifications (Phase 9) can send mail.
-
-**What changed this phase, and it is the important one:** the project stopped
-taking its own word for things. Six defects that made the Platform unusable
-survived 421 unit tests, five phases of review and a deployment — and were found
-within minutes of a test that drove the real product through a real browser
-against a real database. Every one of them lived in a seam: between the
-composition root and the database, between the API and its own client, between a
-module's domain and the fact that nothing ever called it.
+- **Nothing has been migrated onto the configuration module** (#52). Every
+  retention period and interval written in Phases 9 to 12 is still an
+  `appsettings` value needing a deployment to change, which is the exact problem
+  that module was built to solve. It now has a screen, and still nothing uses
+  it.
