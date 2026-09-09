@@ -12,6 +12,7 @@ import { IfPermitted } from '@/lib/permissions';
 import { CompanyForm } from './company-form';
 import { UnitForm } from './unit-form';
 import { MoveUnitDialog } from './move-unit-dialog';
+import { PositionsPanel } from './positions-panel';
 import type { CompanyDto, OrganizationUnitTreeDto } from '@/types/platform';
 
 /**
@@ -340,6 +341,11 @@ export function OrganizationScreen() {
           )}
         />
       )}
+
+      {/* Beneath the tree, because the two are read together: an employee is
+          assigned to a unit *and* a position, and navigating between two pages
+          to compare them would be the interface getting in the way. */}
+      <PositionsPanel enabled={company !== null && company !== undefined} />
 
       <CompanyForm
         open={companyForm !== null}

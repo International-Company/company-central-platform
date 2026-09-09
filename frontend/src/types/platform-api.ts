@@ -500,6 +500,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the company's job positions. */
+        get: operations["GetPositions"];
+        put?: never;
+        /** Creates a job position. */
+        post: operations["CreatePosition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/positions/{id}/title": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Renames a position in both languages. */
+        put: operations["RenamePosition"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/positions/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivates a position, or brings it back. Never deletes one. */
+        post: operations["SetPositionStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/employees": {
         parameters: {
             query?: never;
@@ -868,6 +920,13 @@ export interface components {
             /** Format: date */
             hireDate?: null | string;
         };
+        CreatePositionRequest: {
+            code: string;
+            titleAr: string;
+            titleEn: string;
+            /** Format: int32 */
+            level?: null | number | string;
+        };
         CreateRoleRequest: {
             code: string;
             nameAr: string;
@@ -1079,6 +1138,15 @@ export interface components {
             description: string;
             isActive: boolean;
         };
+        PositionDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            title: components["schemas"]["LocalizedNameDto"];
+            /** Format: int32 */
+            level: null | number | string;
+            isActive: boolean;
+        };
         RecoveryCodesDto: {
             codes: string[];
             /** Format: int32 */
@@ -1090,6 +1158,10 @@ export interface components {
         RenameCompanyRequest: {
             nameAr: string;
             nameEn: string;
+        };
+        RenamePositionRequest: {
+            titleAr: string;
+            titleEn: string;
         };
         RenameUnitRequest: {
             nameAr: string;
@@ -1123,6 +1195,9 @@ export interface components {
             permissionCount: number | string;
         };
         ScopeType: number;
+        SetPositionActiveRequest: {
+            isActive: boolean;
+        };
         SetRoleActiveRequest: {
             isActive: boolean;
         };
@@ -1872,6 +1947,102 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetPositions: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionDto"][];
+                };
+            };
+        };
+    };
+    CreatePosition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePositionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionDto"];
+                };
+            };
+        };
+    };
+    RenamePosition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenamePositionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionDto"];
+                };
+            };
+        };
+    };
+    SetPositionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPositionActiveRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

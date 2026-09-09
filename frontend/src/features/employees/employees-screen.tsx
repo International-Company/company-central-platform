@@ -12,10 +12,14 @@ import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { IfPermitted, usePermission } from '@/lib/permissions';
 import { EmployeeForm } from './employee-form';
+import { EmployeeAccountDialog } from './employee-account-dialog';
+import { EmployeeTransferDialog } from './employee-transfer-dialog';
 import type {
   EmployeeDto,
   OrganizationUnitTreeDto,
   PagedResult,
+  PositionDto,
+  UserDto,
 } from '@/types/platform';
 
 /**
@@ -47,6 +51,14 @@ export function EmployeesScreen() {
   // than by the form, so the screen knows whether creating is possible at all
   // before it offers a button that could only fail.
   const [units, setUnits] = useState<OrganizationUnitTreeDto[]>([]);
+
+  const [transferring, setTransferring] = useState<EmployeeDto | null>(null);
+  const [linking, setLinking] = useState<EmployeeDto | null>(null);
+
+  // Reference data for the two dialogs: where someone can be moved to, what
+  // they can be given, and which account they can be attached to.
+  const [positions, setPositions] = useState<PositionDto[]>([]);
+  const [users, setUsers] = useState<UserDto[]>([]);
 
   const canManage = usePermission('platform.employees.manage');
 
@@ -101,17 +113,26 @@ export function EmployeesScreen() {
     // Failure is silent on purpose. The structure is needed only to offer
     // creation; if it cannot be read, the button stays hidden and the list —
     // which is what this screen is for — still works.
+    // Failures stay silent by design: this is reference data for actions, and
+    // the list behind them — which is what the screen is for — does not depend
+    // on it. A missing list means an emptier dropdown, not a broken page.
     void (async () => {
-      try {
-        const response = await fetch('/api/organization/units');
+      const [unitResponse, positionResponse, userResponse] = await Promise.all([
+        fetch('/api/organization/units').catch(() => null),
+        fetch('/api/organization/positions').catch(() => null),
+        fetch('/api/users?page=1&pageSize=200').catch(() => null),
+      ]);
 
-        if (response.ok) {
-          setUnits(
-            flatten((await response.json()) as OrganizationUnitTreeDto[]),
-          );
-        }
-      } catch {
-        setUnits([]);
+      if (unitResponse?.ok) {
+        setUnits(flatten((await unitResponse.json()) as OrganizationUnitTreeDto[]));
+      }
+
+      if (positionResponse?.ok) {
+        setPositions((await positionResponse.json()) as PositionDto[]);
+      }
+
+      if (userResponse?.ok) {
+        setUsers(((await userResponse.json()) as PagedResult<UserDto>).items);
       }
     })();
   }, [canManage]);
@@ -251,6 +272,27 @@ export function EmployeesScreen() {
               sortDescending: tTable('sortDescending'),
               actions: tCommon('actions'),
             }}
+            rowActions={(employee) => (
+              <IfPermitted permission="platform.employees.manage">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setTransferring(employee)}
+                  >
+                    {t('transfer')}
+                  </Button>
+
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setLinking(employee)}
+                  >
+                    {employee.userId ? t('account') : t('linkAccount')}
+                  </Button>
+                </div>
+              </IfPermitted>
+            )}
           />
 
           <Pagination
@@ -274,6 +316,28 @@ export function EmployeesScreen() {
         onSaved={() => {
           setCreating(false);
           setPage(1);
+          void load();
+        }}
+      />
+
+      <EmployeeTransferDialog
+        employee={transferring}
+        units={units}
+        positions={positions}
+        colleagues={result?.items ?? []}
+        onClose={() => setTransferring(null)}
+        onTransferred={() => {
+          setTransferring(null);
+          void load();
+        }}
+      />
+
+      <EmployeeAccountDialog
+        employee={linking}
+        users={users}
+        onClose={() => setLinking(null)}
+        onLinked={() => {
+          setLinking(null);
           void load();
         }}
       />

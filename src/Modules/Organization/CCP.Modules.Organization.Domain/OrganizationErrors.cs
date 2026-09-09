@@ -83,6 +83,10 @@ public static class OrganizationErrors
 
     // --- Positions ---------------------------------------------------------
 
+    public static readonly Error PositionCodeTaken = Error.Conflict(
+        "ORGANIZATION.POSITION_CODE_TAKEN",
+        "A position with this code already exists in this company.");
+
     public static readonly Error PositionNotFound = Error.NotFound(
         "ORGANIZATION.POSITION_NOT_FOUND", "The position does not exist.");
 

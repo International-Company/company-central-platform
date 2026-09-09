@@ -153,7 +153,20 @@
     "hireDate": "Hire date",
     "noUnitsTitle": "No employee can be created yet",
     "noUnitsDescription": "Every employee belongs to an organizational unit, and there are none. Build the structure first.",
-    "goToOrganization": "Go to the organizational structure"
+    "goToOrganization": "Go to the organizational structure",
+    "transfer": "Transfer",
+    "transferTitle": "Transfer employee",
+    "transferDescription": "Unit, position and manager together in one step, because a transfer is a single organizational fact.",
+    "newUnit": "New unit",
+    "newPosition": "New position",
+    "newManager": "New manager",
+    "noPosition": "No position",
+    "noManager": "No manager",
+    "linkAccount": "Link account",
+    "linkTitle": "Link a Platform account",
+    "linkDescription": "Connects this employee record to an account that signs in. They are separate things: an employee may have no account, and an account may belong to nobody on the payroll.",
+    "account": "Account",
+    "unlink": "Unlink"
   },
   "roles": {
     "title": "Roles",
@@ -248,7 +261,18 @@
     "companyCodeHint": "A short, stable code that cannot change once set.",
     "defaultLocale": "Default language",
     "localeAr": "Arabic",
-    "localeEn": "English"
+    "localeEn": "English",
+    "positionsTitle": "Positions",
+    "positionsDescription": "The company's job titles. A position describes what someone does in the organization, not what they may do in the software — that is what roles are for.",
+    "createPosition": "Create position",
+    "editPosition": "Edit position",
+    "positionCode": "Position code",
+    "positionTitleAr": "Title in Arabic",
+    "positionTitleEn": "Title in English",
+    "level": "Level",
+    "levelHint": "An optional number for ordering positions in the structure. Not a permission level.",
+    "noPositions": "No positions yet",
+    "noPositionsDescription": "Create job titles to attach to employees, and to route work by later."
   },
   "security": {
     "title": "Security",

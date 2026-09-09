@@ -2,6 +2,7 @@ using CCP.Kernel.Api.Modules;
 using CCP.Kernel.Application.Modules;
 using CCP.Modules.Organization.Application.Companies;
 using CCP.Modules.Organization.Application.Employees;
+using CCP.Modules.Organization.Application.Positions;
 using CCP.Modules.Organization.Application.Units;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,11 @@ public sealed class OrganizationModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<RenameUnitHandler>();
         services.AddScoped<DeactivateUnitHandler>();
         services.AddScoped<GetUnitTreeHandler>();
+
+        services.AddScoped<GetPositionsHandler>();
+        services.AddScoped<CreatePositionHandler>();
+        services.AddScoped<RenamePositionHandler>();
+        services.AddScoped<SetPositionActiveHandler>();
 
         services.AddScoped<CreateEmployeeHandler>();
         services.AddScoped<TransferEmployeeHandler>();

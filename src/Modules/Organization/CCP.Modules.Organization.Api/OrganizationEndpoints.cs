@@ -5,6 +5,7 @@ using CCP.Kernel.Paging;
 using CCP.Kernel.Results;
 using CCP.Modules.Organization.Application.Companies;
 using CCP.Modules.Organization.Application.Employees;
+using CCP.Modules.Organization.Application.Positions;
 using CCP.Modules.Organization.Application.Units;
 using CCP.Modules.Organization.Contracts.Dtos;
 using CCP.Modules.Organization.Domain.Units;
@@ -37,7 +38,118 @@ public static class OrganizationEndpoints
     {
         MapCompanyEndpoints(versionGroup);
         MapUnitEndpoints(versionGroup);
+        MapPositionEndpoints(versionGroup);
         MapEmployeeEndpoints(versionGroup);
+    }
+
+    /// <summary>
+    /// Job positions.
+    /// <para>
+    /// <b>A position is not a role.</b> It says what someone does in the
+    /// organization; a role says what they may do in the software. Keeping the
+    /// two apart is what stops a job title change from silently altering access,
+    /// and a permission grant from needing an HR justification — so they sit
+    /// behind different permissions and on different screens, deliberately.
+    /// </para>
+    /// </summary>
+    private static void MapPositionEndpoints(IEndpointRouteBuilder versionGroup)
+    {
+        RouteGroupBuilder positions = versionGroup
+            .MapGroup("/organization/positions")
+            .WithTags("Organization");
+
+        positions.MapGet("/", async (
+            bool? includeInactive,
+            HttpContext context,
+            [FromServices] GetPositionsHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<IReadOnlyList<PositionDto>> result = await handler.HandleAsync(
+                new GetPositionsQuery(includeInactive ?? false), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.view"))
+            .Produces<IReadOnlyList<PositionDto>>(StatusCodes.Status200OK)
+            .WithName("GetPositions")
+            .WithSummary("Lists the company's job positions.");
+
+        positions.MapPost("/", async (
+            CreatePositionRequest request,
+            HttpContext context,
+            [FromServices] CreatePositionHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result validation = request.Validate();
+
+            if (validation.IsFailure)
+            {
+                return validation.ToHttpResult(context, requestContext);
+            }
+
+            Result<PositionDto> result = await handler.HandleAsync(
+                new CreatePositionCommand(
+                    request.Code, request.TitleAr, request.TitleEn, request.Level),
+                cancellationToken);
+
+            return result.IsSuccess
+                ? result.ToCreatedResult(
+                    $"/api/v1/organization/positions/{result.Value.Id}", context, requestContext)
+                : result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .Produces<PositionDto>(StatusCodes.Status201Created)
+            .WithName("CreatePosition")
+            .WithSummary("Creates a job position.");
+
+        positions.MapPut("/{id:guid}/title", async (
+            Guid id,
+            RenamePositionRequest request,
+            HttpContext context,
+            [FromServices] RenamePositionHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result validation = request.Validate();
+
+            if (validation.IsFailure)
+            {
+                return validation.ToHttpResult(context, requestContext);
+            }
+
+            Result<PositionDto> result = await handler.HandleAsync(
+                new RenamePositionCommand(id, request.TitleAr, request.TitleEn),
+                cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .Produces<PositionDto>(StatusCodes.Status200OK)
+            .WithName("RenamePosition")
+            .WithSummary("Renames a position in both languages.");
+
+        positions.MapPost("/{id:guid}/status", async (
+            Guid id,
+            SetPositionActiveRequest request,
+            HttpContext context,
+            [FromServices] SetPositionActiveHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result result = await handler.HandleAsync(
+                new SetPositionActiveCommand(id, request.IsActive), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .WithName("SetPositionStatus")
+            .WithSummary("Deactivates a position, or brings it back. Never deletes one.");
     }
 
     /// <summary>
@@ -371,6 +483,39 @@ public static class OrganizationEndpoints
 // ---------------------------------------------------------------------------
 // Request bodies
 // ---------------------------------------------------------------------------
+
+/// <summary>Create-position request body.</summary>
+public sealed record CreatePositionRequest(
+    string Code,
+    string TitleAr,
+    string TitleEn,
+    int? Level = null)
+{
+    public Result Validate()
+        => string.IsNullOrWhiteSpace(Code)
+        || string.IsNullOrWhiteSpace(TitleAr)
+        || string.IsNullOrWhiteSpace(TitleEn)
+            ? Result.Failure(Error.Validation(
+                "ORGANIZATION.POSITION_INCOMPLETE",
+                "A position needs a code and a title in both languages.",
+                "code"))
+            : Result.Success();
+}
+
+/// <summary>Rename-position request body.</summary>
+public sealed record RenamePositionRequest(string TitleAr, string TitleEn)
+{
+    public Result Validate()
+        => string.IsNullOrWhiteSpace(TitleAr) || string.IsNullOrWhiteSpace(TitleEn)
+            ? Result.Failure(Error.Validation(
+                "ORGANIZATION.NAME_REQUIRED",
+                "Both Arabic and English titles are required.",
+                "titleAr"))
+            : Result.Success();
+}
+
+/// <summary>Whether a position should be active.</summary>
+public sealed record SetPositionActiveRequest(bool IsActive);
 
 /// <summary>Create-company request body.</summary>
 public sealed record CreateCompanyRequest(

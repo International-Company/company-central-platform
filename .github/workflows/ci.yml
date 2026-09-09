@@ -277,10 +277,22 @@ jobs:
 
       # Generated at run time and never committed. A signing key in the
       # repository would be a signing key in every clone.
+      # Generated per run and thrown away, so nothing here is a real secret. They
+      # are masked anyway: a value written through GITHUB_ENV is echoed in full
+      # in the environment block of every subsequent step, and a signing key
+      # printed in a log is a signing key in a log whatever its lifetime. Masking
+      # also keeps the habit intact — the next person to add a key here should
+      # not have to notice the difference.
       - name: Generate development keys
         run: |
-          echo "CCP_Identity__SigningKey=$(openssl genrsa 3072 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
-          echo "CCP_Security__MfaProtection__Key=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          signing_key="$(openssl genrsa 3072 2>/dev/null | base64 -w0)"
+          mfa_key="$(openssl rand -base64 32)"
+
+          echo "::add-mask::$signing_key"
+          echo "::add-mask::$mfa_key"
+
+          echo "CCP_Identity__SigningKey=$signing_key" >> "$GITHUB_ENV"
+          echo "CCP_Security__MfaProtection__Key=$mfa_key" >> "$GITHUB_ENV"
 
       # Output to a file, not to the void. Both servers ran with their logs
       # discarded, so a 500 in an end-to-end run said only "500" — the stack

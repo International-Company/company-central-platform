@@ -936,6 +936,145 @@
         }
       }
     },
+    "/api/v1/organization/positions": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Lists the company's job positions.",
+        "operationId": "GetPositions",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PositionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Creates a job position.",
+        "operationId": "CreatePosition",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePositionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/organization/positions/{id}/title": {
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Renames a position in both languages.",
+        "operationId": "RenamePosition",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePositionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/organization/positions/{id}/status": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Deactivates a position, or brings it back. Never deletes one.",
+        "operationId": "SetPositionStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPositionActiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/organization/employees": {
       "get": {
         "tags": [
@@ -2045,6 +2184,34 @@
           }
         }
       },
+      "CreatePositionRequest": {
+        "required": [
+          "code",
+          "titleAr",
+          "titleEn"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "titleAr": {
+            "type": "string"
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "level": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "CreateRoleRequest": {
         "required": [
           "code",
@@ -2900,6 +3067,40 @@
           }
         }
       },
+      "PositionDto": {
+        "required": [
+          "id",
+          "code",
+          "title",
+          "level",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "$ref": "#/components/schemas/LocalizedNameDto"
+          },
+          "level": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
       "RecoveryCodesDto": {
         "required": [
           "codes",
@@ -2945,6 +3146,21 @@
             "type": "string"
           },
           "nameEn": {
+            "type": "string"
+          }
+        }
+      },
+      "RenamePositionRequest": {
+        "required": [
+          "titleAr",
+          "titleEn"
+        ],
+        "type": "object",
+        "properties": {
+          "titleAr": {
+            "type": "string"
+          },
+          "titleEn": {
             "type": "string"
           }
         }
@@ -3076,6 +3292,17 @@
       },
       "ScopeType": {
         "type": "integer"
+      },
+      "SetPositionActiveRequest": {
+        "required": [
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "isActive": {
+            "type": "boolean"
+          }
+        }
       },
       "SetRoleActiveRequest": {
         "required": [
