@@ -25,8 +25,22 @@ export async function relay<T>(response: PlatformResponse<T>): Promise<NextRespo
     await clearSession();
   }
 
-  if (response.data !== null && response.problem === null) {
-    return NextResponse.json(response.data, { status: response.status });
+  // Success is decided by the status, not by whether a body came back.
+  //
+  // **This is what broke every action button in the application.** The Platform
+  // answers 204 to a command that has nothing to return — changing a password,
+  // moving a unit, granting a role, disabling an account. A 204 carries no body,
+  // so `data` is null, so the old check fell through to the failure branch and
+  // built an error response *with a body* at status 204 — which `NextResponse`
+  // refuses to construct. The handler threw, the browser saw 500, and the screen
+  // reported a failure for work the Platform had already done.
+  //
+  // The password change was the visible one: it succeeded, the account was
+  // updated, and the person was told something went wrong.
+  if (response.status >= 200 && response.status < 300 && response.problem === null) {
+    return response.data === null
+      ? new NextResponse(null, { status: response.status })
+      : NextResponse.json(response.data, { status: response.status });
   }
 
   return NextResponse.json(

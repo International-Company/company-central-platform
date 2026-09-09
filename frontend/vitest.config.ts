@@ -7,6 +7,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+
+      // Vite cannot resolve the real `server-only`: its exports are conditional
+      // on React's `react-server` condition, which only Next's bundler
+      // supplies. The stub keeps the import in the source — so the real build
+      // still refuses a client import — while letting these modules be tested.
+      'server-only': fileURLToPath(
+        new URL('./src/test/server-only.ts', import.meta.url),
+      ),
     },
   },
   test: {
