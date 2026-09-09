@@ -216,7 +216,10 @@ public sealed class DocumentAccessTests(PlatformApiFactory factory)
         form.Add(new StringContent("Legal asked for a change"), "notes");
 
         using var request = new HttpRequestMessage(
-            HttpMethod.Post, $"/api/v1/documents/{id}/versions") { Content = form };
+            HttpMethod.Post, $"/api/v1/documents/{id}/versions")
+        {
+            Content = form
+        };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
