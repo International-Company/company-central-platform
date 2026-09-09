@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 7 — Frontend Foundation** |
-| Phase status | 🟢 **Every administrative screen reads and writes. CI green end to end for the first time.** |
-| Next phase | Accessibility and responsive verification, then **Phase 8 — Workflow** |
+| Current phase | **Phase 8 — Workflow** |
+| Phase status | 🟢 **A reusable approval engine, running end to end. Phase 7 complete and verified.** |
+| Next phase | **Phase 9 — Notifications** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -22,8 +22,8 @@
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
 | 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
-| 7 | Frontend Foundation & Core Admin UI | 🟡 **Administrable** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. Twelve screens, every one of them able to write: company setup, organizational structure, employees, users, role definition and permission editing, role granting with a step-up prompt, own-account two-factor enrolment, and a dashboard of live figures. Types generated from the OpenAPI document the API emits. Playwright sweeps every screen in both locales and passes. |
-| 8 | Workflow | ⬜ Not started | |
+| 7 | Frontend Foundation & Core Admin UI | 🟢 **Complete** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. Twelve screens, every one of them able to write: company setup, organizational structure, employees, users, role definition and permission editing, role granting with a step-up prompt, own-account two-factor enrolment, and a dashboard of live figures. Types generated from the OpenAPI document the API emits. Playwright sweeps every screen in both locales and passes. |
+| 8 | Workflow | 🟡 **Core complete** | A reusable approval engine holding no business rule — verified by a test that fails the build if business vocabulary appears in the module at all. Definitions as versioned data, registered by applications through the API with no Platform code change. Versions frozen once published; instances run on the version they started with. Six organizational assignee strategies plus a caller-supplied list, which is where business-conditional routing lives — outside the engine. Approve, reject, return, delegate, comment, cancel; first to act settles a step and the rest are withdrawn. Service levels escalated once by a background sweep that raises an event and does not reassign. Task inbox and administrator view in both locales. Integration tests walk a whole approval on a real database. |
 | 9 | Notifications | ⬜ Not started | |
 | 10 | Documents | ⬜ Not started | |
 | 11 | External API Platform & App Registry | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–7 in progress.**
+**Completed: 1 of 22 phases. Phases 1–8 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -917,9 +917,12 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 22 | Argon2id parameters are defaults, not measured | Medium | Carried from Phase 2. Needs measurement on the deployment hardware. |
 | 23 | ~~Authentication rate limiting is partitioned by IP, which fails behind NAT~~ | — | ✅ **Resolved.** Authentication is now partitioned by the account being targeted, with a separate per-address limit chained onto the global limiter for the other direction and account lockout as the third layer. `NatRateLimitTests` reproduces an office behind one address. (was:) | Every employee in one office shares one public address and therefore one budget, so 10/min is really "ten sign-ins a minute for the whole company" — the eleventh person arriving on Sunday morning is refused. Surfaced by the integration suite, which trips the limit for exactly this reason: a test process behind one address is a perfect simulation of an office behind one NAT. **Deferred by decision, not oversight.** The fix is to partition the authentication class by the account being attacked as well as by source, keeping a much looser per-IP limit as a backstop; account lockout stays the third defence. Must be resolved before real users. |
 | 24 | Rate limits are raised in the integration suite | Low | The suite shares one address, so at the production limit everything after the first ten sign-ins fails with 429. `RateLimitTests` runs at a limit of 3 and asserts the rejection and its `Retry-After` header, so the limiter itself stays covered. |
-| 25 | Accessibility not yet verified with a tool | Medium | The components were built to the rules — real labels, `role="alert"`, native `<dialog>`, text actions rather than glyphs — and none of it has been run through axe. Phase 7's own acceptance criterion. |
-| 26 | Responsive behaviour not verified at the four breakpoints | Medium | The table has a stacked form below `sm` and the page is not meant to scroll sideways at any width. Asserted nowhere. |
+| 25 | ~~Accessibility not verified with a tool~~ | — | ✅ **Resolved.** axe against WCAG 2.1 AA on every screen in both locales, plus the sign-in page and an open dialog, in CI. It found one real defect: `--color-text-muted` at 3.66:1, the colour of the word "(Required)" beside every field label. A unit test now computes the ratio for every text token. Automated checks find perhaps a third of real barriers, so this is a floor rather than a certificate. |
+| 26 | ~~Responsive behaviour not verified~~ | — | ✅ **Resolved.** Four widths, both locales, every screen: no page scrolls sideways anywhere, and both halves of the table rule are asserted — stacked below the small breakpoint, a real table above it. |
 | 27 | A role's permissions are replaced blind of concurrent edits | Low | Two administrators editing one role in the same minute: the second save wins silently. The read returns no version to check against. |
+| 28 | Workflow has no callback for business-conditional routing | Medium | ARCHITECTURE.md §16.3 offers two escapes for routing that depends on business data: the caller supplies assignees at start time, or the engine asks the application through a callback. The first is built; the second is not. Until it is, an application whose next step depends on data the Platform cannot see must resolve it before starting — which is sufficient, and is what the integration guide says. |
+| 29 | A workflow instance cannot be reassigned by an administrator | Medium | If an assignee leaves the company mid-approval, the task sits with an account nobody uses. Delegation needs the assignee to act, and escalation deliberately does not reassign. Needs an audited, permission-gated override. |
+| 30 | Workflow unit tests not written | **Medium** | The state machine, publication validation and assignee resolution are covered by integration tests against a real database and by three architecture tests. There are no unit tests, so the transition table's edge cases — a step with no transitions, a cycle, a service level of zero — are exercised only where they happen to arise. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -1084,13 +1087,76 @@ replays the original action.
 
 ---
 
-## 10. Next step
+## 10. Phase 8 report — a general engine, and the boundary that makes it one
 
-**Finish Phase 7:** an axe accessibility pass and responsive verification at the
-four breakpoints. Both are its own acceptance criteria and both are unverified
-(debt 25, 26).
+The whole module is one sentence made structural: **it understands states,
+transitions, assignees, actions and timers, and it does not understand what is
+being approved.**
 
-**Then Phase 8 — Workflow.**
+There is no threshold in it, no amount, no currency, no eligibility rule — and
+an architecture test fails the build if that vocabulary appears in any of its
+source files. The test exists because the erosion is gradual and reasonable at
+every step: nobody decides to put a purchase limit in a general engine; somebody
+adds one at five o'clock because the alternative is a conversation about
+callbacks, and a year later the module is the purchasing system's approval logic
+wearing a general name — unusable by the next system, which is the one thing it
+existed to be.
+
+### 10.1 What was built
+
+Definitions are versioned data, registered by applications through the API. A
+new approval process for a future system needs no Platform code and no Platform
+screen. Publication validates once — every transition target resolves, every
+step is reachable — so a process that dead-ends is refused when it is written
+rather than found by whoever is waiting on step three.
+
+Versions are frozen. An instance records its version and runs on it to
+completion; a definition published tomorrow does not touch a request filed
+today.
+
+Six assignee strategies, every one of them answering "which person, by their
+place in the company". The seventh case — routing that depends on business data
+— is a list the calling application supplies, which is to say it happens
+outside the engine.
+
+Escalation raises an event and marks the task. It does not reassign: moving
+somebody's work to their manager automatically is a company policy, not an
+engine behaviour.
+
+The inbox is the one screen most people in the company will ever use, and it
+offers the actions the process actually permits at that step rather than every
+verb the engine knows.
+
+### 10.2 A test found a defect before the code ran
+
+Asserting that every action in the enum is named by the state machine failed on
+`Return`, which was handled generically. A definition allowing a return without
+saying where to would have marked the instance **Approved** — recording an
+approval nobody made, on a request somebody had just sent back. Every action is
+now named explicitly, an unnamed one is refused rather than defaulting, and the
+half-recorded action is rolled back so the history stays honest.
+
+### 10.3 The seam
+
+`IAssigneeResolver` is declared in the Application layer and implemented once in
+Infrastructure, against `IOrganizationDirectory` and `IRoleDirectory` — both
+Contracts-only. An architecture test refuses any reference from this module to
+another module's Domain, Application or Infrastructure. Lift the engine into
+another product and that one file is what needs rewriting.
+
+`IRoleDirectory` is new and has one method on purpose. "Who holds this role" is
+all Workflow needs; a module that could ask arbitrary authorization questions
+would end up making authorization decisions, and there would then be two places
+where access is decided.
+
+---
+
+## 11. Next step
+
+**Phase 9 — Notifications.** Workflow already raises everything a notification
+system needs — a task assigned, a task escalated, an instance completed — and
+currently nothing listens. It is also what unblocks password reset, which has
+been staged on the outbox since Phase 2 with no way to deliver the mail.
 
 Still outstanding across all phases:
 
