@@ -18,11 +18,28 @@ export async function POST(request: Request) {
 
   await clearSession();
 
-  // Back to sign-in, keeping the locale the user was reading in.
-  const locale = new URL(request.url).searchParams.get('locale') ?? 'ar';
+  const requested = new URL(request.url).searchParams.get('locale');
 
-  return NextResponse.redirect(new URL(`/${locale}/login`, request.url), {
+  // Only the locales this application has. A redirect target taken from a query
+  // string is a redirect target an attacker can write, and `/${anything}/login`
+  // would happily accept a path segment nobody intended.
+  const locale = requested === 'ar' || requested === 'en' ? requested : 'ar';
+
+  // A **relative** Location, resolved by the browser against the address it is
+  // actually on.
+  //
+  // `NextResponse.redirect` needs an absolute URL, and the only one available
+  // here is built from `request.url` — which inside the container is
+  // http://0.0.0.0:8080, the address the server binds to rather than the one
+  // the person is browsing. Signing out sent everyone to 0.0.0.0:8080/ar/login,
+  // which no browser can reach.
+  //
+  // The alternative is trusting X-Forwarded-Host to rebuild the public origin.
+  // A relative path needs no host at all, and a header a caller can set is a
+  // poor thing to build a redirect from.
+  return new NextResponse(null, {
     // 303, so the browser follows with GET rather than repeating this POST.
     status: 303,
+    headers: { Location: `/${locale}/login` },
   });
 }

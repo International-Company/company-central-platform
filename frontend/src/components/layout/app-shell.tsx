@@ -100,7 +100,13 @@ export function AppShell({
             <div className="flex items-center gap-3">
               <LocaleSwitch current={locale} label={labels.language} />
 
-              <form action="/api/auth/sign-out" method="post">
+              {/* The locale travels with the request. Without it the handler
+                  fell back to Arabic, so an English reader signing out landed
+                  on a sign-in page in a language they had not chosen. */}
+              <form
+                action={`/api/auth/sign-out?locale=${locale}`}
+                method="post"
+              >
                 <button
                   type="submit"
                   className="text-sm text-primary-700 underline underline-offset-2"

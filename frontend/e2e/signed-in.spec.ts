@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { AdminPassword } from './global-setup';
 
 /**
  * Every screen, in both languages, with a real session.
@@ -104,6 +105,62 @@ test.describe('the portal', () => {
     // in a comment. Any token a script can read is one an XSS can steal.
     expect(stored).not.toContain('eyJ');
     expect(stored.toLowerCase()).not.toContain('token');
+  });
+});
+
+test.describe('signing out', () => {
+  // A session of its own, signed in here rather than inherited. Signing out
+  // revokes the session at the Platform, and these specs share their cookie
+  // with every other one — so reusing it would leave the rest of the suite
+  // holding a session this test had just destroyed.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    const current = locale(testInfo.project.name);
+
+    await page.goto(`/${current}/login`);
+    await page.getByLabel(/اسم المستخدم|Username/).fill(
+      process.env.E2E_USERNAME ?? 'e2e-admin',
+    );
+    await page
+      .getByLabel(/^(كلمة المرور|Password)$/)
+      .fill(AdminPassword);
+    await page.getByRole('button', { name: /تسجيل الدخول|Sign in/ }).click();
+
+    await page.waitForURL(new RegExp(`/${current}/dashboard`), { timeout: 30_000 });
+  });
+
+  test('lands on sign-in, on this host, in this language', async ({ page }, testInfo) => {
+    const current = locale(testInfo.project.name);
+
+    await page
+      .getByRole('button', { name: /تسجيل الخروج|Sign out/ })
+      .click();
+
+    // The whole assertion is the URL, and both halves of it failed in
+    // production. The redirect was absolute and built from the address the
+    // server binds to, so everyone was sent to 0.0.0.0:8080 — which no browser
+    // can reach. And the form did not carry the locale, so an English reader
+    // arrived at an Arabic page.
+    await expect(page).toHaveURL(new RegExp(`/${current}/login$`));
+
+    // Still on the origin the person was browsing.
+    expect(new URL(page.url()).host).toBe(
+      new URL(testInfo.config.projects[0]?.use.baseURL ?? '').host,
+    );
+  });
+
+  test('the session does not survive it', async ({ page, context }, testInfo) => {
+    const current = locale(testInfo.project.name);
+
+    await page.getByRole('button', { name: /تسجيل الخروج|Sign out/ }).click();
+    await page.waitForURL(new RegExp(`/${current}/login$`));
+
+    // Signing out has to end the session, not merely navigate away from it.
+    await page.goto(`/${current}/users`);
+    await expect(page).toHaveURL(new RegExp(`/${current}/login`));
+
+    await context.clearCookies();
   });
 });
 
