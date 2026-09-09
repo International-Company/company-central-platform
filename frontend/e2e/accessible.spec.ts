@@ -27,9 +27,11 @@ const Standard = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 const Screens = [
   'dashboard',
+  'tasks',
   'users',
   'employees',
   'organization',
+  'workflow',
   'roles',
   'security',
   'audit',

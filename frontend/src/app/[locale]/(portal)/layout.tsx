@@ -73,9 +73,14 @@ export default async function PortalLayout({
         locale={isLocale(locale) ? locale : 'ar'}
         navigation={[
           { href: '/dashboard', label: t('dashboard') },
+
+          // Second, because it is the one item most people in the company will
+          // ever use. Everything below it is administration.
+          { href: '/tasks', label: t('tasks') },
           { href: '/users', label: t('users') },
           { href: '/employees', label: t('employees') },
           { href: '/organization', label: t('organization') },
+          { href: '/workflow', label: t('workflow') },
           { href: '/roles', label: t('roles') },
           { href: '/security', label: t('security') },
           { href: '/audit', label: t('audit') },

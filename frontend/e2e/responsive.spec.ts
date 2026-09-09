@@ -24,7 +24,15 @@ const Widths = [
   { name: 'desktop', width: 1440, height: 900 },
 ] as const;
 
-const Screens = ['dashboard', 'users', 'employees', 'organization', 'audit'] as const;
+const Screens = [
+  'dashboard',
+  'tasks',
+  'users',
+  'employees',
+  'organization',
+  'workflow',
+  'audit',
+] as const;
 
 for (const { name, width, height } of Widths) {
   for (const screen of Screens) {

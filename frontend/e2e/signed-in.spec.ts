@@ -64,9 +64,11 @@ test.describe('the portal', () => {
   });
 
   for (const screen of [
+    'tasks',
     'users',
     'employees',
     'organization',
+    'workflow',
     'roles',
     'security',
     'audit',
