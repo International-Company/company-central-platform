@@ -71,10 +71,5 @@ public sealed class StepUpAuthorizationHandler(
     }
 
     private static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
-    {
-        string? subject = principal.FindFirst("sub")?.Value
-                       ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        return Guid.TryParse(subject, out userId);
-    }
+        => CallerIdentity.TryGetUserId(principal, out userId);
 }

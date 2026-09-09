@@ -122,18 +122,9 @@ public static class AuthenticationEndpoints
     }
 
     /// <summary>Reads the user and session ids from the authenticated principal.</summary>
+    /// <summary>The caller and their session, from the kernel's single reader.</summary>
     internal static bool TryGetIdentity(ClaimsPrincipal principal, out Guid userId, out Guid sessionId)
-    {
-        userId = Guid.Empty;
-        sessionId = Guid.Empty;
-
-        string? subject = principal.FindFirst("sub")?.Value
-                       ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        string? session = principal.FindFirst("sid")?.Value;
-
-        return Guid.TryParse(subject, out userId) && Guid.TryParse(session, out sessionId);
-    }
+        => CallerIdentity.TryGetIdentity(principal, out userId, out sessionId);
 }
 
 /// <summary>Sign-in request body.</summary>

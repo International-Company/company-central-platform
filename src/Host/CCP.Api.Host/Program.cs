@@ -202,6 +202,17 @@ builder.Services
             .GetSection(IdentityOptions.SectionName)
             .Get<IdentityOptions>() ?? new IdentityOptions();
 
+        // A claim should be called what the token calls it.
+        //
+        // By default the handler renames inbound claims to WS-Federation URIs —
+        // `sub` arrives as
+        // http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier —
+        // so `FindFirst("sub")` finds nothing on a perfectly good token. That
+        // silently broke every endpoint reading the subject without knowing to
+        // look under the other name, and it is invisible at the call site: the
+        // code looks right, compiles, and returns 401 to everyone.
+        jwt.MapInboundClaims = false;
+
         jwt.TokenValidationParameters = new TokenValidationParameters
         {
             ValidIssuer = identityOptions.Issuer,

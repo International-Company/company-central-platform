@@ -399,12 +399,18 @@ public static class AuthorizationEndpoints
             .WithSummary("Revokes a role assignment. Takes effect on the next request.");
     }
 
+    /// <summary>
+    /// The caller, from the kernel's single reader.
+    /// <para>
+    /// This method used to read only <c>sub</c>, which the JWT handler had
+    /// already renamed — so it answered "no caller" for every authenticated
+    /// request, and these endpoints returned 401 to people holding good tokens.
+    /// Reading one's own permissions was one of them, which is why the portal
+    /// hid every control it has.
+    /// </para>
+    /// </summary>
     private static bool TryGetUserId(HttpContext context, out Guid userId)
-    {
-        string? subject = context.User.FindFirst("sub")?.Value;
-
-        return Guid.TryParse(subject, out userId);
-    }
+        => CallerIdentity.TryGetUserId(context.User, out userId);
 }
 
 /// <summary>Permission check request body.</summary>
