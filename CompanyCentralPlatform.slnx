@@ -31,6 +31,13 @@
     <Project Path="src/Modules/Identity/CCP.Modules.Identity.Domain/CCP.Modules.Identity.Domain.csproj" />
     <Project Path="src/Modules/Identity/CCP.Modules.Identity.Infrastructure/CCP.Modules.Identity.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Notifications/">
+    <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Api/CCP.Modules.Notifications.Api.csproj" />
+    <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Application/CCP.Modules.Notifications.Application.csproj" />
+    <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Contracts/CCP.Modules.Notifications.Contracts.csproj" />
+    <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Domain/CCP.Modules.Notifications.Domain.csproj" />
+    <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Infrastructure/CCP.Modules.Notifications.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Organization/">
     <Project Path="src/Modules/Organization/CCP.Modules.Organization.Api/CCP.Modules.Organization.Api.csproj" />
     <Project Path="src/Modules/Organization/CCP.Modules.Organization.Application/CCP.Modules.Organization.Application.csproj" />
