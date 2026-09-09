@@ -71,5 +71,6 @@
     <Project Path="tests/Modules/CCP.Modules.Organization.UnitTests/CCP.Modules.Organization.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Security.UnitTests/CCP.Modules.Security.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Workflow.UnitTests/CCP.Modules.Workflow.UnitTests.csproj" />
+    <Project Path="tests/Modules/CCP.Modules.Notifications.UnitTests/CCP.Modules.Notifications.UnitTests.csproj" />
   </Folder>
 </Solution>

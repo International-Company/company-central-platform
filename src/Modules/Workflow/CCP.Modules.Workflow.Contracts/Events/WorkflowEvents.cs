@@ -1,10 +1,17 @@
 using CCP.Kernel.Domain;
 using CCP.Kernel.Primitives;
 
-namespace CCP.Modules.Workflow.Domain.Events;
+namespace CCP.Modules.Workflow.Contracts.Events;
 
 /// <summary>
 /// Base for Workflow integration events.
+/// <para>
+/// <b>In Contracts, not Domain.</b> An integration event is the published shape
+/// another module reads (§6.3), so it belongs with the other published shapes —
+/// and putting it in Domain would force every consumer to reference a module's
+/// internals to subscribe to it, which is the coupling the Contracts projects
+/// exist to prevent.
+/// </para>
 /// <para>
 /// <b>These are how the calling application finds out.</b> The Platform decides
 /// <i>that</i> something was approved; the application decides <i>what that
@@ -56,6 +63,12 @@ public sealed record WorkflowInstanceStartedEvent(
 /// whole message: approved, rejected or cancelled are three different facts and
 /// a business system does three different things with them.
 /// </para>
+/// <para>
+/// It carries <b>both</b> who asked and who decided. The first version had only
+/// the decider, which meant a notification listener told the approver what they
+/// had just approved and told the person who had been waiting for weeks
+/// nothing — the wrong half of the only message that matters here.
+/// </para>
 /// </summary>
 public sealed record WorkflowInstanceCompletedEvent(
     Guid InstanceId,
@@ -65,6 +78,7 @@ public sealed record WorkflowInstanceCompletedEvent(
     string ResourceType,
     string ResourceId,
     string Outcome,
+    Guid RequestedBy,
     Guid? DecidedBy,
     DateTimeOffset At) : WorkflowEvent(At)
 {

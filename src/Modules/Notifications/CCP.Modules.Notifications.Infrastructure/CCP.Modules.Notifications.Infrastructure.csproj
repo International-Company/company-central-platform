@@ -14,6 +14,7 @@
       module, which is what keeps it extractable.
     -->
     <ProjectReference Include="..\..\Identity\CCP.Modules.Identity.Contracts\CCP.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Workflow\CCP.Modules.Workflow.Contracts\CCP.Modules.Workflow.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -6,7 +6,7 @@ using CCP.Modules.Workflow.Application.Engine;
 using CCP.Modules.Workflow.Contracts.Dtos;
 using CCP.Modules.Workflow.Domain;
 using CCP.Modules.Workflow.Domain.Definitions;
-using CCP.Modules.Workflow.Domain.Events;
+using CCP.Modules.Workflow.Contracts.Events;
 using CCP.Modules.Workflow.Domain.Instances;
 
 namespace CCP.Modules.Workflow.Application.Instances;

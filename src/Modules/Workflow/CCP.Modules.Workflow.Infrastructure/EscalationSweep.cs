@@ -1,6 +1,6 @@
 using CCP.Kernel.Primitives;
 using CCP.Modules.Workflow.Application.Abstractions;
-using CCP.Modules.Workflow.Domain.Events;
+using CCP.Modules.Workflow.Contracts.Events;
 using CCP.Modules.Workflow.Domain.Instances;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -4,7 +4,7 @@ using CCP.Kernel.Results;
 using CCP.Modules.Workflow.Application.Abstractions;
 using CCP.Modules.Workflow.Domain;
 using CCP.Modules.Workflow.Domain.Definitions;
-using CCP.Modules.Workflow.Domain.Events;
+using CCP.Modules.Workflow.Contracts.Events;
 using CCP.Modules.Workflow.Domain.Instances;
 
 namespace CCP.Modules.Workflow.Application.Engine;
@@ -136,6 +136,7 @@ public sealed class WorkflowEngine(
                 instance.ResourceType,
                 instance.ResourceId,
                 instance.Status.ToString(),
+                instance.RequestedBy,
                 decidedBy,
                 clock.UtcNow),
             cancellationToken);

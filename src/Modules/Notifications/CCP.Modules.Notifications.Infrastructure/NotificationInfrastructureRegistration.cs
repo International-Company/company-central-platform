@@ -49,6 +49,29 @@ public static class NotificationInfrastructureRegistration
 
         services.AddHostedService<NotificationDispatcher>();
 
+        // What the Platform itself has to say. Registered here rather than in
+        // the module's Api layer because the templates are infrastructure — they
+        // are rows, not behaviour.
+        services.AddSingleton<TemplateSeeder>();
+
+        // The events this module turns into messages. Workflow does not know
+        // notifications exist; these are the only things that connect them, and
+        // adding a listener never changes the module that raised the event.
+        services.AddScoped<
+            CCP.Kernel.Application.Events.IIntegrationEventHandler<
+                Modules.Workflow.Contracts.Events.WorkflowTaskAssignedEvent>,
+            Listeners.TaskAssignedListener>();
+
+        services.AddScoped<
+            CCP.Kernel.Application.Events.IIntegrationEventHandler<
+                Modules.Workflow.Contracts.Events.WorkflowTaskEscalatedEvent>,
+            Listeners.TaskEscalatedListener>();
+
+        services.AddScoped<
+            CCP.Kernel.Application.Events.IIntegrationEventHandler<
+                Modules.Workflow.Contracts.Events.WorkflowInstanceCompletedEvent>,
+            Listeners.InstanceCompletedListener>();
+
         return services;
     }
 }

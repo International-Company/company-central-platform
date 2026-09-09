@@ -409,6 +409,18 @@ catch (Exception exception)
     app.Logger.LogError(exception, "Bootstrapping the first administrator failed.");
 }
 
+// The templates the Platform sends for its own events. Before authorization
+// seeding is unnecessary, but after the database is migrated is: a missing
+// template makes the Platform's first notification fail silently.
+try
+{
+    await app.Services.GetRequiredService<TemplateSeeder>().SeedAsync();
+}
+catch (Exception exception)
+{
+    app.Logger.LogError(exception, "Seeding notification templates failed.");
+}
+
 try
 {
     var seeder = app.Services.GetRequiredService<AuthorizationSeeder>();
