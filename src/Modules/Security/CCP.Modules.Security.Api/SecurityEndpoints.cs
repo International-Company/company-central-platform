@@ -62,6 +62,7 @@ public static class SecurityEndpoints
             .WithMetadata(new AuthenticatedUserOnlyAttribute(
                 "Seeing one's own two-factor status needs no permission."))
             .RequireRateLimiting(RateLimitPolicies.Read)
+            .Produces<MfaStatusDto>(StatusCodes.Status200OK)
             .WithName("GetMfaStatus")
             .WithSummary("Returns whether the caller has two-factor authentication enabled.");
 
@@ -86,6 +87,7 @@ public static class SecurityEndpoints
                 "Protecting one's own account needs no permission — requiring one would let an "
                 + "administrator prevent people securing their accounts."))
             .RequireRateLimiting(RateLimitPolicies.Authentication)
+            .Produces<MfaEnrolmentDto>(StatusCodes.Status200OK)
             .WithName("BeginMfaEnrolment")
             .WithSummary("Issues a TOTP secret. Returns the QR data once and never again.");
 
@@ -116,6 +118,7 @@ public static class SecurityEndpoints
             .RequireAuthorization()
             .WithMetadata(new AuthenticatedUserOnlyAttribute("Confirming one's own enrolment."))
             .RequireRateLimiting(RateLimitPolicies.Authentication)
+            .Produces<RecoveryCodesDto>(StatusCodes.Status200OK)
             .WithName("ConfirmMfaEnrolment")
             .WithSummary("Activates enrolment and returns recovery codes, shown once.");
 
@@ -157,6 +160,7 @@ public static class SecurityEndpoints
             .WithMetadata(new AuthenticatedUserOnlyAttribute(
                 "Proving one's own second factor, for sign-in or step-up."))
             .RequireRateLimiting(RateLimitPolicies.Authentication)
+            .Produces<MfaVerificationDto>(StatusCodes.Status200OK)
             .WithName("VerifyMfa")
             .WithSummary("Verifies a TOTP or recovery code.");
 

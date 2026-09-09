@@ -858,6 +858,28 @@ export interface components {
         MfaCodeRequest: {
             code: string;
         };
+        MfaEnrolmentDto: {
+            provisioningUri: string;
+            manualEntryKey: string;
+        };
+        MfaStatusDto: {
+            isEnrolled: boolean;
+            isActive: boolean;
+            /** Format: date-time */
+            activatedAt: null | string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            /** Format: int32 */
+            remainingRecoveryCodes: number | string;
+        };
+        MfaVerificationDto: {
+            verified: boolean;
+            usedRecoveryCode: boolean;
+            /** Format: int32 */
+            remainingRecoveryCodes: number | string;
+            /** Format: date-time */
+            stepUpValidUntil: string;
+        };
         MfaVerifyRequest: {
             code: string;
             isRecoveryCode: null | boolean;
@@ -865,6 +887,39 @@ export interface components {
         MoveUnitRequest: {
             /** Format: uuid */
             newParentId: null | string;
+        };
+        MyPermissionsDto: {
+            permissions: string[];
+            hasOrganizationalUnit: boolean;
+        };
+        OrganizationUnitDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId: null | string;
+            unitType: string;
+            code: string;
+            name: components["schemas"]["LocalizedNameDto"];
+            /** Format: int32 */
+            depth: number | string;
+            /** Format: int32 */
+            sortOrder: number | string;
+            isActive: boolean;
+        };
+        OrganizationUnitTreeDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId: null | string;
+            unitType: string;
+            code: string;
+            name: components["schemas"]["LocalizedNameDto"];
+            /** Format: int32 */
+            depth: number | string;
+            /** Format: int32 */
+            sortOrder: number | string;
+            isActive: boolean;
+            children: components["schemas"]["OrganizationUnitTreeDto"][];
         };
         OrganizationUnitType: number;
         PagedResultOfAuditEventDto: {
@@ -905,6 +960,21 @@ export interface components {
             totalPages?: number | string;
             hasPrevious?: boolean;
             hasNext?: boolean;
+        };
+        PermissionDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            application: string;
+            resource: string;
+            action: string;
+            description: string;
+            isActive: boolean;
+        };
+        RecoveryCodesDto: {
+            codes: string[];
+            /** Format: int32 */
+            count: number | string;
         };
         RefreshRequest: {
             refreshToken: string;
@@ -955,6 +1025,25 @@ export interface components {
             lastLoginAt: null | string;
             /** Format: date-time */
             createdAt: string;
+        };
+        UserRoleDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            roleId: string;
+            scopeType: string;
+            /** Format: uuid */
+            scopeUnitId: null | string;
+            /** Format: uuid */
+            grantedBy: string;
+            /** Format: date-time */
+            grantedAt: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            revokedAt: null | string;
         };
     };
     responses: never;
@@ -1421,7 +1510,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MyPermissionsDto"];
+                };
             };
         };
     };
@@ -1489,7 +1580,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrganizationUnitTreeDto"][];
+                };
             };
         };
     };
@@ -1506,12 +1599,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrganizationUnitDto"];
+                };
             };
         };
     };
@@ -1535,7 +1630,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrganizationUnitDto"];
+                };
             };
         };
     };
@@ -1624,12 +1721,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EmployeeDto"];
+                };
             };
         };
     };
@@ -1719,7 +1818,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PermissionDto"][];
+                };
             };
         };
     };
@@ -1739,7 +1840,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserRoleDto"][];
+                };
             };
         };
     };
@@ -1802,7 +1905,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MfaStatusDto"];
+                };
             };
         };
     };
@@ -1820,7 +1925,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MfaEnrolmentDto"];
+                };
             };
         };
     };
@@ -1842,7 +1949,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesDto"];
+                };
             };
         };
     };
@@ -1864,7 +1973,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MfaVerificationDto"];
+                };
             };
         };
     };

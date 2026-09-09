@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
@@ -9,7 +10,13 @@ import { DataTable, type Column } from '@/components/shared/data-table';
 import { Pagination } from '@/components/shared/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import type { EmployeeDto, PagedResult } from '@/types/platform';
+import { IfPermitted, usePermission } from '@/lib/permissions';
+import { EmployeeForm } from './employee-form';
+import type {
+  EmployeeDto,
+  OrganizationUnitTreeDto,
+  PagedResult,
+} from '@/types/platform';
 
 /**
  * The Employees list.
@@ -33,6 +40,15 @@ export function EmployeesScreen() {
   const [result, setResult] = useState<PagedResult<EmployeeDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [creating, setCreating] = useState(false);
+
+  // The structure, for the create form's unit picker. Loaded once here rather
+  // than by the form, so the screen knows whether creating is possible at all
+  // before it offers a button that could only fail.
+  const [units, setUnits] = useState<OrganizationUnitTreeDto[]>([]);
+
+  const canManage = usePermission('platform.employees.manage');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,6 +92,29 @@ export function EmployeesScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!canManage) {
+      return;
+    }
+
+    // Failure is silent on purpose. The structure is needed only to offer
+    // creation; if it cannot be read, the button stays hidden and the list —
+    // which is what this screen is for — still works.
+    void (async () => {
+      try {
+        const response = await fetch('/api/organization/units');
+
+        if (response.ok) {
+          setUnits(
+            flatten((await response.json()) as OrganizationUnitTreeDto[]),
+          );
+        }
+      } catch {
+        setUnits([]);
+      }
+    })();
+  }, [canManage]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -127,7 +166,43 @@ export function EmployeesScreen() {
 
   return (
     <>
-      <PageHeader title={t('title')} description={t('description')} />
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        action={
+          <IfPermitted permission="platform.employees.manage">
+            <Button
+              variant="primary"
+              onClick={() => setCreating(true)}
+              // Creating an employee with no unit to put them in is refused by
+              // the Platform. Saying so before the attempt, and naming the
+              // screen that fixes it, beats a rejection the person has to
+              // decode.
+              disabled={units.length === 0}
+              title={units.length === 0 ? t('noUnitsDescription') : undefined}
+            >
+              {t('createEmployee')}
+            </Button>
+          </IfPermitted>
+        }
+      />
+
+      {canManage && units.length === 0 ? (
+        <div className="mb-4 rounded-md border border-border bg-surface-sunken p-3">
+          <p className="text-sm font-medium text-text">{t('noUnitsTitle')}</p>
+
+          <p className="mt-0.5 text-sm text-text-secondary">
+            {t('noUnitsDescription')}
+          </p>
+
+          <Link
+            href={`/${locale}/organization`}
+            className="mt-2 inline-block text-sm text-primary-700 underline underline-offset-2"
+          >
+            {t('goToOrganization')}
+          </Link>
+        </div>
+      ) : null}
 
       <form
         onSubmit={handleSearch}
@@ -191,6 +266,24 @@ export function EmployeesScreen() {
           />
         </>
       ) : null}
+
+      <EmployeeForm
+        open={creating}
+        units={units}
+        onClose={() => setCreating(false)}
+        onSaved={() => {
+          setCreating(false);
+          setPage(1);
+          void load();
+        }}
+      />
     </>
   );
+}
+
+/** The nested structure as a flat list, parents before their children. */
+function flatten(
+  units: readonly OrganizationUnitTreeDto[],
+): OrganizationUnitTreeDto[] {
+  return units.flatMap((unit) => [unit, ...flatten(unit.children)]);
 }

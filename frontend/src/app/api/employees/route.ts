@@ -14,3 +14,15 @@ export async function GET(request: Request) {
     }),
   );
 }
+
+export async function POST(request: Request) {
+  const body: unknown = await request.json().catch(() => null);
+
+  return await relay(
+    await callPlatform<EmployeeDto>({
+      path: '/api/v1/organization/employees',
+      method: 'POST',
+      body,
+    }),
+  );
+}

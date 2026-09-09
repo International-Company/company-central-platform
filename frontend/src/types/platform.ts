@@ -31,6 +31,16 @@ export type LocalizedNameDto = Schemas['LocalizedNameDto'];
 export type RoleDto = Schemas['RoleDto'];
 export type AuditEventDto = Schemas['AuditEventDto'];
 
+export type OrganizationUnitDto = Schemas['OrganizationUnitDto'];
+export type OrganizationUnitTreeDto = Schemas['OrganizationUnitTreeDto'];
+export type PermissionDto = Schemas['PermissionDto'];
+export type UserRoleDto = Schemas['UserRoleDto'];
+export type MyPermissionsDto = Schemas['MyPermissionsDto'];
+export type MfaStatusDto = Schemas['MfaStatusDto'];
+export type MfaEnrolmentDto = Schemas['MfaEnrolmentDto'];
+export type MfaVerificationDto = Schemas['MfaVerificationDto'];
+export type RecoveryCodesDto = Schemas['RecoveryCodesDto'];
+
 /**
  * The envelope every list endpoint returns (ADR-008).
  *

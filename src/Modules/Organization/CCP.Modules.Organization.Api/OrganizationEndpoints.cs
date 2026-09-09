@@ -58,6 +58,7 @@ public static class OrganizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.organization.view"))
+            .Produces<IReadOnlyList<OrganizationUnitTreeDto>>(StatusCodes.Status200OK)
             .WithName("GetOrganizationTree")
             .WithSummary("Returns the company structure as a nested tree.");
 
@@ -88,6 +89,7 @@ public static class OrganizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .Produces<OrganizationUnitDto>(StatusCodes.Status201Created)
             .WithName("CreateOrganizationUnit")
             .WithSummary("Creates an organizational unit under an optional parent.");
 
@@ -113,6 +115,7 @@ public static class OrganizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .Produces<OrganizationUnitDto>(StatusCodes.Status200OK)
             .WithName("RenameOrganizationUnit")
             .WithSummary("Renames a unit in both languages.");
 
@@ -231,6 +234,7 @@ public static class OrganizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.employees.manage"))
+            .Produces<EmployeeDto>(StatusCodes.Status201Created)
             .WithName("CreateEmployee")
             .WithSummary("Creates an employee record.");
 

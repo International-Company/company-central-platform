@@ -56,6 +56,7 @@ public static class AuthorizationEndpoints
             .WithMetadata(new AuthenticatedUserOnlyAttribute(
                 "Reading one's own permissions needs no permission; it would be circular."))
             .WithTags("Authorization")
+            .Produces<MyPermissionsDto>(StatusCodes.Status200OK)
             .WithName("GetMyPermissions")
             .WithSummary("Lists the caller's permissions, for hiding controls they cannot use.");
 
@@ -153,6 +154,7 @@ public static class AuthorizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.permissions.view"))
+            .Produces<IReadOnlyList<PermissionDto>>(StatusCodes.Status200OK)
             .WithName("GetPermissions")
             .WithSummary("Lists every declared permission, including those of registered applications.");
     }
@@ -175,6 +177,7 @@ public static class AuthorizationEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.roles.view"))
+            .Produces<IReadOnlyList<UserRoleDto>>(StatusCodes.Status200OK)
             .WithName("GetUserRoles")
             .WithSummary("Lists a user's role assignments.");
 

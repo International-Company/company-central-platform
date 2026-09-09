@@ -575,7 +575,14 @@
         "operationId": "GetMyPermissions",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyPermissionsDto"
+                }
+              }
+            }
           }
         }
       }
@@ -700,7 +707,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationUnitTreeDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -723,8 +740,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationUnitDto"
+                }
+              }
+            }
           }
         }
       }
@@ -759,7 +783,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationUnitDto"
+                }
+              }
+            }
           }
         }
       }
@@ -923,8 +954,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeDto"
+                }
+              }
+            }
           }
         }
       }
@@ -1050,7 +1088,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1075,7 +1123,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRoleDto"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -1156,7 +1214,14 @@
         "operationId": "GetMfaStatus",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaStatusDto"
+                }
+              }
+            }
           }
         }
       }
@@ -1170,7 +1235,14 @@
         "operationId": "BeginMfaEnrolment",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaEnrolmentDto"
+                }
+              }
+            }
           }
         }
       }
@@ -1194,7 +1266,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesDto"
+                }
+              }
+            }
           }
         }
       }
@@ -1218,7 +1297,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaVerificationDto"
+                }
+              }
+            }
           }
         }
       }
@@ -2023,6 +2109,90 @@
           }
         }
       },
+      "MfaEnrolmentDto": {
+        "required": [
+          "provisioningUri",
+          "manualEntryKey"
+        ],
+        "type": "object",
+        "properties": {
+          "provisioningUri": {
+            "type": "string"
+          },
+          "manualEntryKey": {
+            "type": "string"
+          }
+        }
+      },
+      "MfaStatusDto": {
+        "required": [
+          "isEnrolled",
+          "isActive",
+          "activatedAt",
+          "lastUsedAt",
+          "remainingRecoveryCodes"
+        ],
+        "type": "object",
+        "properties": {
+          "isEnrolled": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "activatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "remainingRecoveryCodes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MfaVerificationDto": {
+        "required": [
+          "verified",
+          "usedRecoveryCode",
+          "remainingRecoveryCodes",
+          "stepUpValidUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean"
+          },
+          "usedRecoveryCode": {
+            "type": "boolean"
+          },
+          "remainingRecoveryCodes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "stepUpValidUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "MfaVerifyRequest": {
         "required": [
           "code",
@@ -2053,6 +2223,139 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "MyPermissionsDto": {
+        "required": [
+          "permissions",
+          "hasOrganizationalUnit"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasOrganizationalUnit": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OrganizationUnitDto": {
+        "required": [
+          "id",
+          "parentId",
+          "unitType",
+          "code",
+          "name",
+          "depth",
+          "sortOrder",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "unitType": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedNameDto"
+          },
+          "depth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sortOrder": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OrganizationUnitTreeDto": {
+        "required": [
+          "id",
+          "parentId",
+          "unitType",
+          "code",
+          "name",
+          "depth",
+          "sortOrder",
+          "isActive",
+          "children"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "unitType": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedNameDto"
+          },
+          "depth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sortOrder": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationUnitTreeDto"
+            }
           }
         }
       },
@@ -2221,6 +2524,65 @@
           },
           "hasNext": {
             "type": "boolean"
+          }
+        }
+      },
+      "PermissionDto": {
+        "required": [
+          "id",
+          "name",
+          "application",
+          "resource",
+          "action",
+          "description",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "application": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RecoveryCodesDto": {
+        "required": [
+          "codes",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -2404,6 +2766,66 @@
           },
           "createdAt": {
             "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserRoleDto": {
+        "required": [
+          "id",
+          "userId",
+          "roleId",
+          "scopeType",
+          "scopeUnitId",
+          "grantedBy",
+          "grantedAt",
+          "expiresAt",
+          "revokedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scopeType": {
+            "type": "string"
+          },
+          "scopeUnitId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "grantedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           }
         }
