@@ -82,7 +82,10 @@ public sealed class DocumentAccessTests(PlatformApiFactory factory)
 
         using HttpResponseMessage response = await client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        // 422, not 400. The Platform maps a validation refusal to
+        // UnprocessableEntity throughout, and a request that was well formed and
+        // carried something we will not store is exactly that.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
 
         JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -179,7 +182,8 @@ public sealed class DocumentAccessTests(PlatformApiFactory factory)
         using (HttpResponseMessage deleted = await SendAsync(
             client, token, HttpMethod.Delete, $"/api/v1/documents/{id}"))
         {
-            Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
+            // 204: a command with nothing to hand back returns nothing.
+            Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
         }
 
         Assert.False(await AppearsInSearchAsync(client, token, title, includeDeleted: false));
@@ -191,7 +195,7 @@ public sealed class DocumentAccessTests(PlatformApiFactory factory)
         using (HttpResponseMessage restored = await SendAsync(
             client, token, HttpMethod.Post, $"/api/v1/documents/{id}/restore"))
         {
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, restored.StatusCode);
         }
 
         Assert.True(await AppearsInSearchAsync(client, token, title, includeDeleted: false));
