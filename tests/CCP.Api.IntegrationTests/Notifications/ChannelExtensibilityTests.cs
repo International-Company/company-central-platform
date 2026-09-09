@@ -20,7 +20,8 @@ namespace CCP.Api.IntegrationTests.Notifications;
 /// somewhere. A paragraph would not notice.
 /// </para>
 /// </summary>
-public sealed class ChannelExtensibilityTests
+public sealed class ChannelExtensibilityTests(PlatformApiFactory factory)
+    : IClassFixture<PlatformApiFactory>
 {
     /// <summary>
     /// A channel the Platform has never heard of, delivering nowhere.
@@ -54,7 +55,7 @@ public sealed class ChannelExtensibilityTests
     {
         var stub = new StubChannelProvider();
 
-        using var withStub = new StubbedFactory(stub);
+        using var withStub = new StubbedFactory(stub, factory.TestConnectionString);
 
         using IServiceScope scope = withStub.Services.CreateScope();
 
@@ -74,7 +75,7 @@ public sealed class ChannelExtensibilityTests
     {
         var stub = new StubChannelProvider();
 
-        using var withStub = new StubbedFactory(stub);
+        using var withStub = new StubbedFactory(stub, factory.TestConnectionString);
 
         using IServiceScope scope = withStub.Services.CreateScope();
 
@@ -99,11 +100,30 @@ public sealed class ChannelExtensibilityTests
     /// A singleton instance so the test can read what it was asked to send —
     /// the only thing here that a production registration would do differently.
     /// </para>
+    /// <para>
+    /// <b>It takes the connection string rather than finding one.</b> This
+    /// factory is constructed by hand, so xUnit never calls its
+    /// <c>InitializeAsync</c> and it never publishes the environment variable
+    /// the composition root reads before the host is built. It passed for
+    /// several phases purely because some other fixture had already set that
+    /// variable first — an ordering the suite never guaranteed, and which
+    /// adding a module's tests was enough to change. Borrowing the class
+    /// fixture's database makes it independent of what else is running.
+    /// </para>
     /// </summary>
-    private sealed class StubbedFactory(StubChannelProvider stub) : PlatformApiFactory
+    private sealed class StubbedFactory(StubChannelProvider stub, string connectionString)
+        : PlatformApiFactory
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            ArgumentNullException.ThrowIfNull(builder);
+
+            // Before base, because the composition root reads this off
+            // configuration before the host exists — anything contributed later
+            // arrives after the read that would have thrown.
+            Environment.SetEnvironmentVariable(
+                "CCP_ConnectionStrings__Platform", connectionString);
+
             base.ConfigureWebHost(builder);
 
             builder.ConfigureServices(services =>
