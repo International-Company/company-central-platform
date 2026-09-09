@@ -217,14 +217,41 @@ public sealed class WorkflowInstance : AggregateRoot, IAuditableEntity
             // No target: this action ends the instance. Which ending it is comes
             // from the action, because "approved" and "rejected" are different
             // facts and a caller reading the record needs to know which.
+            //
+            // Every action is named. The first version let anything unnamed fall
+            // through to Approved, which meant a `Return` transition with no
+            // target — a definition mistake, but one a person could make — would
+            // have recorded a request as approved that somebody had just sent
+            // back. An architecture test found it before it could.
+            Result<InstanceStatus> ending = action switch
+            {
+                WorkflowActionType.Approve => Result.Success(InstanceStatus.Approved),
+                WorkflowActionType.Reject => Result.Success(InstanceStatus.Rejected),
+                WorkflowActionType.Cancel => Result.Success(InstanceStatus.Cancelled),
+
+                // Returning means "go back and fix this". Going back to nowhere
+                // is not an ending, and treating it as one would silently decide
+                // an approval nobody made.
+                WorkflowActionType.Return =>
+                    Result.Failure<InstanceStatus>(WorkflowErrors.ReturnNeedsATarget(step.Key)),
+
+                _ => Result.Failure<InstanceStatus>(
+                    WorkflowErrors.ActionNotPermitted(step.Key, action))
+            };
+
+            if (ending.IsFailure)
+            {
+                // The action is not recorded: it did not happen. Rolling the
+                // record back here rather than leaving a half-applied action is
+                // what keeps the history honest.
+                _actions.Remove(recorded);
+
+                return Result.Failure<WorkflowInstanceAction>(ending.Errors);
+            }
+
             CurrentStepKey = null;
             CompletedAt = now;
-            Status = action switch
-            {
-                WorkflowActionType.Reject => InstanceStatus.Rejected,
-                WorkflowActionType.Cancel => InstanceStatus.Cancelled,
-                _ => InstanceStatus.Approved
-            };
+            Status = ending.Value;
         }
 
         UpdatedAt = now;

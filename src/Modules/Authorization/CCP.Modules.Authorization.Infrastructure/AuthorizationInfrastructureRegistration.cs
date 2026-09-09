@@ -27,6 +27,10 @@ public static class AuthorizationInfrastructureRegistration
                 npgsql.MigrationsHistoryTable(
                     "__ef_migrations_history", AuthorizationDbContext.SchemaName)));
 
+        // The module's public surface: Workflow turns a role into the people
+        // who hold it, and knows nothing else about authorization.
+        services.AddScoped<Contracts.IRoleDirectory, RoleDirectory>();
+
         services.AddScoped<IAuthorizationRepository, AuthorizationRepository>();
         services.AddScoped<IAuthorizationUnitOfWork, AuthorizationUnitOfWork>();
         services.AddScoped<IAuthorizationOutbox, AuthorizationOutbox>();

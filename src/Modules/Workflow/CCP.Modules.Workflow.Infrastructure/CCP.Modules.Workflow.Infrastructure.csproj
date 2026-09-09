@@ -7,6 +7,15 @@
     <ProjectReference Include="..\CCP.Modules.Workflow.Domain\CCP.Modules.Workflow.Domain.csproj" />
     <ProjectReference Include="..\CCP.Modules.Workflow.Application\CCP.Modules.Workflow.Application.csproj" />
     <ProjectReference Include="..\CCP.Modules.Workflow.Contracts\CCP.Modules.Workflow.Contracts.csproj" />
+
+    <!--
+      The two public surfaces the assignee resolver reads, and nothing more.
+      Contracts only: no reference to another module's Domain, Application or
+      Infrastructure exists anywhere in this module, which is what keeps the
+      engine liftable (ARCHITECTURE.md §6.2).
+    -->
+    <ProjectReference Include="..\..\Organization\CCP.Modules.Organization.Contracts\CCP.Modules.Organization.Contracts.csproj" />
+    <ProjectReference Include="..\..\Authorization\CCP.Modules.Authorization.Contracts\CCP.Modules.Authorization.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

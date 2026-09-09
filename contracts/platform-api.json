@@ -1926,6 +1926,367 @@
           }
         }
       }
+    },
+    "/api/v1/workflow/definitions": {
+      "get": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Lists the registered approval processes.",
+        "operationId": "GetWorkflowDefinitions",
+        "parameters": [
+          {
+            "name": "applicationCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeRetired",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowDefinitionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Registers and publishes a version of an approval process.",
+        "operationId": "RegisterWorkflowDefinition",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDefinitionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/definitions/{id}/retire": {
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Stops new instances starting on a version. Running ones continue.",
+        "operationId": "RetireWorkflowDefinition",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/instances": {
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Starts an approval against a business record.",
+        "operationId": "StartWorkflowInstance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartInstanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowInstanceDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Finds approvals, usually by the record they belong to.",
+        "operationId": "SearchWorkflowInstances",
+        "parameters": [
+          {
+            "name": "applicationCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfWorkflowInstanceDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/instances/{id}": {
+      "get": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Returns one approval with everything that happened to it.",
+        "operationId": "GetWorkflowInstance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowInstanceDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/instances/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Withdraws an approval and closes every task on it.",
+        "operationId": "CancelWorkflowInstance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelInstanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/me/tasks": {
+      "get": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "The caller's approval inbox.",
+        "operationId": "GetMyTasks",
+        "parameters": [
+          {
+            "name": "includeCompleted",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfWorkflowTaskDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/tasks/{id}/actions": {
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Approves, rejects, returns, delegates or comments on a task.",
+        "operationId": "ActOnTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowInstanceDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2064,6 +2425,17 @@
           },
           "user": {
             "$ref": "#/components/schemas/CurrentUserDto"
+          }
+        }
+      },
+      "CancelInstanceRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3150,6 +3522,116 @@
           }
         }
       },
+      "PagedResultOfWorkflowInstanceDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowInstanceDto"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalItems": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PagedResultOfWorkflowTaskDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowTaskDto"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalItems": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
       "PermissionDto": {
         "required": [
           "id",
@@ -3251,6 +3733,57 @@
         "properties": {
           "refreshToken": {
             "type": "string"
+          }
+        }
+      },
+      "RegisterDefinitionRequest": {
+        "required": [
+          "applicationCode",
+          "code",
+          "version",
+          "nameAr",
+          "nameEn",
+          "steps"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationCode": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StepRequest"
+            }
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "initialStepKey": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3555,6 +4088,144 @@
           }
         }
       },
+      "StartInstanceRequest": {
+        "required": [
+          "applicationCode",
+          "definitionCode",
+          "resourceType",
+          "resourceId"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationCode": {
+            "type": "string"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "assignees": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "StepRequest": {
+        "required": [
+          "key",
+          "nameAr",
+          "nameEn",
+          "order",
+          "assigneeStrategy"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "order": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "assigneeStrategy": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "assigneeRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "assigneePositionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "assigneeUnitId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "serviceLevelHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "transitions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TransitionRequest"
+            }
+          }
+        }
+      },
+      "TaskActionRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "delegateToUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "parsedAction": {
+            "$ref": "#/components/schemas/WorkflowActionType"
+          }
+        }
+      },
       "TransferEmployeeRequest": {
         "required": [
           "newUnitId",
@@ -3580,6 +4251,23 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "TransitionRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "targetStepKey": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3727,6 +4415,361 @@
             "format": "date-time"
           }
         }
+      },
+      "WorkflowActionDto": {
+        "required": [
+          "stepKey",
+          "action",
+          "actorUserId",
+          "comment",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "stepKey": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkflowActionType": {
+        "type": "integer"
+      },
+      "WorkflowDefinitionDto": {
+        "required": [
+          "id",
+          "applicationCode",
+          "code",
+          "version",
+          "nameAr",
+          "nameEn",
+          "description",
+          "status",
+          "initialStepKey",
+          "steps"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationCode": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "initialStepKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStepDto"
+            }
+          }
+        }
+      },
+      "WorkflowInstanceDto": {
+        "required": [
+          "id",
+          "applicationCode",
+          "definitionCode",
+          "definitionVersion",
+          "resourceType",
+          "resourceId",
+          "requestedBy",
+          "currentStepKey",
+          "status",
+          "startedAt",
+          "completedAt",
+          "actions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationCode": {
+            "type": "string"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "definitionVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currentStepKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowActionDto"
+            }
+          }
+        }
+      },
+      "WorkflowStepDto": {
+        "required": [
+          "key",
+          "nameAr",
+          "nameEn",
+          "order",
+          "assigneeStrategy",
+          "assigneeUserId",
+          "assigneeRoleId",
+          "assigneePositionId",
+          "assigneeUnitId",
+          "serviceLevelHours",
+          "transitions"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "order": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "assigneeStrategy": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "assigneeRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "assigneePositionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "assigneeUnitId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "serviceLevelHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "transitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowTransitionDto"
+            }
+          }
+        }
+      },
+      "WorkflowTaskDto": {
+        "required": [
+          "id",
+          "instanceId",
+          "applicationCode",
+          "definitionCode",
+          "resourceType",
+          "resourceId",
+          "stepKey",
+          "stepNameAr",
+          "stepNameEn",
+          "assignedToUserId",
+          "delegatedFromUserId",
+          "status",
+          "assignedAt",
+          "dueAt",
+          "isOverdue",
+          "allowedActions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationCode": {
+            "type": "string"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "stepKey": {
+            "type": "string"
+          },
+          "stepNameAr": {
+            "type": "string"
+          },
+          "stepNameEn": {
+            "type": "string"
+          },
+          "assignedToUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "delegatedFromUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WorkflowTransitionDto": {
+        "required": [
+          "action",
+          "targetStepKey"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "targetStepKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       }
     }
   },
@@ -3766,6 +4809,9 @@
     },
     {
       "name": "Audit"
+    },
+    {
+      "name": "Workflow"
     }
   ]
 }

@@ -18,6 +18,8 @@ using CCP.Modules.Identity.Infrastructure.Bootstrap;
 using CCP.Modules.Identity.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Security;
 using CCP.Modules.Audit.Infrastructure;
+using CCP.Modules.Workflow.Infrastructure;
+using CCP.Modules.Workflow.Infrastructure.Persistence;
 using CCP.Modules.Audit.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
@@ -258,6 +260,7 @@ builder.Services.AddOrganizationInfrastructure(builder.Configuration, connection
 builder.Services.AddAuthorizationInfrastructure(builder.Configuration, connectionString);
 builder.Services.AddSecurityInfrastructure(builder.Configuration, connectionString);
 builder.Services.AddAuditInfrastructure(builder.Configuration, connectionString);
+builder.Services.AddWorkflowInfrastructure(builder.Configuration, connectionString);
 
 builder.Services.AddPlatformModules(builder.Configuration);
 
@@ -367,7 +370,8 @@ if (databaseOptions.ApplyMigrationsOnStartup)
             migrationScope.ServiceProvider.GetRequiredService<OrganizationDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<AuthorizationDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<SecurityDbContext>(),
-            migrationScope.ServiceProvider.GetRequiredService<AuditDbContext>()
+            migrationScope.ServiceProvider.GetRequiredService<AuditDbContext>(),
+            migrationScope.ServiceProvider.GetRequiredService<WorkflowDbContext>()
         ]);
 }
 

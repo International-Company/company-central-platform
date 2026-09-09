@@ -137,6 +137,11 @@ public static class WorkflowErrors
         "WORKFLOW.ACTION_NOT_PERMITTED",
         $"'{action}' is not one of the things that can be done at the step '{step}'.");
 
+    public static Error ReturnNeedsATarget(string step) => Error.Rule(
+        "WORKFLOW.RETURN_NEEDS_A_TARGET",
+        $"The step '{step}' allows a return but does not say where to. Returning means "
+        + "sending the request back to be corrected, so it must name a step to go back to.");
+
     // --- Tasks --------------------------------------------------------------
 
     public static readonly Error TaskNotFound = Error.NotFound(

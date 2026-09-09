@@ -846,6 +846,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the registered approval processes. */
+        get: operations["GetWorkflowDefinitions"];
+        put?: never;
+        /** Registers and publishes a version of an approval process. */
+        post: operations["RegisterWorkflowDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/definitions/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stops new instances starting on a version. Running ones continue. */
+        post: operations["RetireWorkflowDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Finds approvals, usually by the record they belong to. */
+        get: operations["SearchWorkflowInstances"];
+        put?: never;
+        /** Starts an approval against a business record. */
+        post: operations["StartWorkflowInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/instances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns one approval with everything that happened to it. */
+        get: operations["GetWorkflowInstance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/instances/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraws an approval and closes every task on it. */
+        post: operations["CancelWorkflowInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's approval inbox. */
+        get: operations["GetMyTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/tasks/{id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approves, rejects, returns, delegates or comments on a task. */
+        post: operations["ActOnTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -879,6 +1000,9 @@ export interface components {
             expiresInSeconds: number | string;
             tokenType: string;
             user: components["schemas"]["CurrentUserDto"];
+        };
+        CancelInstanceRequest: {
+            reason?: null | string;
         };
         ChangePasswordRequest: {
             currentPassword: string;
@@ -1148,6 +1272,32 @@ export interface components {
             hasPrevious?: boolean;
             hasNext?: boolean;
         };
+        PagedResultOfWorkflowInstanceDto: {
+            items: components["schemas"]["WorkflowInstanceDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
+        PagedResultOfWorkflowTaskDto: {
+            items: components["schemas"]["WorkflowTaskDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
         PermissionDto: {
             /** Format: uuid */
             id: string;
@@ -1174,6 +1324,17 @@ export interface components {
         };
         RefreshRequest: {
             refreshToken: string;
+        };
+        RegisterDefinitionRequest: {
+            applicationCode: string;
+            code: string;
+            /** Format: int32 */
+            version: number | string;
+            nameAr: string;
+            nameEn: string;
+            steps: components["schemas"]["StepRequest"][];
+            description?: null | string;
+            initialStepKey?: null | string;
         };
         RenameCompanyRequest: {
             nameAr: string;
@@ -1251,6 +1412,39 @@ export interface components {
         SetRolePermissionsRequest: {
             permissionIds: string[];
         };
+        StartInstanceRequest: {
+            applicationCode: string;
+            definitionCode: string;
+            resourceType: string;
+            resourceId: string;
+            assignees?: null | string[];
+        };
+        StepRequest: {
+            key: string;
+            nameAr: string;
+            nameEn: string;
+            /** Format: int32 */
+            order: number | string;
+            assigneeStrategy: string;
+            /** Format: uuid */
+            assigneeUserId?: null | string;
+            /** Format: uuid */
+            assigneeRoleId?: null | string;
+            /** Format: uuid */
+            assigneePositionId?: null | string;
+            /** Format: uuid */
+            assigneeUnitId?: null | string;
+            /** Format: double */
+            serviceLevelHours?: null | number | string;
+            transitions?: null | components["schemas"]["TransitionRequest"][];
+        };
+        TaskActionRequest: {
+            action: string;
+            comment?: null | string;
+            /** Format: uuid */
+            delegateToUserId?: null | string;
+            parsedAction?: components["schemas"]["WorkflowActionType"];
+        };
         TransferEmployeeRequest: {
             /** Format: uuid */
             newUnitId: string;
@@ -1258,6 +1452,10 @@ export interface components {
             newPositionId: null | string;
             /** Format: uuid */
             newManagerId: null | string;
+        };
+        TransitionRequest: {
+            action: string;
+            targetStepKey?: null | string;
         };
         UpdateRoleRequest: {
             nameAr: string;
@@ -1300,6 +1498,96 @@ export interface components {
             expiresAt: null | string;
             /** Format: date-time */
             revokedAt: null | string;
+        };
+        WorkflowActionDto: {
+            stepKey: string;
+            action: string;
+            /** Format: uuid */
+            actorUserId: string;
+            comment: null | string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        WorkflowActionType: number;
+        WorkflowDefinitionDto: {
+            /** Format: uuid */
+            id: string;
+            applicationCode: string;
+            code: string;
+            /** Format: int32 */
+            version: number | string;
+            nameAr: string;
+            nameEn: string;
+            description: null | string;
+            status: string;
+            initialStepKey: null | string;
+            steps: components["schemas"]["WorkflowStepDto"][];
+        };
+        WorkflowInstanceDto: {
+            /** Format: uuid */
+            id: string;
+            applicationCode: string;
+            definitionCode: string;
+            /** Format: int32 */
+            definitionVersion: number | string;
+            resourceType: string;
+            resourceId: string;
+            /** Format: uuid */
+            requestedBy: string;
+            currentStepKey: null | string;
+            status: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            completedAt: null | string;
+            actions: components["schemas"]["WorkflowActionDto"][];
+        };
+        WorkflowStepDto: {
+            key: string;
+            nameAr: string;
+            nameEn: string;
+            /** Format: int32 */
+            order: number | string;
+            assigneeStrategy: string;
+            /** Format: uuid */
+            assigneeUserId: null | string;
+            /** Format: uuid */
+            assigneeRoleId: null | string;
+            /** Format: uuid */
+            assigneePositionId: null | string;
+            /** Format: uuid */
+            assigneeUnitId: null | string;
+            /** Format: double */
+            serviceLevelHours: null | number | string;
+            transitions: components["schemas"]["WorkflowTransitionDto"][];
+        };
+        WorkflowTaskDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            instanceId: string;
+            applicationCode: string;
+            definitionCode: string;
+            resourceType: string;
+            resourceId: string;
+            stepKey: string;
+            stepNameAr: string;
+            stepNameEn: string;
+            /** Format: uuid */
+            assignedToUserId: string;
+            /** Format: uuid */
+            delegatedFromUserId: null | string;
+            status: string;
+            /** Format: date-time */
+            assignedAt: string;
+            /** Format: date-time */
+            dueAt: null | string;
+            isOverdue: boolean;
+            allowedActions: string[];
+        };
+        WorkflowTransitionDto: {
+            action: string;
+            targetStepKey: null | string;
         };
     };
     responses: never;
@@ -2624,6 +2912,220 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetWorkflowDefinitions: {
+        parameters: {
+            query?: {
+                applicationCode?: string;
+                includeRetired?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDefinitionDto"][];
+                };
+            };
+        };
+    };
+    RegisterWorkflowDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDefinitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDefinitionDto"];
+                };
+            };
+        };
+    };
+    RetireWorkflowDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SearchWorkflowInstances: {
+        parameters: {
+            query?: {
+                applicationCode?: string;
+                resourceType?: string;
+                resourceId?: string;
+                status?: string;
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfWorkflowInstanceDto"];
+                };
+            };
+        };
+    };
+    StartWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowInstanceDto"];
+                };
+            };
+        };
+    };
+    GetWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowInstanceDto"];
+                };
+            };
+        };
+    };
+    CancelWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetMyTasks: {
+        parameters: {
+            query?: {
+                includeCompleted?: boolean;
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfWorkflowTaskDto"];
+                };
+            };
+        };
+    };
+    ActOnTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowInstanceDto"];
+                };
             };
         };
     };

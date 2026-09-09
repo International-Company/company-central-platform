@@ -49,6 +49,71 @@ public sealed class OrganizationDirectory(OrganizationDbContext dbContext) : IOr
             .Select(e => (Guid?)e.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<Guid?> GetUserIdForEmployeeAsync(
+        Guid employeeId, CancellationToken cancellationToken = default)
+        => await dbContext.Employees
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId && e.IsActive)
+            .Select(e => e.UserId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// Everyone holding a position who also has an account to act with.
+    /// <para>
+    /// The <c>UserId is not null</c> filter is the point: a task assigned to an
+    /// employee with no account is a task nobody can ever open.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> GetUserIdsInPositionAsync(
+        Guid positionId, CancellationToken cancellationToken = default)
+        => await dbContext.Employees
+            .AsNoTracking()
+            .Where(e => e.PositionId == positionId && e.IsActive && e.UserId != null)
+            .Select(e => e.UserId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// The head of a unit: the active employee in it whose manager is not also
+    /// in it.
+    /// <para>
+    /// Derived rather than stored. A stored head is a field that goes stale the
+    /// first time somebody leaves and nobody remembers to update it — and the
+    /// consequence of a stale one here is an approval sent to a person who no
+    /// longer runs the department.
+    /// </para>
+    /// <para>
+    /// If more than one qualifies the earliest-created is taken, so the answer
+    /// is at least stable. A unit with two apparent heads is a reporting line
+    /// that needs fixing, and picking arbitrarily would hide that by sending
+    /// approvals to whichever the database happened to return.
+    /// </para>
+    /// </summary>
+    public async Task<Guid?> GetUnitHeadUserIdAsync(
+        Guid unitId, CancellationToken cancellationToken = default)
+    {
+        List<Guid> inUnit = await dbContext.Employees
+            .AsNoTracking()
+            .Where(e => e.UnitId == unitId && e.IsActive)
+            .Select(e => e.Id)
+            .ToListAsync(cancellationToken);
+
+        if (inUnit.Count == 0)
+        {
+            return null;
+        }
+
+        return await dbContext.Employees
+            .AsNoTracking()
+            .Where(e => e.UnitId == unitId
+                     && e.IsActive
+                     && e.UserId != null
+                     && (e.ManagerId == null || !inUnit.Contains(e.ManagerId.Value)))
+            .OrderBy(e => e.CreatedAt)
+            .Select(e => e.UserId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public Task<IReadOnlyList<Guid>> GetManagementChainAsync(
         Guid employeeId, CancellationToken cancellationToken = default)
         => ManagementChain.WalkUpAsync(employeeId, GetManagerIdAsync, cancellationToken);

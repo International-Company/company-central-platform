@@ -44,6 +44,42 @@ public interface IOrganizationDirectory
     Task<Guid?> GetEmployeeIdForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The account an employee signs in with, or null.
+    /// <para>
+    /// The inverse of <see cref="GetEmployeeIdForUserAsync"/>. Workflow needs it
+    /// because the management chain is expressed in employees while tasks are
+    /// assigned to accounts, and an employee with no account cannot be given
+    /// one — which is a real situation, not an error.
+    /// </para>
+    /// </summary>
+    Task<Guid?> GetUserIdForEmployeeAsync(
+        Guid employeeId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The user accounts of everyone holding a job position.
+    /// <para>
+    /// Accounts, not employees: Workflow assigns tasks to people who sign in,
+    /// and an employee with no account cannot act on one. Someone holding the
+    /// position but having no account is therefore absent from this list rather
+    /// than present and unable to do anything.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetUserIdsInPositionAsync(
+        Guid positionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The user account of whoever heads a unit, or null.
+    /// <para>
+    /// "Head" means the employee in the unit whom nobody else in that unit
+    /// manages — the top of its own reporting line. Derived rather than stored,
+    /// because a stored head is a field that goes stale the first time somebody
+    /// leaves and nobody remembers to update it.
+    /// </para>
+    /// </summary>
+    Task<Guid?> GetUnitHeadUserIdAsync(
+        Guid unitId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The chain of managers above an employee, nearest first.
     /// <para>
     /// Used by Workflow from Phase 8 to resolve "the requester's manager". It
