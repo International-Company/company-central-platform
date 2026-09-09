@@ -70,6 +70,15 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      # The committed contract must match what the endpoints actually declare.
+      # Without this the frontend would keep generating types from a stale
+      # document and still pass — which is the failure the generation exists to
+      # prevent, wearing a different hat.
+      - name: API contract is up to date
+        run: |
+          bash scripts/regenerate-contract.sh
+          git diff --exit-code contracts/platform-api.json
+
       - name: Verify formatting
         run: dotnet format --verify-no-changes --no-restore
 

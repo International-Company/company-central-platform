@@ -99,7 +99,17 @@
     "statusDisabled": "Disabled",
     "statusLocked": "Locked",
     "searchPlaceholder": "Search by name, username or email",
-    "username": "Username"
+    "username": "Username",
+    "unlock": "Unlock",
+    "disable": "Disable",
+    "enable": "Enable",
+    "unlockConfirm": "Unlock {name}?",
+    "unlockDescription": "The account was locked by repeated failed sign-ins. Unlocking lets them try again immediately.",
+    "disableConfirm": "Disable {name}?",
+    "disableDescription": "They will not be able to sign in until the account is enabled again.",
+    "enableConfirm": "Enable {name}?",
+    "enableDescription": "They will be able to sign in again.",
+    "statusChanged": "Done."
   },
   "audit": {
     "title": "Audit",

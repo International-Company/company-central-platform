@@ -39,9 +39,23 @@
       be reviewed in a pull request. A change to it should be as visible as a
       change to any other file.
     -->
-    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <!--
+      Off by default, and turned on explicitly by the step that regenerates the
+      contract:
+
+        dotnet build src/Host/CCP.Api.Host -p:GenerateApiContract=true
+
+      The generator starts the application to read its endpoints, and the
+      composition root refuses to start without a connection string - it has no
+      way to know it is being asked for a document rather than for service. So
+      generation needs one supplied, and making every ordinary `dotnet build`
+      depend on an ambient environment variable would be a trap for anyone who
+      cloned the repository and typed the obvious command.
+    -->
+    <GenerateApiContract Condition="'$(GenerateApiContract)' == ''">false</GenerateApiContract>
+    <OpenApiGenerateDocuments>$(GenerateApiContract)</OpenApiGenerateDocuments>
+    <OpenApiGenerateDocumentsOnBuild>$(GenerateApiContract)</OpenApiGenerateDocumentsOnBuild>
     <OpenApiDocumentsDirectory>$(MSBuildThisFileDirectory)../../../contracts</OpenApiDocumentsDirectory>
-    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
 
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

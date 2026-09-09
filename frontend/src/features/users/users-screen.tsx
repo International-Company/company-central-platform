@@ -9,6 +9,7 @@ import { DataTable, type Column } from '@/components/shared/data-table';
 import { Pagination } from '@/components/shared/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { IfPermitted } from '@/lib/permissions';
 import type { PagedResult, UserDto } from '@/types/platform';
 
@@ -38,6 +39,15 @@ export function UsersScreen() {
   const [result, setResult] = useState<PagedResult<UserDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // The action a confirmation is currently asking about. One piece of state
+  // rather than a boolean per action: only one dialog can be open, and modelling
+  // it as one value makes that structurally true instead of merely intended.
+  const [pending, setPending] = useState<{
+    user: UserDto;
+    action: 'enable' | 'disable' | 'unlock';
+  } | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +84,42 @@ export function UsersScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function applyStatus() {
+    if (!pending) {
+      return;
+    }
+
+    setApplying(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/users/${pending.user.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: pending.action }),
+      });
+
+      if (!response.ok) {
+        // 403 here usually means step-up, not a missing permission: creating
+        // and restoring access are the actions that demand a recent second
+        // factor. Saying "you do not have permission" would send an
+        // administrator to ask for a permission they already hold.
+        setError(
+          response.status === 403 ? tErrors('forbidden') : tErrors('generic'),
+        );
+
+        return;
+      }
+
+      setPending(null);
+      await load();
+    } catch {
+      setError(tErrors('network'));
+    } finally {
+      setApplying(false);
+    }
+  }
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -226,12 +272,42 @@ export function UsersScreen() {
               sortDescending: tTable('sortDescending'),
               actions: tCommon('actions'),
             }}
-            rowActions={() => (
-              // A text link, not a row of glyphs. A row of icon buttons is
-              // unreadable at a glance and unlabelled to a screen reader.
-              <Button variant="quiet" size="sm">
-                {tCommon('viewDetails')}
-              </Button>
+            rowActions={(user) => (
+              // Text links, never a row of glyphs. Which action is offered
+              // depends on the state the account is actually in: unlocking an
+              // account that is not locked is a button that does nothing, and a
+              // button that does nothing teaches people to distrust the others.
+              <IfPermitted permission="platform.users.edit">
+                <div className="flex flex-wrap justify-end gap-2">
+                  {user.status === 'Locked' ? (
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      onClick={() => setPending({ user, action: 'unlock' })}
+                    >
+                      {t('unlock')}
+                    </Button>
+                  ) : null}
+
+                  {user.status === 'Disabled' ? (
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      onClick={() => setPending({ user, action: 'enable' })}
+                    >
+                      {t('enable')}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      onClick={() => setPending({ user, action: 'disable' })}
+                    >
+                      {t('disable')}
+                    </Button>
+                  )}
+                </div>
+              </IfPermitted>
             )}
           />
 
@@ -248,6 +324,23 @@ export function UsersScreen() {
           />
         </>
       ) : null}
+
+      <ConfirmDialog
+        open={pending !== null}
+        title={
+          pending
+            ? t(`${pending.action}Confirm`, { name: pending.user.displayName })
+            : ''
+        }
+        description={pending ? t(`${pending.action}Description`) : ''}
+        confirmLabel={pending ? t(pending.action) : ''}
+        cancelLabel={tCommon('cancel')}
+        destructive={pending?.action === 'disable'}
+        busy={applying}
+        busyLabel={tCommon('loading')}
+        onConfirm={() => void applyStatus()}
+        onCancel={() => setPending(null)}
+      />
     </>
   );
 }

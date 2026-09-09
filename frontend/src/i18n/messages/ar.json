@@ -99,7 +99,17 @@
     "statusDisabled": "معطّل",
     "statusLocked": "مقفل",
     "searchPlaceholder": "ابحث بالاسم أو اسم المستخدم أو البريد",
-    "username": "اسم المستخدم"
+    "username": "اسم المستخدم",
+    "unlock": "فكّ القفل",
+    "disable": "تعطيل",
+    "enable": "تفعيل",
+    "unlockConfirm": "فكّ قفل {name}؟",
+    "unlockDescription": "قُفل الحساب بسبب تكرار فشل الدخول. فكّ القفل يتيح المحاولة فورًا.",
+    "disableConfirm": "تعطيل {name}؟",
+    "disableDescription": "لن يستطيع الدخول حتى يُفعَّل الحساب مجددًا.",
+    "enableConfirm": "تفعيل {name}؟",
+    "enableDescription": "سيستطيع الدخول مجددًا.",
+    "statusChanged": "تم."
   },
   "audit": {
     "title": "سجل التدقيق",
