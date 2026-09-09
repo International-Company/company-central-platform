@@ -7,6 +7,13 @@
     <ProjectReference Include="..\CCP.Modules.Notifications.Domain\CCP.Modules.Notifications.Domain.csproj" />
     <ProjectReference Include="..\CCP.Modules.Notifications.Application\CCP.Modules.Notifications.Application.csproj" />
     <ProjectReference Include="..\CCP.Modules.Notifications.Contracts\CCP.Modules.Notifications.Contracts.csproj" />
+
+    <!--
+      Identity's public surface, and nothing more. Contracts only: no reference
+      to another module's Domain, Application or Infrastructure exists in this
+      module, which is what keeps it extractable.
+    -->
+    <ProjectReference Include="..\..\Identity\CCP.Modules.Identity.Contracts\CCP.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

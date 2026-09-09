@@ -44,6 +44,10 @@ public static class IdentityInfrastructureRegistration
         // Persistence. The repository is also the module's unit of work source,
         // but the two are registered separately so a handler asks for exactly
         // the capability it needs.
+        // The module's public surface: Notifications finds an address and a name,
+        // and nothing else about the account.
+        services.AddScoped<Contracts.IUserDirectory, UserDirectory>();
+
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddScoped<IIdentityUnitOfWork, IdentityUnitOfWork>();
         services.AddScoped<IIdentityOutbox, IdentityOutbox>();

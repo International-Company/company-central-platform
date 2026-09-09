@@ -13,6 +13,8 @@
     <ProjectReference Include="..\..\Modules\Authorization\CCP.Modules.Authorization.Infrastructure\CCP.Modules.Authorization.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Audit\CCP.Modules.Audit.Api\CCP.Modules.Audit.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Workflow\CCP.Modules.Workflow.Api\CCP.Modules.Workflow.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\CCP.Modules.Notifications.Api\CCP.Modules.Notifications.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\CCP.Modules.Notifications.Infrastructure\CCP.Modules.Notifications.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Workflow\CCP.Modules.Workflow.Infrastructure\CCP.Modules.Workflow.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Audit\CCP.Modules.Audit.Infrastructure\CCP.Modules.Audit.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Security\CCP.Modules.Security.Api\CCP.Modules.Security.Api.csproj" />
