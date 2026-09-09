@@ -257,6 +257,7 @@ public static class SecurityEndpoints
             .WithMetadata(new RequirePermissionAttribute("platform.security.view"))
             .RequireRateLimiting(RateLimitPolicies.Read)
             .WithTags("Security")
+            .Produces<PagedResult<SecurityEventDto>>(StatusCodes.Status200OK)
             .WithName("SearchSecurityEvents")
             .WithSummary("Searches the security event log within a bounded time window.");
 

@@ -51,6 +51,7 @@ public static class UserEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new AuthenticatedUserOnlyAttribute("Reading one's own profile needs no permission."))
+            .Produces<UserDto>(StatusCodes.Status200OK)
             .WithName("GetCurrentUser")
             .WithSummary("Returns the signed-in user's profile.");
 
@@ -72,6 +73,7 @@ public static class UserEndpoints
         })
             .RequireAuthorization()
             .WithMetadata(new AuthenticatedUserOnlyAttribute("Seeing one's own sessions needs no permission."))
+            .Produces<IReadOnlyList<SessionDto>>(StatusCodes.Status200OK)
             .WithName("GetMySessions")
             .WithSummary("Lists the caller's active sessions.");
 
@@ -96,6 +98,7 @@ public static class UserEndpoints
             .WithMetadata(new AuthenticatedUserOnlyAttribute(
                 "A user seeing failed attempts on their own account is the earliest signal that "
                 + "someone is trying it."))
+            .Produces<IReadOnlyList<LoginAttemptDto>>(StatusCodes.Status200OK)
             .WithName("GetMyLoginHistory")
             .WithSummary("Lists the caller's recent sign-in attempts, successful and failed.");
     }

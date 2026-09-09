@@ -1017,6 +1017,13 @@ export interface components {
             ar: string;
             en: string;
         };
+        LoginAttemptDto: {
+            succeeded: boolean;
+            ipAddress: null | string;
+            userAgent: null | string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
         LoginRequest: {
             username: string;
             password: string;
@@ -1115,6 +1122,19 @@ export interface components {
             hasPrevious?: boolean;
             hasNext?: boolean;
         };
+        PagedResultOfSecurityEventDto: {
+            items: components["schemas"]["SecurityEventDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
         PagedResultOfUserDto: {
             items: components["schemas"]["UserDto"][];
             /** Format: int32 */
@@ -1195,6 +1215,33 @@ export interface components {
             permissionCount: number | string;
         };
         ScopeType: number;
+        SecurityEventDto: {
+            /** Format: uuid */
+            id: string;
+            eventType: string;
+            severity: string;
+            /** Format: uuid */
+            userId: null | string;
+            username: null | string;
+            ipAddress: null | string;
+            details: null | string;
+            correlationId: null | string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        SessionDto: {
+            /** Format: uuid */
+            id: string;
+            ipAddress: null | string;
+            userAgent: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastActivityAt: string;
+            /** Format: date-time */
+            absoluteExpiresAt: string;
+            isCurrent: boolean;
+        };
         SetPositionActiveRequest: {
             isActive: boolean;
         };
@@ -1487,7 +1534,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
             };
         };
     };
@@ -1505,7 +1554,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SessionDto"][];
+                };
             };
         };
     };
@@ -1525,7 +1576,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LoginAttemptDto"][];
+                };
             };
         };
     };
@@ -1769,7 +1822,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfSecurityEventDto"];
+                };
             };
         };
     };

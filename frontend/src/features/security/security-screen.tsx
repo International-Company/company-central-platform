@@ -7,6 +7,8 @@ import { Field, FormMessage } from '@/components/ui/field';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { SessionsPanel } from './sessions-panel';
+import { SecurityEventsPanel } from './security-events-panel';
 import type { MfaEnrolmentDto, MfaStatusDto, RecoveryCodesDto } from '@/types/platform';
 
 /**
@@ -245,6 +247,13 @@ export function SecurityScreen() {
           </Button>
         </section>
       ) : null}
+
+      {/* One's own security below one's own second factor, then the Platform's
+          log — which needs a permission and is therefore not everyone's. The
+          order is by who it belongs to: you, then the company. */}
+      <SessionsPanel />
+
+      <SecurityEventsPanel />
 
       <FormDialog
         open={enrolment !== null}

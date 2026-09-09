@@ -30,6 +30,9 @@ export type EmployeeDto = Schemas['EmployeeDto'];
 export type LocalizedNameDto = Schemas['LocalizedNameDto'];
 export type RoleDto = Schemas['RoleDto'];
 export type AuditEventDto = Schemas['AuditEventDto'];
+export type SessionDto = Schemas['SessionDto'];
+export type LoginAttemptDto = Schemas['LoginAttemptDto'];
+export type SecurityEventDto = Schemas['SecurityEventDto'];
 
 export type CompanyDto = Schemas['CompanyDto'];
 export type PositionDto = Schemas['PositionDto'];
