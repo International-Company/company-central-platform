@@ -8,6 +8,7 @@ import { DataTable, type Column } from '@/components/shared/data-table';
 import { PageHeader } from '@/components/shared/page-header';
 import { Pagination } from '@/components/shared/pagination';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { DeliveryLogPanel } from './delivery-log-panel';
 import { PreferencesPanel } from './preferences-panel';
 import type { NotificationDto, PagedResult } from '@/types/platform';
 
@@ -191,6 +192,11 @@ export function NotificationsScreen() {
       ) : null}
 
       <PreferencesPanel />
+
+      {/* Below one's own settings, and only for whoever may see it. The order is
+          by who it belongs to: your messages, your choices, then the company's
+          delivery log. */}
+      <DeliveryLogPanel />
     </>
   );
 }
