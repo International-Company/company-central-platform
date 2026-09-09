@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 8 — Workflow** |
-| Phase status | 🟢 **A reusable approval engine, running end to end. Phase 7 complete and verified.** |
-| Next phase | **Phase 9 — Notifications** |
+| Current phase | **Phase 9 — Notifications** |
+| Phase status | 🟢 **Messages reach people. Password reset completes for the first time since Phase 2.** |
+| Next phase | **Phase 10 — Documents** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -23,8 +23,8 @@
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
 | 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
 | 7 | Frontend Foundation & Core Admin UI | 🟢 **Complete** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. Twelve screens, every one of them able to write: company setup, organizational structure, employees, users, role definition and permission editing, role granting with a step-up prompt, own-account two-factor enrolment, and a dashboard of live figures. Types generated from the OpenAPI document the API emits. Playwright sweeps every screen in both locales and passes. |
-| 8 | Workflow | 🟡 **Core complete** | A reusable approval engine holding no business rule — verified by a test that fails the build if business vocabulary appears in the module at all. Definitions as versioned data, registered by applications through the API with no Platform code change. Versions frozen once published; instances run on the version they started with. Six organizational assignee strategies plus a caller-supplied list, which is where business-conditional routing lives — outside the engine. Approve, reject, return, delegate, comment, cancel; first to act settles a step and the rest are withdrawn. Service levels escalated once by a background sweep that raises an event and does not reassign. Task inbox and administrator view in both locales. Integration tests walk a whole approval on a real database. |
-| 9 | Notifications | ⬜ Not started | |
+| 8 | Workflow | 🟢 **Complete** | A reusable approval engine holding no business rule — verified by a test that fails the build if business vocabulary appears in the module at all. Definitions as versioned data, registered by applications through the API with no Platform code change. Versions frozen once published; instances run on the version they started with. Six organizational assignee strategies plus a caller-supplied list, which is where business-conditional routing lives — outside the engine. Approve, reject, return, delegate, comment, cancel; first to act settles a step and the rest are withdrawn. Service levels escalated once by a background sweep that raises an event and does not reassign. Task inbox and administrator view in both locales. Integration tests walk a whole approval on a real database. |
+| 9 | Notifications | 🟡 **Core complete** | Templates per locale with declared variables and escaping that cannot be opted out of; no template language, substitution only. In-app and email, with `INotificationChannelProvider` as the seam — adding SMS is one interface and one registration. Retry, backoff with jitter, and giving up live in the dispatcher so every channel behaves the same when a vendor is down. Per-user, per-category, per-channel preferences, with security refused at the resolver and at creation. Delivery log keeps permanent failures visible. Listens to Workflow and Identity, neither of which knows it exists. 23 unit tests, 6 integration tests. |
 | 10 | Documents | ⬜ Not started | |
 | 11 | External API Platform & App Registry | ⬜ Not started | |
 | 12 | Integrations | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–8 in progress.**
+**Completed: 1 of 22 phases. Phases 1–9 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -906,7 +906,7 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 15 | The user list endpoint applies no scope filter | Medium | Identity has no organizational dimension, so what `Unit` scope means there needs deciding. Until then a caller with `platform.users.view` at any scope sees every user. |
 | 16 | Authorization integration tests not written | **Medium** | 63 unit tests cover evaluation and enforcement; the permission join, the version stamp under concurrency, and the seeder have never run against a real database. |
 | 17 | ~~Role management endpoints missing~~ | — | ✅ **Resolved.** Roles can be created, renamed, filled with permissions and deactivated, behind `platform.roles.manage` and with the anti-escalation rule applied at definition as well as at grant. Application registration still arrives with client credentials in Phase 11. Until this existed the Platform had one role — the seeder's, holding everything — so granting anybody anything made them a full administrator. |
-| 10 | Password reset cannot complete end to end | Medium | The token is issued and staged on the outbox, but nothing sends the email until Notifications (Phase 9). |
+| 10 | ~~Password reset cannot complete end to end~~ | — | ✅ **Resolved in Phase 9**, and it was the oldest debt in the project. The token had been issued and staged on the outbox since Phase 2 with nothing to deliver it — the flow existed, was tested, and could not complete. Sent by email only: an in-app copy would put a working account-takeover credential in the inbox of the account it takes over. |
 | 11 | No recovery path if the last administrator is lost | Medium | Bootstrapping refuses to run once users exist. Revisit in Phase 4 when roles can express "more than one administrator". |
 | 12 | Organization integration tests not written | **Medium** | 48 unit tests cover the hierarchy logic, but atomic moves, the `text_pattern_ops` index actually being used, and unique constraints are unverified against a real database. |
 | 13 | ~~Company endpoint missing~~ | **Was High, not Low** | ✅ **Resolved.** The company can be established, read and renamed. This was recorded as Low and was in fact a deadlock: every read in the module resolves the company first and answered 404 without one, so the whole section reported failure on a working installation — and no endpoint created a company, while `CreateUnit` required one. Reads now treat an empty Platform as empty; writes still refuse. Position endpoints remain outstanding. |
@@ -923,6 +923,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 28 | Workflow has no callback for business-conditional routing | Medium | ARCHITECTURE.md §16.3 offers two escapes for routing that depends on business data: the caller supplies assignees at start time, or the engine asks the application through a callback. The first is built; the second is not. Until it is, an application whose next step depends on data the Platform cannot see must resolve it before starting — which is sufficient, and is what the integration guide says. |
 | 29 | A workflow instance cannot be reassigned by an administrator | Medium | If an assignee leaves the company mid-approval, the task sits with an account nobody uses. Delegation needs the assignee to act, and escalation deliberately does not reassign. Needs an audited, permission-gated override. |
 | 30 | ~~Workflow unit tests not written~~ | — | ✅ **Resolved.** 33 tests on the definition, the state machine and the task: publication refusing a dead end and an unreachable step while allowing a cycle, every terminal action mapping to its own outcome, a return with no target recording nothing, only the assignee acting, delegation moving the task and not the instance, escalation firing once and not reassigning. |
+| 31 | Notification listeners are not deduplicated on event id | Medium | Outbox delivery is at-least-once, so a redelivery creates a second notification with the same text. A duplicate in an inbox is a nuisance; dropping the first copy through a bug in deduplication would not be, which is why the naive version shipped first. Needs a processed-event table keyed on event id. |
+| 32 | Per-user language is not stored | Medium | `IRecipientDirectory.GetLocaleAsync` returns the company default for everybody. The seam is in place and the preference is not, so an English speaker in an Arabic company receives Arabic. |
+| 33 | The email provider is a direct SMTP adapter | Low | Planned: outbound calls get a governed path in Phase 12 (§17.2, §19.1). Until then this talks to a mail server directly, with no shared circuit breaker or outbound policy. |
+| 34 | No stub provider demonstrates the third channel | Low | Phase 9's acceptance criteria ask for a new channel to be demonstrated by implementing one interface. In-app and email are two implementations of that interface and the dispatcher matches by channel with no knowledge of which exist — but the demonstration itself is not written. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -1151,12 +1155,61 @@ where access is decided.
 
 ---
 
-## 11. Next step
+## 11. Phase 9 report — the oldest debt, and what escaping is for
 
-**Phase 9 — Notifications.** Workflow already raises everything a notification
-system needs — a task assigned, a task escalated, an instance completed — and
-currently nothing listens. It is also what unblocks password reset, which has
-been staged on the outbox since Phase 2 with no way to deliver the mail.
+### 11.1 Password reset completes
+
+The token has been issued and staged on the outbox **since Phase 2**. The flow
+existed, had tests, and could not finish, because nothing could send an email.
+Seven phases later it does.
+
+Email only. An in-app copy would put a working account-takeover credential in
+the inbox of the account it takes over — useless to somebody locked out, useful
+to whoever locked them out.
+
+### 11.2 Escaping is the whole security story here
+
+A notification body reaches an email client and an in-app inbox, both of which
+render markup. A display name containing a script tag is the entire payload of
+a stored cross-site-scripting attack if it arrives unescaped, and a display name
+is exactly where an attacker puts one.
+
+So every substituted value is escaped, with no way to opt out, and the body
+never is — an administrator writing it may legitimately use markup. A unit test
+pins the order: `&` before `<`, because the other way turns `&lt;` into
+`&amp;lt;` and shows the reader the escape sequence instead of the character.
+
+And there is no template language. Substitution only: no conditionals, no loops,
+no property paths. A language stored in a database is code nobody reviews
+running with the Platform's privileges.
+
+### 11.3 Two design errors found while wiring the listeners
+
+The workflow completion event carried who **decided** and not who **asked**. A
+listener built on it would have told the approver what they had just approved
+and told the person who had been waiting for weeks nothing.
+
+And integration events lived in `Domain` in both Workflow and Identity, so
+subscribing to one meant referencing a module's internals — the coupling the
+Contracts projects exist to prevent. Both sets moved to `Contracts`, which is
+where a published shape belongs.
+
+### 11.4 One thing caught only by looking
+
+The module was never added to the host's module list: an earlier edit reported
+success and did not apply. The symptom was a contract with no notification
+endpoints in it, and the only reason it surfaced was regenerating the contract
+and reading the output. A build, a test run and a lint pass would all have gone
+green with the module unreachable.
+
+---
+
+## 12. Next step
+
+**Phase 10 — Documents.** The remaining Platform capability with nothing built
+behind it, and the one every business system will want: split storage, metadata
+in PostgreSQL and bytes in object storage, with access decided by the same
+permission model as everything else.
 
 Still outstanding across all phases:
 
