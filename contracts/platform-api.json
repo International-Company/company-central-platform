@@ -932,6 +932,38 @@
         }
       }
     },
+    "/api/v1/me/features/{key}": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Whether a feature is on for the caller.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "GetMyFeatureState",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureStateDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organization/company": {
       "get": {
         "tags": [
@@ -3909,6 +3941,240 @@
           }
         }
       }
+    },
+    "/api/v1/configuration/settings": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Every declared setting, and what has been set for it.",
+        "description": "**Requires:** `platform.configuration.view`",
+        "operationId": "GetSettings",
+        "parameters": [
+          {
+            "name": "applicationCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettingDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configuration/settings/declare": {
+      "put": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Declares a setting, or updates its description and constraints.",
+        "description": "**Requires:** `platform.configuration.manage`",
+        "operationId": "DeclareSetting",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareSettingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configuration/settings/value": {
+      "put": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Sets a value at a scope, or clears the override.",
+        "description": "**Requires:** `platform.configuration.manage`",
+        "operationId": "SetSetting",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSettingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/configuration/settings/{key}/history": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "What this setting was, what it became, who changed it and when.",
+        "description": "**Requires:** `platform.configuration.view`",
+        "operationId": "GetSettingHistory",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettingChangeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configuration/flags": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Every declared flag and its switch.",
+        "description": "**Requires:** `platform.configuration.view`",
+        "operationId": "GetFeatureFlags",
+        "parameters": [
+          {
+            "name": "applicationCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureFlagDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configuration/flags/declare": {
+      "put": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Declares a flag. It is off until somebody turns it on.",
+        "description": "**Requires:** `platform.configuration.manage`",
+        "operationId": "DeclareFeatureFlag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareFlagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureFlagDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configuration/flags/{key}": {
+      "put": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Turns a flag on or off, and decides who it reaches.",
+        "description": "**Requires:** `platform.configuration.manage`",
+        "operationId": "SetFeatureFlag",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFlagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureFlagDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4554,6 +4820,31 @@
           }
         }
       },
+      "DeclareFlagRequest": {
+        "required": [
+          "key",
+          "applicationCode",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "applicationCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "DeclarePermissionsRequest": {
         "required": [
           "permissions"
@@ -4564,6 +4855,79 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PermissionDeclarationRequest"
+            }
+          }
+        }
+      },
+      "DeclareSettingRequest": {
+        "required": [
+          "key",
+          "applicationCode",
+          "valueType",
+          "description",
+          "defaultValue",
+          "isSensitive",
+          "minimum",
+          "maximum",
+          "allowedValues"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "applicationCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valueType": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSensitive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "minimum": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "maximum": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "allowedValues": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
             }
           }
         }
@@ -4954,6 +5318,72 @@
             "format": "date"
           },
           "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FeatureFlagDto": {
+        "required": [
+          "key",
+          "applicationCode",
+          "description",
+          "isEnabled",
+          "isUntargeted",
+          "targetedRoles",
+          "targetedUnits",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "applicationCode": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "isUntargeted": {
+            "type": "boolean"
+          },
+          "targetedRoles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "targetedUnits": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FeatureStateDto": {
+        "required": [
+          "key",
+          "isOn"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "isOn": {
             "type": "boolean"
           }
         }
@@ -7227,6 +7657,39 @@
           }
         }
       },
+      "SetFlagRequest": {
+        "required": [
+          "isEnabled",
+          "roleIds",
+          "unitIds"
+        ],
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "roleIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "unitIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
       "SetPositionActiveRequest": {
         "required": [
           "isActive"
@@ -7294,6 +7757,196 @@
               "type": "string",
               "format": "uuid"
             }
+          }
+        }
+      },
+      "SetSettingRequest": {
+        "required": [
+          "key",
+          "scope",
+          "scopeId",
+          "value",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SettingChangeDto": {
+        "required": [
+          "key",
+          "scope",
+          "scopeId",
+          "oldValue",
+          "newValue",
+          "changedBy",
+          "changedAt",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SettingDto": {
+        "required": [
+          "key",
+          "applicationCode",
+          "valueType",
+          "description",
+          "defaultValue",
+          "isSensitive",
+          "minimum",
+          "maximum",
+          "allowedValues",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "applicationCode": {
+            "type": "string"
+          },
+          "valueType": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSensitive": {
+            "type": "boolean"
+          },
+          "minimum": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "maximum": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "allowedValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettingValueDto"
+            }
+          }
+        }
+      },
+      "SettingValueDto": {
+        "required": [
+          "scope",
+          "scopeId",
+          "value",
+          "setAt"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "value": {
+            "type": "string"
+          },
+          "setAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -8038,6 +8691,9 @@
     },
     {
       "name": "Integrations"
+    },
+    {
+      "name": "Configuration"
     },
     {
       "name": "Organization"

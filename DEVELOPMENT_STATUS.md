@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 12 — Integrations** |
-| Phase status | 🟢 **One governed door out. Deny by default, credentials by reference, every call logged.** |
-| Next phase | **Phase 13 — Configuration & Feature Flags** |
+| Current phase | **Phase 13 — Configuration & Feature Flags** |
+| Phase status | 🟢 **Typed, scoped, audited settings — and a switch that does not need a deployment.** |
+| Next phase | **Phase 14 — Observability** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -27,8 +27,8 @@
 | 9 | Notifications | 🟢 **Complete** | Templates per locale with declared variables and escaping that cannot be opted out of; no template language, substitution only. In-app and email, with `INotificationChannelProvider` as the seam — adding SMS is one interface and one registration. Retry, backoff with jitter, and giving up live in the dispatcher so every channel behaves the same when a vendor is down. Per-user, per-category, per-channel preferences, with security refused at the resolver and at creation. Delivery log keeps permanent failures visible. Listens to Workflow and Identity, neither of which knows it exists. 23 unit tests, 6 integration tests. |
 | 10 | Documents | 🟢 **Complete** | Metadata in PostgreSQL, bytes in object storage, behind `IDocumentStorageProvider` — a directory on disk in development, S3-compatible in production, chosen by what is configured rather than by the environment name. Uploads are identified by reading their first bytes: an executable renamed to `report.pdf` is refused and named. Random object keys, SHA-256, size enforced during the copy rather than after it. A scanner hook whose default reports *NotScanned* rather than *Clean*, so an audit of what was checked tells the truth. Versions are added, never edited. Access decided by one evaluator used by every path — user, role or unit rules that add up rather than override — and every access logged, **including the refusals**. Two-stage deletion with a thirty-day grace period and a purge sweep that destroys bytes before it marks the record. Polymorphic linking with no foreign key, so a business system files a document against its own record. Screens in both locales, and an upload control any screen can embed. 47 unit tests, 7 integration tests. |
 | 11 | External API Platform & App Registry | 🟢 **Complete** | Client credentials with rotation: an application holds two live secrets at once, so the new one works before the old one stops and a rotation is never an outage. `LastUsedAt` on every exchange, because finishing a rotation needs evidence rather than nerve. Applications hold the **same roles at the same scopes** as people, resolved by the same evaluator — two grant tables, one algorithm, and no second vocabulary of API scopes to keep in step. Acting on behalf of a person is the **intersection** of what the application and that person may do. The subject claim carries its kind, so no handler can mistake an application for a person. Per-application rate limits; the token endpoint partitioned by client id. The published contract states every endpoint's permission, step-up requirement and anonymity, derived from the endpoint metadata. `Deprecation`/`Sunset` headers exist with nothing yet deprecated. A permission manifest endpoint whose namespace comes from the token, so a system can only ever declare its own. 24 unit tests, 8 integration tests, an integration guide and a reference client. |
-| 12 | Integrations | 🟡 **Core complete** | Every outbound call passes one door: the address is checked against a **deny-by-default** allow-list, the credential is resolved from a *reference* so no column in the module could hold a secret, the request runs under a resilience pipeline built from the provider's own settings, and both halves are written to the call log with the provider's declared fields blanked **before storage**. The SSRF defence checks the name and every address it resolves to — the metadata service, the private ranges, non-HTTP schemes and credentials in the URL are all refused, and a caller is never told which check failed. Bulkhead, breaker, retry with jitter, timeout, in that order, because the order decides what each one protects. Inbound webhooks verify an HMAC over the raw body with the timestamp inside the signed material, and every accepted signature is remembered so the same request cannot be replayed. Health is derived from recent calls, never stored. Retention from the first day. 48 unit tests. |
-| 13 | Configuration & Feature Flags | ⬜ Not started | |
+| 12 | Integrations | 🟢 **Complete** | Every outbound call passes one door: the address is checked against a **deny-by-default** allow-list, the credential is resolved from a *reference* so no column in the module could hold a secret, the request runs under a resilience pipeline built from the provider's own settings, and both halves are written to the call log with the provider's declared fields blanked **before storage**. The SSRF defence checks the name and every address it resolves to — the metadata service, the private ranges, non-HTTP schemes and credentials in the URL are all refused, and a caller is never told which check failed. Bulkhead, breaker, retry with jitter, timeout, in that order, because the order decides what each one protects. Inbound webhooks verify an HMAC over the raw body with the timestamp inside the signed material, and every accepted signature is remembered so the same request cannot be replayed. Health is derived from recent calls, never stored. Retention from the first day. 48 unit tests. |
+| 13 | Configuration & Feature Flags | 🟡 **Core complete** | Settings are declared before they are set, in their owner's namespace, with a type and constraints checked at the moment somebody types a value. **A value that looks like a secret is refused outright** — a settings table is stored in plaintext, exported and backed up, and the sensitivity flag stops a value being read back rather than stopping it being there. Three scopes with narrowest winning; a row exists only where somebody overrode something. Every change keeps what it was, what it became, who and why — and for a sensitive setting says that it changed and not what to. Cached on a version stamp held in the database, so a change takes effect on the very next request and on every instance. Feature flags targeted by role or unit and nothing else, off by default, off when undeclared, and off meaning off however they are targeted. 52 unit tests. |
 | 14 | Observability | ⬜ Not started | |
 | 15 | Administration Portal Completion | ⬜ Not started | |
 | 16 | Platform Dashboard | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–12 in progress.**
+**Completed: 1 of 22 phases. Phases 1–13 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -940,6 +940,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 45 | The email channel has not been moved onto the integration layer | Medium | Phase 12 lists it, and Phase 9 recorded it as debt (#33). The SMTP adapter still talks to a mail server directly, with no shared circuit breaker, no allow-list and no entry in the call log. SMTP is not HTTP, so it needs a second connector shape rather than a configuration change — which is the reason it is not done rather than an excuse for it. |
 | 46 | Outbound webhook subscriptions are not built | Medium | Deferred from Phase 11 to here, and not built here either. Receiving a signed webhook is done; publishing Platform events to an external URL is not. It needs delivery with retry, a per-subscription secret and the same allow-list — all of which now exist, so it is assembly rather than design. |
 | 47 | No integration administration screens | Low | The API is complete and there is no UI. A provider is registered and configured through the API today, which is workable for the handful of providers a company has and is not where this should end. |
+| 49 | ~~A provider configured not to retry failed every call~~ | — | ✅ **Resolved.** Polly validates `MaxRetryAttempts` as at least one; the domain allows zero to mean *do not retry*, and the factory passed it through, so the pipeline threw while being built. Zero retries now means no retry strategy. Found by the stub-server tests within an hour of writing them, which is the clearest argument for having written them. |
+| 50 | The feature-state endpoint answers without the caller's roles or units | Medium | `GET /me/features/{key}` resolves neither, so a **targeted** flag reads as off for everybody through it. An undeclared or untargeted flag answers correctly, and the Platform's own code evaluates targeting properly because it already knows the caller. The endpoint needs the same subject resolution the Documents module has; until then a screen cannot be shown a targeted rollout. |
+| 51 | No configuration administration screens | Low | Same shape as the integrations gap: the API is complete and there is no UI. Settings are declared and changed through the API, which is workable and is not where this should end — a change history nobody can read is a change history that gets read once, during an incident, by somebody writing SQL. |
+| 52 | Nothing has been migrated onto the configuration module yet | Medium | Every retention period, size limit and interval written across Phases 9 to 12 is still an `appsettings` value that needs a deployment to change — which is precisely what this module exists to fix. The module works and nothing uses it, so the phase's benefit is available and unclaimed. |
 | 48 | ~~The connector is not tested against a real HTTP server~~ | — | ✅ **Resolved.** A stub provider on a real socket, misbehaving on command: a retry works through two failures and the stub counts three arrivals, a 400 is not retried and the stub counts one, a timeout fires inside its budget while the stub sleeps five seconds, the breaker opens and the stub stops receiving anything, and a card number is absent from both halves of the stored log while the caller still gets it. The counts come from the far end of the socket rather than from the Platform's own log, so the log is not being tested against itself. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
@@ -1528,13 +1532,96 @@ caught it before it shipped.
 
 ---
 
-## 15. Next step
+## 15. Phase 13 report — the table that must not hold secrets
 
-**Phase 13 — Configuration & Feature Flags.** Settings that a company changes
-without a deployment, and switches that turn a capability off while somebody
-investigates. The Platform already has several things that want it: the outbound
-allow-list, the document scanner policy, and every retention period written so
-far.
+### 15.1 The refusal that matters most
+
+A settings table is stored in plaintext, exported, backed up, and shown on a
+screen. A secret put there is a secret in all of those places — and the person
+who put it there did so because it was convenient, which is exactly when it
+happens.
+
+So a value that looks like a credential is refused outright: a PEM block, a
+recognisable token prefix, a JSON Web Token, a connection string carrying a
+password, a long high-entropy string. A test asserts that the refusal holds
+**even when the setting is marked sensitive**, because that is the reasoning a
+person would use to get around it — and sensitivity stops a value being read
+back, not being there.
+
+The check is a heuristic and says so in its own documentation. It catches the
+recognisable paste and will not catch a short password somebody typed; one that
+tried to would refuse half the legitimate values in the Platform. The rest is a
+documented rule and a review.
+
+### 15.2 Sensitivity has to reach the change history
+
+A value that cannot be read back through the API but sits in plain sight in its
+own change log has not been protected. It has been moved.
+
+So the history of a sensitive setting records that it changed, by whom, when and
+why — and not what to. Everything the history exists for survives; none of it
+needs the value.
+
+### 15.3 Narrowest wins, and nothing else would work
+
+Application beats company beats Platform. It is the only precedence rule anybody
+can hold in their head under pressure.
+
+The alternative — where something broader can override something narrower —
+produces the case where changing a Platform default silently undoes a
+deliberate local decision, and nobody finds out until the behaviour is wrong
+somewhere specific.
+
+A row exists only where somebody overrode something, so adding a setting costs
+nothing and a company that customised three things has three rows rather than
+four hundred.
+
+### 15.4 The same caching mechanism as permissions, deliberately
+
+A version stamp in the database, not a time-to-live.
+
+A time-to-live leaves a window — however short — in which a capability somebody
+deliberately switched off is still on, and "however short" is not a property
+anyone can reason about at the moment they are deciding whether to switch it
+off. The stamp is in the database rather than in memory so an instance that did
+not make the change still notices it; without that, a Platform on three
+instances applies a change to one of them.
+
+It is the mechanism the permission resolver already uses. Two caching strategies
+in one Platform is one more thing to reason about during an incident.
+
+### 15.5 Flags are targeted by role and unit and by nothing else
+
+Not by percentage, not by arbitrary attribute, not by a rule language. Each of
+those turns "who has this?" into a question needing a simulator, and a flag
+nobody can reason about is worse than no flag.
+
+Three defaults are load-bearing and all three are tested. A **new** flag is off,
+so one created ahead of the thing it guards does not release it when the row
+appears. An **undeclared** flag is off, so a typo is not a silent launch. And
+**off is off** however a flag is targeted, which is what makes the master switch
+trustworthy at eight in the evening.
+
+Targeting nothing means everybody rather than nobody — a flag that was on and
+reached nobody would look broken and be working, which is the worst combination
+available.
+
+### 15.6 What the phase does not yet have
+
+The module works and **nothing uses it**. Every retention period, size limit and
+interval written across Phases 9 to 12 is still an `appsettings` value needing a
+deployment to change, which is exactly what this module exists to fix. The
+benefit is available and unclaimed, and that is recorded rather than implied.
+
+---
+
+## 16. Next step
+
+**Phase 14 — Observability.** The Platform now has a great deal worth watching —
+outbound calls, workflow escalations, notification deliveries, permission
+denials — and no consolidated way to watch it. Structured logs, traces that
+follow a correlation id across modules, metrics that say whether a capability is
+healthy, and alerts on the handful of things that mean somebody must act.
 
 Still outstanding across all phases:
 

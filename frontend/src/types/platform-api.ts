@@ -560,6 +560,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/features/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether a feature is on for the caller.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        get: operations["GetMyFeatureState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/company": {
         parameters: {
             query?: never;
@@ -1838,6 +1858,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/configuration/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every declared setting, and what has been set for it.
+         * @description **Requires:** `platform.configuration.view`
+         */
+        get: operations["GetSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configuration/settings/declare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Declares a setting, or updates its description and constraints.
+         * @description **Requires:** `platform.configuration.manage`
+         */
+        put: operations["DeclareSetting"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configuration/settings/value": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets a value at a scope, or clears the override.
+         * @description **Requires:** `platform.configuration.manage`
+         */
+        put: operations["SetSetting"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configuration/settings/{key}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What this setting was, what it became, who changed it and when.
+         * @description **Requires:** `platform.configuration.view`
+         */
+        get: operations["GetSettingHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configuration/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every declared flag and its switch.
+         * @description **Requires:** `platform.configuration.view`
+         */
+        get: operations["GetFeatureFlags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configuration/flags/declare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Declares a flag. It is off until somebody turns it on.
+         * @description **Requires:** `platform.configuration.manage`
+         */
+        put: operations["DeclareFeatureFlag"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configuration/flags/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turns a flag on or off, and decides who it reaches.
+         * @description **Requires:** `platform.configuration.manage`
+         */
+        put: operations["SetFeatureFlag"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2004,8 +2164,26 @@ export interface components {
             /** Format: uuid */
             sessionId: string;
         };
+        DeclareFlagRequest: {
+            key: string;
+            applicationCode: null | string;
+            description: null | string;
+        };
         DeclarePermissionsRequest: {
             permissions: components["schemas"]["PermissionDeclarationRequest"][];
+        };
+        DeclareSettingRequest: {
+            key: string;
+            applicationCode: null | string;
+            valueType: string;
+            description: null | string;
+            defaultValue: null | string;
+            isSensitive: null | boolean;
+            /** Format: int64 */
+            minimum: null | number | string;
+            /** Format: int64 */
+            maximum: null | number | string;
+            allowedValues: null | string[];
         };
         DocumentAccessLogDto: {
             /** Format: uuid */
@@ -2108,6 +2286,21 @@ export interface components {
             /** Format: date */
             hireDate: null | string;
             isActive: boolean;
+        };
+        FeatureFlagDto: {
+            key: string;
+            applicationCode: string;
+            description: null | string;
+            isEnabled: boolean;
+            isUntargeted: boolean;
+            targetedRoles: string[];
+            targetedUnits: string[];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        FeatureStateDto: {
+            key: string;
+            isOn: boolean;
         };
         ForgotPasswordRequest: {
             email: null | string;
@@ -2666,6 +2859,11 @@ export interface components {
         SetApplicationStatusRequest: {
             isActive: boolean;
         };
+        SetFlagRequest: {
+            isEnabled: boolean;
+            roleIds: null | string[];
+            unitIds: null | string[];
+        };
         SetPositionActiveRequest: {
             isActive: boolean;
         };
@@ -2683,6 +2881,49 @@ export interface components {
         };
         SetRolePermissionsRequest: {
             permissionIds: string[];
+        };
+        SetSettingRequest: {
+            key: string;
+            scope: string;
+            /** Format: uuid */
+            scopeId: null | string;
+            value: null | string;
+            reason: null | string;
+        };
+        SettingChangeDto: {
+            key: string;
+            scope: string;
+            /** Format: uuid */
+            scopeId: null | string;
+            oldValue: null | string;
+            newValue: null | string;
+            /** Format: uuid */
+            changedBy: string;
+            /** Format: date-time */
+            changedAt: string;
+            reason: null | string;
+        };
+        SettingDto: {
+            key: string;
+            applicationCode: string;
+            valueType: string;
+            description: null | string;
+            defaultValue: null | string;
+            isSensitive: boolean;
+            /** Format: int64 */
+            minimum: null | number | string;
+            /** Format: int64 */
+            maximum: null | number | string;
+            allowedValues: string[];
+            values: components["schemas"]["SettingValueDto"][];
+        };
+        SettingValueDto: {
+            scope: string;
+            /** Format: uuid */
+            scopeId: null | string;
+            value: string;
+            /** Format: date-time */
+            setAt: string;
         };
         StartInstanceRequest: {
             applicationCode: string;
@@ -3502,6 +3743,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedResultOfIntegrationCallDto"];
+                };
+            };
+        };
+    };
+    GetMyFeatureState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureStateDto"];
                 };
             };
         };
@@ -5369,6 +5632,168 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntegrationHealthDto"][];
+                };
+            };
+        };
+    };
+    GetSettings: {
+        parameters: {
+            query?: {
+                applicationCode?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingDto"][];
+                };
+            };
+        };
+    };
+    DeclareSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclareSettingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingDto"];
+                };
+            };
+        };
+    };
+    SetSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetSettingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetSettingHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingChangeDto"][];
+                };
+            };
+        };
+    };
+    GetFeatureFlags: {
+        parameters: {
+            query?: {
+                applicationCode?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagDto"][];
+                };
+            };
+        };
+    };
+    DeclareFeatureFlag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclareFlagRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagDto"];
+                };
+            };
+        };
+    };
+    SetFeatureFlag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFlagRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagDto"];
                 };
             };
         };

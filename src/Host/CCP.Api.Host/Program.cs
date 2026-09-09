@@ -21,6 +21,8 @@ using CCP.Modules.Identity.Infrastructure.Security;
 using CCP.Modules.Audit.Infrastructure;
 using CCP.Modules.Workflow.Infrastructure;
 using CCP.Modules.Documents.Infrastructure;
+using CCP.Modules.Configuration.Infrastructure;
+using CCP.Modules.Configuration.Infrastructure.Persistence;
 using CCP.Modules.Integrations.Infrastructure;
 using CCP.Modules.Integrations.Infrastructure.Persistence;
 using CCP.Modules.Documents.Infrastructure.Persistence;
@@ -279,6 +281,7 @@ builder.Services.AddWorkflowInfrastructure(builder.Configuration, connectionStri
 builder.Services.AddNotificationInfrastructure(builder.Configuration, connectionString);
 builder.Services.AddDocumentInfrastructure(builder.Configuration, connectionString);
 builder.Services.AddIntegrationInfrastructure(builder.Configuration, connectionString);
+builder.Services.AddConfigurationInfrastructure(builder.Configuration, connectionString);
 
 builder.Services.AddPlatformModules(builder.Configuration);
 
@@ -398,7 +401,8 @@ if (databaseOptions.ApplyMigrationsOnStartup)
             migrationScope.ServiceProvider.GetRequiredService<WorkflowDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<NotificationDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<DocumentDbContext>(),
-            migrationScope.ServiceProvider.GetRequiredService<IntegrationDbContext>()
+            migrationScope.ServiceProvider.GetRequiredService<IntegrationDbContext>(),
+            migrationScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>()
         ]);
 }
 

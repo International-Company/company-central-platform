@@ -45,6 +45,13 @@
     <Project Path="src/Modules/Integrations/CCP.Modules.Integrations.Domain/CCP.Modules.Integrations.Domain.csproj" />
     <Project Path="src/Modules/Integrations/CCP.Modules.Integrations.Infrastructure/CCP.Modules.Integrations.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Configuration/">
+    <Project Path="src/Modules/Configuration/CCP.Modules.Configuration.Api/CCP.Modules.Configuration.Api.csproj" />
+    <Project Path="src/Modules/Configuration/CCP.Modules.Configuration.Application/CCP.Modules.Configuration.Application.csproj" />
+    <Project Path="src/Modules/Configuration/CCP.Modules.Configuration.Contracts/CCP.Modules.Configuration.Contracts.csproj" />
+    <Project Path="src/Modules/Configuration/CCP.Modules.Configuration.Domain/CCP.Modules.Configuration.Domain.csproj" />
+    <Project Path="src/Modules/Configuration/CCP.Modules.Configuration.Infrastructure/CCP.Modules.Configuration.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Notifications/">
     <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Api/CCP.Modules.Notifications.Api.csproj" />
     <Project Path="src/Modules/Notifications/CCP.Modules.Notifications.Application/CCP.Modules.Notifications.Application.csproj" />
@@ -87,6 +94,7 @@
     <Project Path="tests/Modules/CCP.Modules.Workflow.UnitTests/CCP.Modules.Workflow.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Notifications.UnitTests/CCP.Modules.Notifications.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Documents.UnitTests/CCP.Modules.Documents.UnitTests.csproj" />
+    <Project Path="tests/Modules/CCP.Modules.Configuration.UnitTests/CCP.Modules.Configuration.UnitTests.csproj" />
     <Project Path="tests/Modules/CCP.Modules.Integrations.UnitTests/CCP.Modules.Integrations.UnitTests.csproj" />
   </Folder>
 </Solution>
