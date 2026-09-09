@@ -684,6 +684,38 @@
         }
       }
     },
+    "/api/v1/applications/permissions": {
+      "put": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Records an application's complete permission manifest.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "DeclareApplicationPermissions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclarePermissionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeclarationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/security/events": {
       "get": {
         "tags": [
@@ -4145,6 +4177,20 @@
           }
         }
       },
+      "DeclarePermissionsRequest": {
+        "required": [
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionDeclarationRequest"
+            }
+          }
+        }
+      },
       "DocumentAccessLogDto": {
         "required": [
           "id",
@@ -5855,6 +5901,58 @@
           },
           "hasNext": {
             "type": "boolean"
+          }
+        }
+      },
+      "PermissionDeclarationRequest": {
+        "required": [
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PermissionDeclarationResult": {
+        "required": [
+          "added",
+          "deactivated",
+          "totalDeclared"
+        ],
+        "type": "object",
+        "properties": {
+          "added": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "deactivated": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalDeclared": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

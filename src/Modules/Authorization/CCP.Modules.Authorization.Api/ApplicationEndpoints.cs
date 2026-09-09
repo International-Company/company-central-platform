@@ -27,10 +27,71 @@ public static class ApplicationEndpoints
     public static void MapApplicationEndpoints(this IEndpointRouteBuilder versionGroup)
     {
         MapTokenEndpoint(versionGroup);
+        MapManifestEndpoint(versionGroup);
         MapRegistryEndpoints(versionGroup);
         MapCredentialEndpoints(versionGroup);
         MapApplicationRoleEndpoints(versionGroup);
     }
+
+    // -----------------------------------------------------------------------
+    // The permission manifest
+    // -----------------------------------------------------------------------
+
+    /// <summary>
+    /// An application declaring what its own permissions are.
+    /// <para>
+    /// <b>The namespace comes from the token, not from the request.</b> There is
+    /// no path parameter and no field naming an application, so a caller can
+    /// only ever declare its own namespace — the restriction is structural
+    /// rather than a check somebody has to remember to write.
+    /// </para>
+    /// <para>
+    /// No permission beyond being a registered application, and that is a
+    /// deliberate call. Declared permissions do nothing at all until an
+    /// administrator puts them in a role and grants it: the blast radius is rows
+    /// in a table. Requiring a grant first would mean two administrator actions
+    /// to onboard every system, and onboarding friction is what drives teams to
+    /// build their own thing instead (ADR-012).
+    /// </para>
+    /// </summary>
+    private static void MapManifestEndpoint(IEndpointRouteBuilder versionGroup) =>
+        versionGroup.MapPut("/applications/permissions", async (
+            DeclarePermissionsRequest request,
+            HttpContext context,
+            [FromServices] DeclarePermissionsHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            string? applicationCode =
+                context.User.FindFirst(CallerIdentity.ApplicationCodeClaim)?.Value;
+
+            if (string.IsNullOrWhiteSpace(applicationCode))
+            {
+                // A person's token has no namespace to declare into. A manifest
+                // is the owning system's statement about itself, and there is no
+                // sensible way for an administrator to make it on their behalf.
+                return Results.Forbid();
+            }
+
+            Result<PermissionDeclarationResult> result = await handler.HandleAsync(
+                new DeclarePermissionsCommand(
+                    applicationCode,
+                    [.. request.Permissions.Select(p =>
+                        new PermissionDeclaration(p.Name, p.Description))]),
+                cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new AuthenticatedUserOnlyAttribute(
+                "An application declares its own namespace and no other. The namespace comes "
+                + "from the token rather than the request, so there is nothing a permission "
+                + "would additionally restrict — and declared permissions grant nobody "
+                + "anything until an administrator puts them in a role."))
+            .Produces<PermissionDeclarationResult>(StatusCodes.Status200OK)
+            .WithTags("Applications")
+            .WithName("DeclareApplicationPermissions")
+            .WithSummary("Records an application's complete permission manifest.");
 
     // -----------------------------------------------------------------------
     // The token endpoint
@@ -330,3 +391,19 @@ public sealed record IssueCredentialRequest(string Label, DateTimeOffset? Expire
 /// <summary>Granting an application a role.</summary>
 public sealed record GrantApplicationRoleRequest(
     Guid RoleId, string Scope, Guid? ScopeUnitId, DateTimeOffset? ExpiresAt);
+
+/// <summary>
+/// An application's complete permission manifest.
+/// <para>
+/// Complete, and sent on every startup. The Platform reconciles: names that
+/// disappear are deactivated, not deleted, because roles still reference them
+/// and audit records from last year still name them. Incremental add-and-remove
+/// calls drift the moment one fails, and nobody notices until a permission check
+/// does the wrong thing in production.
+/// </para>
+/// </summary>
+public sealed record DeclarePermissionsRequest(
+    IReadOnlyList<PermissionDeclarationRequest> Permissions);
+
+/// <summary>One permission an application declares.</summary>
+public sealed record PermissionDeclarationRequest(string Name, string? Description);

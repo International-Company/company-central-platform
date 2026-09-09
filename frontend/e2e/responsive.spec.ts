@@ -33,6 +33,7 @@ const Screens = [
   'organization',
   'workflow',
   'documents',
+  'applications',
   'audit',
 ] as const;
 

@@ -72,6 +72,7 @@ test.describe('the portal', () => {
     'workflow',
     'documents',
     'roles',
+    'applications',
     'security',
     'audit',
   ] as const) {

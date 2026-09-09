@@ -59,6 +59,11 @@ export type DocumentAccessRuleDto = Schemas['DocumentAccessRuleDto'];
 export type DocumentLinkDto = Schemas['DocumentLinkDto'];
 export type DocumentAccessLogDto = Schemas['DocumentAccessLogDto'];
 
+export type RegisteredApplicationDto = Schemas['RegisteredApplicationDto'];
+export type ApplicationCredentialDto = Schemas['ApplicationCredentialDto'];
+export type IssuedCredentialDto = Schemas['IssuedCredentialDto'];
+export type ApplicationRoleDto = Schemas['ApplicationRoleDto'];
+
 /**
  * The envelope every list endpoint returns (ADR-008).
  *

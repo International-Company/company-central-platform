@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 10 — Documents** |
-| Phase status | 🟢 **Files are stored, versioned, shared by rule, and destroyed on a schedule.** |
-| Next phase | **Phase 11 — External API Platform & App Registry** |
+| Current phase | **Phase 11 — External API Platform & Application Registry** |
+| Phase status | 🟢 **A system can now integrate without the Platform team writing anything for it.** |
+| Next phase | **Phase 12 — Integrations** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -25,8 +25,8 @@
 | 7 | Frontend Foundation & Core Admin UI | 🟢 **Complete** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. Twelve screens, every one of them able to write: company setup, organizational structure, employees, users, role definition and permission editing, role granting with a step-up prompt, own-account two-factor enrolment, and a dashboard of live figures. Types generated from the OpenAPI document the API emits. Playwright sweeps every screen in both locales and passes. |
 | 8 | Workflow | 🟢 **Complete** | A reusable approval engine holding no business rule — verified by a test that fails the build if business vocabulary appears in the module at all. Definitions as versioned data, registered by applications through the API with no Platform code change. Versions frozen once published; instances run on the version they started with. Six organizational assignee strategies plus a caller-supplied list, which is where business-conditional routing lives — outside the engine. Approve, reject, return, delegate, comment, cancel; first to act settles a step and the rest are withdrawn. Service levels escalated once by a background sweep that raises an event and does not reassign. Task inbox and administrator view in both locales. Integration tests walk a whole approval on a real database. |
 | 9 | Notifications | 🟢 **Complete** | Templates per locale with declared variables and escaping that cannot be opted out of; no template language, substitution only. In-app and email, with `INotificationChannelProvider` as the seam — adding SMS is one interface and one registration. Retry, backoff with jitter, and giving up live in the dispatcher so every channel behaves the same when a vendor is down. Per-user, per-category, per-channel preferences, with security refused at the resolver and at creation. Delivery log keeps permanent failures visible. Listens to Workflow and Identity, neither of which knows it exists. 23 unit tests, 6 integration tests. |
-| 10 | Documents | 🟡 **Core complete** | Metadata in PostgreSQL, bytes in object storage, behind `IDocumentStorageProvider` — a directory on disk in development, S3-compatible in production, chosen by what is configured rather than by the environment name. Uploads are identified by reading their first bytes: an executable renamed to `report.pdf` is refused and named. Random object keys, SHA-256, size enforced during the copy rather than after it. A scanner hook whose default reports *NotScanned* rather than *Clean*, so an audit of what was checked tells the truth. Versions are added, never edited. Access decided by one evaluator used by every path — user, role or unit rules that add up rather than override — and every access logged, **including the refusals**. Two-stage deletion with a thirty-day grace period and a purge sweep that destroys bytes before it marks the record. Polymorphic linking with no foreign key, so a business system files a document against its own record. Screens in both locales, and an upload control any screen can embed. 47 unit tests, 7 integration tests. |
-| 11 | External API Platform & App Registry | ⬜ Not started | |
+| 10 | Documents | 🟢 **Complete** | Metadata in PostgreSQL, bytes in object storage, behind `IDocumentStorageProvider` — a directory on disk in development, S3-compatible in production, chosen by what is configured rather than by the environment name. Uploads are identified by reading their first bytes: an executable renamed to `report.pdf` is refused and named. Random object keys, SHA-256, size enforced during the copy rather than after it. A scanner hook whose default reports *NotScanned* rather than *Clean*, so an audit of what was checked tells the truth. Versions are added, never edited. Access decided by one evaluator used by every path — user, role or unit rules that add up rather than override — and every access logged, **including the refusals**. Two-stage deletion with a thirty-day grace period and a purge sweep that destroys bytes before it marks the record. Polymorphic linking with no foreign key, so a business system files a document against its own record. Screens in both locales, and an upload control any screen can embed. 47 unit tests, 7 integration tests. |
+| 11 | External API Platform & App Registry | 🟡 **Core complete** | Client credentials with rotation: an application holds two live secrets at once, so the new one works before the old one stops and a rotation is never an outage. `LastUsedAt` on every exchange, because finishing a rotation needs evidence rather than nerve. Applications hold the **same roles at the same scopes** as people, resolved by the same evaluator — two grant tables, one algorithm, and no second vocabulary of API scopes to keep in step. Acting on behalf of a person is the **intersection** of what the application and that person may do. The subject claim carries its kind, so no handler can mistake an application for a person. Per-application rate limits; the token endpoint partitioned by client id. The published contract states every endpoint's permission, step-up requirement and anonymity, derived from the endpoint metadata. `Deprecation`/`Sunset` headers exist with nothing yet deprecated. A permission manifest endpoint whose namespace comes from the token, so a system can only ever declare its own. 24 unit tests, 8 integration tests, an integration guide and a reference client. |
 | 12 | Integrations | ⬜ Not started | |
 | 13 | Configuration & Feature Flags | ⬜ Not started | |
 | 14 | Observability | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–10 in progress.**
+**Completed: 1 of 22 phases. Phases 1–11 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -931,6 +931,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 36 | The object-storage path is not tested against a real bucket | Medium | Every test runs against the local provider. So the S3 provider's pre-signed URL — its expiry, its content-disposition, and the bucket being unreadable without it — is verified by reading the code, which is exactly the kind of assurance ADR-014 asks not to rely on. MinIO is already in the compose file; the tests are not written. |
 | 37 | A ZIP is accepted on the strength of its extension | Low | The bytes prove it is an archive; which member of the ZIP family it is comes from the file name, because telling a `.docx` from an `.xlsx` means opening the archive. The security question is answered by the content and the cosmetic one by the name, so the worst outcome is a spreadsheet labelled as a document. |
 | 38 | A unit access rule is evaluated against the caller's unit, not the document's | Low | Access is decided by rules alone; a document sitting in a unit grants nobody anything by virtue of sitting there. That is deliberate — the alternative hands a department head every private letter written to anybody who reports to them — but it does mean `organizationUnitId` on a document is a filter and not a permission, which is easy to misread. |
+| 39 | Webhook subscriptions are not built | Medium | Phase 11 lists them and Phase 12 lists `WebhookSubscription` in its own domain. Building them twice would be worse than building them once in the phase that owns outbound calls, their retry policy and the host allow-list that keeps a subscription from being an SSRF primitive. Deferred deliberately, not forgotten. |
+| 40 | The integration guide has not been tested on a real outside developer | Medium | Phase 11's acceptance criterion says explicitly: validated by having someone actually try, not by self-assessment. Writing it and reading it back is exactly the self-assessment the criterion rules out. Two errors were caught by checking the guide against the generated contract — an endpoint that did not exist and a method that was wrong — which is evidence that reading it back is not enough. |
+| 41 | A machine token cannot be revoked before it expires | Low | Revoking a credential stops new tokens instantly, and tokens already issued keep working for the rest of their short lifetime. The alternative is checking a revocation list on every request, which makes the Platform a synchronous dependency of every call in the company — the thing asymmetric signing and the JWKS endpoint exist to avoid. Stated in the documentation rather than implied away. |
+| 42 | An application declares its permissions with no permission of its own | Low | Being an authenticated application declaring **its own** namespace is the authorization, and the namespace comes from the token so it cannot be anything else. Declared permissions grant nobody anything until an administrator puts them in a role, so the blast radius is rows in a table — weighed against two administrator actions to onboard every system. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -1316,12 +1320,100 @@ cannot make an authorization decision with them.
 
 ---
 
-## 13. Next step
+## 13. Phase 11 report — the same rules, for something that never sleeps
 
-**Phase 11 — External API Platform & App Registry.** Everything built so far is
-reachable by a person with a browser. The next phase is what makes it reachable
-by a system: registered applications, credentials that are not a person's, and a
-public surface that is versioned deliberately rather than by accident.
+### 13.1 Machines hold roles, not a second thing that looks like roles
+
+The obvious design is a separate vocabulary — API scopes, granted at
+registration, checked by their own code. It is obvious because every OAuth
+tutorial has one, and it is wrong here: a second permission language has to be
+kept in step with the first, and the day they disagree nobody can say which is
+authoritative.
+
+So an application holds the same roles, at the same scopes, resolved by the same
+evaluator through the same version-stamped cache. Two grant tables and one
+algorithm. `RequirePermission` needed no change to work for machines, which is
+the test of whether the reuse was real.
+
+The one thing that did need a new type was the cache key. A user id and an
+application id are both GUIDs from different tables, and a key that ignored the
+difference would be one copy-paste away from answering a question about a machine
+with a person's answer.
+
+### 13.2 Delegation is an intersection, and both halves matter
+
+An application acting for a person may do only what the application is trusted
+with **and** what that person is entitled to, at the narrower of the two scopes.
+
+Either half alone is a real vulnerability, and neither is visible from outside —
+both look like a working integration. Taking the person's rights alone makes
+every registered application a way to act as anybody it can name. Taking the
+application's alone lets it read what the person it claims to be acting for
+cannot. Seven unit tests pin the pair, including the case where both hold the
+permission over departments that do not overlap and the answer is therefore no.
+
+### 13.3 The claim that stops an application being mistaken for a person
+
+A machine token acting as itself carries an application id in its subject claim.
+That parses as a `Guid` perfectly well, and every handler in the Platform that
+says "the caller's own records" would have used it as a user id.
+
+So the subject now carries its kind, and `CallerIdentity.TryGetUserId` refuses an
+application. An endpoint written for people answers 401 to a machine rather than
+quietly operating on somebody's data. An integration test holds that line.
+
+### 13.4 Rotation is designed to be boring
+
+Two live credentials at once, and `LastUsedAt` stamped on every exchange.
+
+That is the whole feature, and it is the difference between a rotation that
+happens and one that is discussed. A model with one live secret makes every
+rotation an outage, so nobody performs one; a model with no usage timestamp makes
+the last step a guess, so nobody finishes one. Both failures end at the same
+place — a secret from 2026 still in production in 2029.
+
+### 13.5 SHA-256, deliberately
+
+The hash on a client secret looks like the mistake everybody is taught to avoid,
+so the reasoning is written where somebody will find it before "fixing" it.
+
+Argon2 exists to make *guessing* expensive, and guessing is only worth attempting
+against a secret a human chose. This one is 32 bytes from a cryptographic
+generator: no dictionary, no reuse from another site, nothing to guess. What a
+slow hash would cost is real — the token endpoint sits on the path of every
+machine call in the company, and a 50-millisecond hash there is a
+denial-of-service amplifier an attacker can trigger with no valid credential at
+all. The property that matters, that a database disclosure hands nobody a working
+credential, is preserved.
+
+### 13.6 What the documentation caught
+
+Writing the integration guide found two things wrong: it described a permission
+manifest endpoint that did not exist, and it called the authorization check with
+the wrong method. Both were found by reading the generated contract rather than
+by writing more carefully.
+
+That is worth recording as evidence, because Phase 11's acceptance criterion says
+the guide must be validated by having an outside developer actually try — not by
+self-assessment. Checking against the contract is a stronger form of
+self-assessment and it still is not the criterion. It is recorded as open debt.
+
+### 13.7 What was deferred, and why it is not an omission
+
+Webhook subscriptions are listed here and again in Phase 12, which owns outbound
+calls, their resilience policy and the host allow-list that keeps a subscription
+from being a way to make the Platform fetch arbitrary URLs. Building them twice
+would be worse than building them once, in the phase that has the machinery.
+
+---
+
+## 14. Next step
+
+**Phase 12 — Integrations.** Every outbound call the Platform makes — mail today,
+webhooks and third-party services tomorrow — goes through one governed door: a
+uniform resilience pipeline, credentials held by reference and never by value,
+and an allow-list of hosts the Platform may reach. It is also where the webhook
+subscriptions deferred from Phase 11 belong.
 
 Still outstanding across all phases:
 

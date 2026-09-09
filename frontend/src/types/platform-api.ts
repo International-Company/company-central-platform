@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Confirms the API is reachable and returns the correlation id. */
+        /**
+         * Confirms the API is reachable and returns the correlation id.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         get: operations["Ping"];
         put?: never;
         post?: never;
@@ -28,7 +31,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns each error category so the contract can be verified. */
+        /**
+         * Returns each error category so the contract can be verified.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         get: operations["ErrorContract"];
         put?: never;
         post?: never;
@@ -45,7 +51,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns a paged envelope so paging and sorting rules can be verified. */
+        /**
+         * Returns a paged envelope so paging and sorting rules can be verified.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         get: operations["PagedSample"];
         put?: never;
         post?: never;
@@ -62,7 +71,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Raises an unhandled exception to verify the error boundary. */
+        /**
+         * Raises an unhandled exception to verify the error boundary.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         get: operations["ThrowSample"];
         put?: never;
         post?: never;
@@ -81,7 +93,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Authenticates a user and starts a session. */
+        /**
+         * Authenticates a user and starts a session.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         post: operations["SignIn"];
         delete?: never;
         options?: never;
@@ -98,7 +113,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Exchanges a refresh token for a new token pair. */
+        /**
+         * Exchanges a refresh token for a new token pair.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         post: operations["RefreshToken"];
         delete?: never;
         options?: never;
@@ -115,7 +133,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ends the current session, revoking its tokens server-side. */
+        /**
+         * Ends the current session, revoking its tokens server-side.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["SignOut"];
         delete?: never;
         options?: never;
@@ -132,7 +153,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Changes the caller's password and ends their other sessions. */
+        /**
+         * Changes the caller's password and ends their other sessions.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["ChangePassword"];
         delete?: never;
         options?: never;
@@ -149,7 +173,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Requests a password reset link. Always succeeds, revealing nothing. */
+        /**
+         * Requests a password reset link. Always succeeds, revealing nothing.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         post: operations["ForgotPassword"];
         delete?: never;
         options?: never;
@@ -166,7 +193,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Redeems a reset token and sets a new password. */
+        /**
+         * Redeems a reset token and sets a new password.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         post: operations["ResetPassword"];
         delete?: never;
         options?: never;
@@ -181,7 +211,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns the signed-in user's profile. */
+        /**
+         * Returns the signed-in user's profile.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetCurrentUser"];
         put?: never;
         post?: never;
@@ -198,7 +231,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the caller's active sessions. */
+        /**
+         * Lists the caller's active sessions.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMySessions"];
         put?: never;
         post?: never;
@@ -215,7 +251,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the caller's recent sign-in attempts, successful and failed. */
+        /**
+         * Lists the caller's recent sign-in attempts, successful and failed.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMyLoginHistory"];
         put?: never;
         post?: never;
@@ -232,10 +271,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists users, filtered and paged. */
+        /**
+         * Lists users, filtered and paged.
+         * @description **Requires:** `platform.users.view`
+         */
         get: operations["SearchUsers"];
         put?: never;
-        /** Creates a user who must change their password at first sign-in. */
+        /**
+         * Creates a user who must change their password at first sign-in.
+         * @description **Requires:** `platform.users.create`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         post: operations["CreateUser"];
         delete?: never;
         options?: never;
@@ -250,9 +297,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns one user. */
+        /**
+         * Returns one user.
+         * @description **Requires:** `platform.users.view`
+         */
         get: operations["GetUser"];
-        /** Updates a user's email and display name. */
+        /**
+         * Updates a user's email and display name.
+         * @description **Requires:** `platform.users.edit`
+         */
         put: operations["UpdateUser"];
         post?: never;
         delete?: never;
@@ -270,7 +323,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Enables a user account. */
+        /**
+         * Enables a user account.
+         * @description **Requires:** `platform.users.edit`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         post: operations["EnableUser"];
         delete?: never;
         options?: never;
@@ -287,7 +345,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Disables a user account. */
+        /**
+         * Disables a user account.
+         * @description **Requires:** `platform.users.edit`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         post: operations["DisableUser"];
         delete?: never;
         options?: never;
@@ -304,7 +367,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Unlocks a user account. */
+        /**
+         * Unlocks a user account.
+         * @description **Requires:** `platform.users.edit`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         post: operations["UnlockUser"];
         delete?: never;
         options?: never;
@@ -319,7 +387,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Public keys for validating Platform access tokens locally. */
+        /**
+         * Public keys for validating Platform access tokens locally.
+         * @description **Anonymous.** No token is needed to call this.
+         */
         get: operations["Jwks"];
         put?: never;
         post?: never;
@@ -336,7 +407,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the caller's permissions, for hiding controls they cannot use. */
+        /**
+         * Lists the caller's permissions, for hiding controls they cannot use.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMyPermissions"];
         put?: never;
         post?: never;
@@ -355,8 +429,51 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Answers whether a user holds a permission, and over what data. */
+        /**
+         * Answers whether a user holds a permission, and over what data.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["CheckPermission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchanges client credentials for a short-lived access token.
+         * @description **Anonymous.** No token is needed to call this.
+         */
+        post: operations["IssueMachineToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Records an application's complete permission manifest.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        put: operations["DeclareApplicationPermissions"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -370,7 +487,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Searches the security event log within a bounded time window. */
+        /**
+         * Searches the security event log within a bounded time window.
+         * @description **Requires:** `platform.security.view`
+         */
         get: operations["SearchSecurityEvents"];
         put?: never;
         post?: never;
@@ -387,7 +507,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Everything filed against one business record, as the caller may see it. */
+        /**
+         * Everything filed against one business record, as the caller may see it.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["GetDocumentsForResource"];
         put?: never;
         post?: never;
@@ -404,10 +527,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns the company, or null when the Platform has not been set up yet. */
+        /**
+         * Returns the company, or null when the Platform has not been set up yet.
+         * @description **Requires:** `platform.organization.view`
+         */
         get: operations["GetCompany"];
         put?: never;
-        /** Establishes the company. Refused once one exists. */
+        /**
+         * Establishes the company. Refused once one exists.
+         * @description **Requires:** `platform.organization.manage`
+         */
         post: operations["CreateCompany"];
         delete?: never;
         options?: never;
@@ -423,7 +552,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Renames the company in both languages. Its code is fixed. */
+        /**
+         * Renames the company in both languages. Its code is fixed.
+         * @description **Requires:** `platform.organization.manage`
+         */
         put: operations["RenameCompany"];
         post?: never;
         delete?: never;
@@ -439,7 +571,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns the company structure as a nested tree. */
+        /**
+         * Returns the company structure as a nested tree.
+         * @description **Requires:** `platform.organization.view`
+         */
         get: operations["GetOrganizationTree"];
         put?: never;
         post?: never;
@@ -458,7 +593,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Creates an organizational unit under an optional parent. */
+        /**
+         * Creates an organizational unit under an optional parent.
+         * @description **Requires:** `platform.organization.manage`
+         */
         post: operations["CreateOrganizationUnit"];
         delete?: never;
         options?: never;
@@ -474,7 +612,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Renames a unit in both languages. */
+        /**
+         * Renames a unit in both languages.
+         * @description **Requires:** `platform.organization.manage`
+         */
         put: operations["RenameOrganizationUnit"];
         post?: never;
         delete?: never;
@@ -492,7 +633,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Moves a unit and every descendant to a new parent, atomically. */
+        /**
+         * Moves a unit and every descendant to a new parent, atomically.
+         * @description **Requires:** `platform.organization.manage`
+         */
         post: operations["MoveOrganizationUnit"];
         delete?: never;
         options?: never;
@@ -509,7 +653,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Deactivates a unit that has no active children or employees. */
+        /**
+         * Deactivates a unit that has no active children or employees.
+         * @description **Requires:** `platform.organization.manage`
+         */
         post: operations["DeactivateOrganizationUnit"];
         delete?: never;
         options?: never;
@@ -524,10 +671,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the company's job positions. */
+        /**
+         * Lists the company's job positions.
+         * @description **Requires:** `platform.organization.view`
+         */
         get: operations["GetPositions"];
         put?: never;
-        /** Creates a job position. */
+        /**
+         * Creates a job position.
+         * @description **Requires:** `platform.organization.manage`
+         */
         post: operations["CreatePosition"];
         delete?: never;
         options?: never;
@@ -543,7 +696,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Renames a position in both languages. */
+        /**
+         * Renames a position in both languages.
+         * @description **Requires:** `platform.organization.manage`
+         */
         put: operations["RenamePosition"];
         post?: never;
         delete?: never;
@@ -561,7 +717,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Deactivates a position, or brings it back. Never deletes one. */
+        /**
+         * Deactivates a position, or brings it back. Never deletes one.
+         * @description **Requires:** `platform.organization.manage`
+         */
         post: operations["SetPositionStatus"];
         delete?: never;
         options?: never;
@@ -576,10 +735,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists employees, optionally scoped to a unit and everything beneath it. */
+        /**
+         * Lists employees, optionally scoped to a unit and everything beneath it.
+         * @description **Requires:** `platform.employees.view`
+         */
         get: operations["SearchEmployees"];
         put?: never;
-        /** Creates an employee record. */
+        /**
+         * Creates an employee record.
+         * @description **Requires:** `platform.employees.manage`
+         */
         post: operations["CreateEmployee"];
         delete?: never;
         options?: never;
@@ -596,7 +761,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Moves an employee to a different unit, position or manager. */
+        /**
+         * Moves an employee to a different unit, position or manager.
+         * @description **Requires:** `platform.employees.manage`
+         */
         post: operations["TransferEmployee"];
         delete?: never;
         options?: never;
@@ -612,7 +780,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Links or unlinks an employee's Platform account. */
+        /**
+         * Links or unlinks an employee's Platform account.
+         * @description **Requires:** `platform.employees.manage`
+         */
         put: operations["LinkEmployeeUser"];
         post?: never;
         delete?: never;
@@ -628,10 +799,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists roles. */
+        /**
+         * Lists roles.
+         * @description **Requires:** `platform.roles.view`
+         */
         get: operations["GetRoles"];
         put?: never;
-        /** Creates a role. It starts empty; its permissions are set separately. */
+        /**
+         * Creates a role. It starts empty; its permissions are set separately.
+         * @description **Requires:** `platform.roles.manage`
+         */
         post: operations["CreateRole"];
         delete?: never;
         options?: never;
@@ -646,7 +823,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists every declared permission, including those of registered applications. */
+        /**
+         * Lists every declared permission, including those of registered applications.
+         * @description **Requires:** `platform.permissions.view`
+         */
         get: operations["GetPermissions"];
         put?: never;
         post?: never;
@@ -663,9 +843,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns one role with the permissions it carries. */
+        /**
+         * Returns one role with the permissions it carries.
+         * @description **Requires:** `platform.roles.view`
+         */
         get: operations["GetRole"];
-        /** Renames a role. The code is fixed once created. */
+        /**
+         * Renames a role. The code is fixed once created.
+         * @description **Requires:** `platform.roles.manage`
+         */
         put: operations["UpdateRole"];
         post?: never;
         delete?: never;
@@ -682,7 +868,12 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Replaces the permissions a role carries, refusing any the caller does not hold. */
+        /**
+         * Replaces the permissions a role carries, refusing any the caller does not hold.
+         * @description **Requires:** `platform.roles.manage`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         put: operations["SetRolePermissions"];
         post?: never;
         delete?: never;
@@ -700,7 +891,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Deactivates a role, or brings it back. Never deletes one. */
+        /**
+         * Deactivates a role, or brings it back. Never deletes one.
+         * @description **Requires:** `platform.roles.manage`
+         */
         post: operations["SetRoleStatus"];
         delete?: never;
         options?: never;
@@ -715,10 +909,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists a user's role assignments. */
+        /**
+         * Lists a user's role assignments.
+         * @description **Requires:** `platform.roles.view`
+         */
         get: operations["GetUserRoles"];
         put?: never;
-        /** Grants a role at a scope, refusing any escalation. */
+        /**
+         * Grants a role at a scope, refusing any escalation.
+         * @description **Requires:** `platform.roles.assign`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         post: operations["GrantRole"];
         delete?: never;
         options?: never;
@@ -736,8 +938,151 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Revokes a role assignment. Takes effect on the next request. */
+        /**
+         * Revokes a role assignment. Takes effect on the next request.
+         * @description **Requires:** `platform.roles.assign`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
         delete: operations["RevokeRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every system registered to call this Platform.
+         * @description **Requires:** `platform.applications.view`
+         */
+        get: operations["GetApplications"];
+        put?: never;
+        /**
+         * Registers a system that will call the Platform.
+         * @description **Requires:** `platform.applications.manage`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
+        post: operations["RegisterApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Disables an application, or brings it back.
+         * @description **Requires:** `platform.applications.manage`
+         */
+        put: operations["SetApplicationStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * An application's keys, including the withdrawn ones.
+         * @description **Requires:** `platform.applications.view`
+         */
+        get: operations["GetApplicationCredentials"];
+        put?: never;
+        /**
+         * Mints a client secret. The secret is in this response and nowhere else.
+         * @description **Requires:** `platform.applications.manage`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
+        post: operations["IssueApplicationCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{id}/credentials/{credentialId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Stops a credential working, immediately.
+         * @description **Requires:** `platform.applications.manage`
+         */
+        delete: operations["RevokeApplicationCredential"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What this application is allowed to do.
+         * @description **Requires:** `platform.applications.view`
+         */
+        get: operations["GetApplicationRoles"];
+        put?: never;
+        /**
+         * Gives an application a role, at a scope.
+         * @description **Requires:** `platform.applications.manage`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
+        post: operations["GrantApplicationRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{id}/roles/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Takes a role away from an application.
+         * @description **Requires:** `platform.applications.manage`
+         */
+        delete: operations["RevokeApplicationRole"];
         options?: never;
         head?: never;
         patch?: never;
@@ -750,7 +1095,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns whether the caller has two-factor authentication enabled. */
+        /**
+         * Returns whether the caller has two-factor authentication enabled.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMfaStatus"];
         put?: never;
         post?: never;
@@ -769,7 +1117,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Issues a TOTP secret. Returns the QR data once and never again. */
+        /**
+         * Issues a TOTP secret. Returns the QR data once and never again.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["BeginMfaEnrolment"];
         delete?: never;
         options?: never;
@@ -786,7 +1137,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Activates enrolment and returns recovery codes, shown once. */
+        /**
+         * Activates enrolment and returns recovery codes, shown once.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["ConfirmMfaEnrolment"];
         delete?: never;
         options?: never;
@@ -803,7 +1157,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Verifies a TOTP or recovery code. */
+        /**
+         * Verifies a TOTP or recovery code.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["VerifyMfa"];
         delete?: never;
         options?: never;
@@ -820,7 +1177,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Turns off two-factor authentication, after proving the current factor. */
+        /**
+         * Turns off two-factor authentication, after proving the current factor.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["DisableMfa"];
         delete?: never;
         options?: never;
@@ -835,10 +1195,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Searches the audit trail. The date range is required and bounded. */
+        /**
+         * Searches the audit trail. The date range is required and bounded.
+         * @description **Requires:** `platform.audit.view`
+         */
         get: operations["SearchAuditEvents"];
         put?: never;
-        /** Records one event, attributed to the calling application. */
+        /**
+         * Records one event, attributed to the calling application.
+         * @description **Requires:** `platform.audit.write`
+         */
         post: operations["IngestAuditEvent"];
         delete?: never;
         options?: never;
@@ -855,7 +1221,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Records many events at once, attributed to the calling application. */
+        /**
+         * Records many events at once, attributed to the calling application.
+         * @description **Requires:** `platform.audit.write`
+         */
         post: operations["IngestAuditEventBatch"];
         delete?: never;
         options?: never;
@@ -870,10 +1239,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the registered approval processes. */
+        /**
+         * Lists the registered approval processes.
+         * @description **Requires:** `platform.workflow.view`
+         */
         get: operations["GetWorkflowDefinitions"];
         put?: never;
-        /** Registers and publishes a version of an approval process. */
+        /**
+         * Registers and publishes a version of an approval process.
+         * @description **Requires:** `platform.workflow.manage`
+         */
         post: operations["RegisterWorkflowDefinition"];
         delete?: never;
         options?: never;
@@ -890,7 +1265,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Stops new instances starting on a version. Running ones continue. */
+        /**
+         * Stops new instances starting on a version. Running ones continue.
+         * @description **Requires:** `platform.workflow.manage`
+         */
         post: operations["RetireWorkflowDefinition"];
         delete?: never;
         options?: never;
@@ -905,10 +1283,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Finds approvals, usually by the record they belong to. */
+        /**
+         * Finds approvals, usually by the record they belong to.
+         * @description **Requires:** `platform.workflow.view`
+         */
         get: operations["SearchWorkflowInstances"];
         put?: never;
-        /** Starts an approval against a business record. */
+        /**
+         * Starts an approval against a business record.
+         * @description **Requires:** `platform.workflow.start`
+         */
         post: operations["StartWorkflowInstance"];
         delete?: never;
         options?: never;
@@ -923,7 +1307,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns one approval with everything that happened to it. */
+        /**
+         * Returns one approval with everything that happened to it.
+         * @description **Requires:** `platform.workflow.view`
+         */
         get: operations["GetWorkflowInstance"];
         put?: never;
         post?: never;
@@ -942,7 +1329,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Withdraws an approval and closes every task on it. */
+        /**
+         * Withdraws an approval and closes every task on it.
+         * @description **Requires:** `platform.workflow.start`
+         */
         post: operations["CancelWorkflowInstance"];
         delete?: never;
         options?: never;
@@ -957,7 +1347,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's approval inbox. */
+        /**
+         * The caller's approval inbox.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMyTasks"];
         put?: never;
         post?: never;
@@ -976,7 +1369,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approves, rejects, returns, delegates or comments on a task. */
+        /**
+         * Approves, rejects, returns, delegates or comments on a task.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["ActOnTask"];
         delete?: never;
         options?: never;
@@ -991,7 +1387,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's in-app inbox. */
+        /**
+         * The caller's in-app inbox.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMyNotifications"];
         put?: never;
         post?: never;
@@ -1010,7 +1409,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Marks one of the caller's own notifications as read. */
+        /**
+         * Marks one of the caller's own notifications as read.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         post: operations["MarkNotificationRead"];
         delete?: never;
         options?: never;
@@ -1025,9 +1427,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** What the caller has turned off. Absence means everything is on. */
+        /**
+         * What the caller has turned off. Absence means everything is on.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         get: operations["GetMyNotificationPreferences"];
-        /** Turns a category on or off. Security notifications are refused. */
+        /**
+         * Turns a category on or off. Security notifications are refused.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
         put: operations["SetMyNotificationPreference"];
         post?: never;
         delete?: never;
@@ -1043,7 +1451,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Everything sent, with every delivery attempt. Failures surface here. */
+        /**
+         * Everything sent, with every delivery attempt. Failures surface here.
+         * @description **Requires:** `platform.notifications.view`
+         */
         get: operations["SearchNotifications"];
         put?: never;
         post?: never;
@@ -1060,9 +1471,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The template catalogue, one row per message per language. */
+        /**
+         * The template catalogue, one row per message per language.
+         * @description **Requires:** `platform.notifications.manage`
+         */
         get: operations["GetNotificationTemplates"];
-        /** Writes or revises a template. Revising bumps its version. */
+        /**
+         * Writes or revises a template. Revising bumps its version.
+         * @description **Requires:** `platform.notifications.manage`
+         */
         put: operations["SaveNotificationTemplate"];
         post?: never;
         delete?: never;
@@ -1078,10 +1495,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Documents the caller may see. */
+        /**
+         * Documents the caller may see.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["SearchDocuments"];
         put?: never;
-        /** Stores a file and the document that holds it. */
+        /**
+         * Stores a file and the document that holds it.
+         * @description **Requires:** `platform.documents.create`
+         */
         post: operations["UploadDocument"];
         delete?: never;
         options?: never;
@@ -1096,12 +1519,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One document, with every version of it. */
+        /**
+         * One document, with every version of it.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["GetDocument"];
-        /** Renames a document, and moves it if the caller may. */
+        /**
+         * Renames a document, and moves it if the caller may.
+         * @description **Requires:** `platform.documents.update`
+         */
         put: operations["UpdateDocument"];
         post?: never;
-        /** Marks a document for deletion. Content survives the grace period. */
+        /**
+         * Marks a document for deletion. Content survives the grace period.
+         * @description **Requires:** `platform.documents.delete`
+         */
         delete: operations["DeleteDocument"];
         options?: never;
         head?: never;
@@ -1115,7 +1547,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The content, by redirect to storage or streamed from here. */
+        /**
+         * The content, by redirect to storage or streamed from here.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["DownloadDocument"];
         put?: never;
         post?: never;
@@ -1132,7 +1567,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Who opened this document, and who tried and could not. */
+        /**
+         * Who opened this document, and who tried and could not.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["GetDocumentAccessLog"];
         put?: never;
         post?: never;
@@ -1151,7 +1589,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Adds a version. The previous one stays downloadable. */
+        /**
+         * Adds a version. The previous one stays downloadable.
+         * @description **Requires:** `platform.documents.update`
+         */
         post: operations["AddDocumentVersion"];
         delete?: never;
         options?: never;
@@ -1168,7 +1609,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Takes back a deletion, inside the grace period. */
+        /**
+         * Takes back a deletion, inside the grace period.
+         * @description **Requires:** `platform.documents.delete`
+         */
         post: operations["RestoreDocument"];
         delete?: never;
         options?: never;
@@ -1183,9 +1627,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Who else can see this document. */
+        /**
+         * Who else can see this document.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["GetDocumentAccess"];
-        /** Shares a document, or changes what somebody already has. */
+        /**
+         * Shares a document, or changes what somebody already has.
+         * @description **Requires:** `platform.documents.share`
+         */
         put: operations["GrantDocumentAccess"];
         post?: never;
         delete?: never;
@@ -1204,7 +1654,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Takes access away. */
+        /**
+         * Takes access away.
+         * @description **Requires:** `platform.documents.share`
+         */
         delete: operations["RevokeDocumentAccess"];
         options?: never;
         head?: never;
@@ -1218,12 +1671,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** What this document is filed against. */
+        /**
+         * What this document is filed against.
+         * @description **Requires:** `platform.documents.read`
+         */
         get: operations["GetDocumentLinks"];
         put?: never;
-        /** Attaches a document to a record in a business system. */
+        /**
+         * Attaches a document to a record in a business system.
+         * @description **Requires:** `platform.documents.update`
+         */
         post: operations["LinkDocument"];
-        /** Detaches it again. */
+        /**
+         * Detaches it again.
+         * @description **Requires:** `platform.documents.update`
+         */
         delete: operations["UnlinkDocument"];
         options?: never;
         head?: never;
@@ -1234,6 +1696,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApplicationCredentialDto: {
+            /** Format: uuid */
+            id: string;
+            clientId: string;
+            label: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            revokedAt: null | string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            isLive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ApplicationRoleDto: {
+            /** Format: uuid */
+            assignmentId: string;
+            /** Format: uuid */
+            roleId: string;
+            roleCode: string;
+            roleNameAr: string;
+            roleNameEn: string;
+            scope: string;
+            /** Format: uuid */
+            scopeUnitId: null | string;
+            /** Format: date-time */
+            grantedAt: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            isRevoked: boolean;
+        };
         AuditEventDto: {
             /** Format: uuid */
             id: string;
@@ -1344,6 +1838,9 @@ export interface components {
             mustChangePassword: boolean;
             /** Format: uuid */
             sessionId: string;
+        };
+        DeclarePermissionsRequest: {
+            permissions: components["schemas"]["PermissionDeclarationRequest"][];
         };
         DocumentAccessLogDto: {
             /** Format: uuid */
@@ -1457,6 +1954,15 @@ export interface components {
             level: string;
             includesSubUnits: null | boolean;
         };
+        GrantApplicationRoleRequest: {
+            /** Format: uuid */
+            roleId: string;
+            scope: string;
+            /** Format: uuid */
+            scopeUnitId: null | string;
+            /** Format: date-time */
+            expiresAt: null | string;
+        };
         GrantRoleRequest: {
             /** Format: uuid */
             roleId: string;
@@ -1486,6 +1992,22 @@ export interface components {
             newValue: null | string;
             metadata: null | string;
         };
+        IssueCredentialRequest: {
+            label: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+        };
+        IssuedCredentialDto: {
+            /** Format: uuid */
+            id: string;
+            clientId: string;
+            secret: string;
+            label: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         LinkUserRequest: {
             /** Format: uuid */
             userId: null | string;
@@ -1505,6 +2027,13 @@ export interface components {
             username: string;
             password: string;
             deviceFingerprint: null | string;
+        };
+        MachineTokenDto: {
+            access_token: string;
+            token_type: string;
+            /** Format: int32 */
+            expires_in: number | string;
+            scope?: null | string;
         };
         MfaCodeRequest: {
             code: string;
@@ -1739,6 +2268,18 @@ export interface components {
             hasPrevious?: boolean;
             hasNext?: boolean;
         };
+        PermissionDeclarationRequest: {
+            name: string;
+            description: null | string;
+        };
+        PermissionDeclarationResult: {
+            /** Format: int32 */
+            added: number | string;
+            /** Format: int32 */
+            deactivated: number | string;
+            /** Format: int32 */
+            totalDeclared: number | string;
+        };
         PermissionDto: {
             /** Format: uuid */
             id: string;
@@ -1766,6 +2307,11 @@ export interface components {
         RefreshRequest: {
             refreshToken: string;
         };
+        RegisterApplicationRequest: {
+            code: string;
+            name: string;
+            description: null | string;
+        };
         RegisterDefinitionRequest: {
             applicationCode: string;
             code: string;
@@ -1776,6 +2322,21 @@ export interface components {
             steps: components["schemas"]["StepRequest"][];
             description?: null | string;
             initialStepKey?: null | string;
+        };
+        RegisteredApplicationDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            description: null | string;
+            isSystem: boolean;
+            isActive: boolean;
+            /** Format: int32 */
+            liveCredentials: number | string;
+            /** Format: int32 */
+            declaredPermissions: number | string;
+            /** Format: date-time */
+            createdAt: string;
         };
         RenameCompanyRequest: {
             nameAr: string;
@@ -1850,6 +2411,9 @@ export interface components {
             /** Format: date-time */
             absoluteExpiresAt: string;
             isCurrent: boolean;
+        };
+        SetApplicationStatusRequest: {
+            isActive: boolean;
         };
         SetPositionActiveRequest: {
             isActive: boolean;
@@ -2548,6 +3112,50 @@ export interface operations {
             };
         };
     };
+    IssueMachineToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineTokenDto"];
+                };
+            };
+        };
+    };
+    DeclareApplicationPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclarePermissionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeclarationResult"];
+                };
+            };
+        };
+    };
     SearchSecurityEvents: {
         parameters: {
             query?: {
@@ -3192,6 +3800,210 @@ export interface operations {
         };
     };
     RevokeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisteredApplicationDto"][];
+                };
+            };
+        };
+    };
+    RegisterApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterApplicationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisteredApplicationDto"];
+                };
+            };
+        };
+    };
+    SetApplicationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetApplicationStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetApplicationCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCredentialDto"][];
+                };
+            };
+        };
+    };
+    IssueApplicationCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedCredentialDto"];
+                };
+            };
+        };
+    };
+    RevokeApplicationCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                credentialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetApplicationRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationRoleDto"][];
+                };
+            };
+        };
+    };
+    GrantApplicationRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantApplicationRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RevokeApplicationRole: {
         parameters: {
             query?: never;
             header?: never;
