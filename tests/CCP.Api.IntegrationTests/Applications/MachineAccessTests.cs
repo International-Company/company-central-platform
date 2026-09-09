@@ -193,11 +193,13 @@ public sealed class MachineAccessTests(PlatformApiFactory factory)
     {
         using HttpClient client = factory.CreateClient();
 
-        // The administrator role does not carry act-on-behalf: that permission
-        // gates nothing anybody reaches by route, so it is granted deliberately
-        // and never by inheritance.
-        (_, string secret, string clientId) =
-            await RegisterApplicationAsync("platform-administrator");
+        // A narrow role, holding one ordinary permission and not the delegation
+        // one. This is the case the gate exists for: an application trusted to
+        // read employees is not thereby trusted to read them *as* the finance
+        // director.
+        string roleCode = await CreateNarrowRoleAsync("platform.users.view");
+
+        (_, string secret, string clientId) = await RegisterApplicationAsync(roleCode);
 
         Guid someone = await CreateUserAsync();
 
@@ -209,6 +211,58 @@ public sealed class MachineAccessTests(PlatformApiFactory factory)
         JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal("AUTHZ.DELEGATION_NOT_PERMITTED", problem.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task ActingForSomebodyWorksWhenTheApplicationIsTrustedWithIt()
+    {
+        using HttpClient client = factory.CreateClient();
+
+        // The administrator role carries every declared permission, delegation
+        // included — total authority is total, and an application granted it can
+        // act as anybody. That is a consequence of granting it, not a gap.
+        (_, string secret, string clientId) =
+            await RegisterApplicationAsync("platform-administrator");
+
+        Guid someone = await CreateUserAsync();
+
+        using HttpResponseMessage response =
+            await RequestTokenAsync(client, clientId, secret, onBehalfOf: someone);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("access_token").GetString()));
+    }
+
+    [Fact]
+    public async Task ADelegatedCallCannotExceedWhatTheApplicationMayDo()
+    {
+        using HttpClient client = factory.CreateClient();
+
+        // The application may delegate and may read users; it may not administer
+        // roles. The person it acts for is an administrator who can. The call is
+        // the intersection, so it reads and does not administer.
+        string roleCode = await CreateNarrowRoleAsync(
+            "platform.users.view", "platform.applications.act-on-behalf");
+
+        (_, string secret, string clientId) = await RegisterApplicationAsync(roleCode);
+
+        Guid administrator = await CreateUserAsync(administrator: true);
+
+        string token = await GetTokenAsync(client, clientId, secret, onBehalfOf: administrator);
+
+        using (HttpResponseMessage allowed = await SendAsync(
+            client, token, HttpMethod.Get, "/api/v1/users?page=1&pageSize=1"))
+        {
+            Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        }
+
+        using HttpResponseMessage refused = await SendAsync(
+            client, token, HttpMethod.Get, "/api/v1/roles");
+
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
     }
 
     // -----------------------------------------------------------------------
@@ -235,9 +289,10 @@ public sealed class MachineAccessTests(PlatformApiFactory factory)
     }
 
     private static async Task<string> GetTokenAsync(
-        HttpClient client, string clientId, string secret)
+        HttpClient client, string clientId, string secret, Guid? onBehalfOf = null)
     {
-        using HttpResponseMessage response = await RequestTokenAsync(client, clientId, secret);
+        using HttpResponseMessage response =
+            await RequestTokenAsync(client, clientId, secret, onBehalfOf);
 
         Assert.True(
             response.IsSuccessStatusCode,
@@ -364,7 +419,38 @@ public sealed class MachineAccessTests(PlatformApiFactory factory)
         await authorization.SaveChangesAsync();
     }
 
-    private async Task<Guid> CreateUserAsync()
+    /// <summary>
+    /// A role holding exactly the named permissions and nothing else.
+    /// <para>
+    /// Purpose-built per test. Reusing the administrator role would prove
+    /// nothing about a gate, because it carries every permission there is.
+    /// </para>
+    /// </summary>
+    private async Task<string> CreateNarrowRoleAsync(params string[] permissionNames)
+    {
+        await using AuthorizationDbContext authorization = Authorization();
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        string code = $"narrow{Guid.CreateVersion7():N}"[..24];
+
+        Role role = Role.Create(code, "دور ضيق", "Narrow role", null, now).Value;
+
+        foreach (string name in permissionNames)
+        {
+            Modules.Authorization.Domain.Permissions.Permission permission =
+                await authorization.Permissions.FirstAsync(p => p.Name == name);
+
+            role.AddPermission(permission.Id, permission.Name, now);
+        }
+
+        authorization.Roles.Add(role);
+
+        await authorization.SaveChangesAsync();
+
+        return code;
+    }
+
+    private async Task<Guid> CreateUserAsync(bool administrator = false)
     {
         await using var identity = new IdentityDbContext(
             new DbContextOptionsBuilder<IdentityDbContext>()
@@ -389,6 +475,19 @@ public sealed class MachineAccessTests(PlatformApiFactory factory)
             user.Id, hasher.Hash(ValidPassword), hasher.AlgorithmId, DateTimeOffset.UtcNow));
 
         await identity.SaveChangesAsync();
+
+        if (administrator)
+        {
+            await using AuthorizationDbContext authorization = Authorization();
+
+            Role role = await authorization.Roles.FirstAsync(r => r.Code == "platform-administrator");
+
+            authorization.Assignments.Add(UserRoleAssignment.GrantByPlatform(
+                user.Id, role.Id, DateTimeOffset.UtcNow));
+
+            await authorization.SaveChangesAsync();
+            await BumpPermissionVersionAsync(authorization);
+        }
 
         return user.Id;
     }

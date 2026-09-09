@@ -85,6 +85,12 @@ public sealed class AuthorizationSeeder(
                 + "deactivating every permission the Platform has.");
         }
 
+        // Added after the guard, deliberately. These are not derived from the
+        // endpoints, so counting them would give the emptiness check something
+        // to find on a source that read nothing — and that check exists because
+        // the quiet version of that failure shipped once and cost a day.
+        declared = [.. declared.Concat(PermissionsWithNoEndpoint).Distinct(StringComparer.Ordinal)];
+
         (int added, int deactivated) = await ReconcilePermissionsAsync(
             dbContext, platform, declared, now, cancellationToken);
 
@@ -155,11 +161,6 @@ public sealed class AuthorizationSeeder(
             {
                 permissions.Add(attribute.Permission);
             }
-        }
-
-        foreach (string permission in PermissionsWithNoEndpoint)
-        {
-            permissions.Add(permission);
         }
 
         return [.. permissions];
