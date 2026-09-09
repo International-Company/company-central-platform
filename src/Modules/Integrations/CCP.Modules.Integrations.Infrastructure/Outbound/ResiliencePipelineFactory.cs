@@ -74,8 +74,16 @@ public static class ResiliencePipelineFactory
                     Math.Max(30, provider.BreakDuration.TotalSeconds)),
                 BreakDuration = provider.BreakDuration,
                 ShouldHandle = BreakOn
-            })
-            .AddRetry(new RetryStrategyOptions
+            });
+
+        // Zero retries means no retry strategy, not a retry strategy set to
+        // zero. Polly validates MaxRetryAttempts as at least one and throws
+        // while the pipeline is being built — so a provider configured not to
+        // retry failed every call with a validation error rather than calling
+        // once. Found by the stub-server tests, which is what they are for.
+        if (provider.MaxRetries > 0)
+        {
+            builder.AddRetry(new RetryStrategyOptions
             {
                 MaxRetryAttempts = provider.MaxRetries,
                 BackoffType = DelayBackoffType.Exponential,
@@ -88,7 +96,10 @@ public static class ResiliencePipelineFactory
                 // outage.
                 UseJitter = true,
                 ShouldHandle = RetryOn
-            })
+            });
+        }
+
+        builder
             .AddTimeout(new TimeoutStrategyOptions
             {
                 Timeout = provider.Timeout
