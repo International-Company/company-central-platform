@@ -5,6 +5,7 @@ using CCP.Modules.Documents.Application;
 using CCP.Modules.Documents.Application.Abstractions;
 using CCP.Modules.Documents.Application.Storage;
 using CCP.Modules.Documents.Infrastructure.Storage;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace CCP.Modules.Documents.UnitTests;
@@ -26,7 +27,8 @@ public sealed class UploadPipelineTests : IDisposable
 
     public UploadPipelineTests() =>
         _storage = new LocalFileStorageProvider(
-            Options.Create(new LocalStorageOptions { RootPath = _root }));
+            Options.Create(new LocalStorageOptions { RootPath = _root }),
+            NullLogger<LocalFileStorageProvider>.Instance);
 
     private DocumentContentService AService(
         IDocumentScanner? scanner = null, DocumentOptions? options = null) =>
@@ -110,7 +112,7 @@ public sealed class UploadPipelineTests : IDisposable
 
         // Nothing reached the store. A refused upload must leave no object
         // behind for somebody to find later and wonder about.
-        Assert.Empty(Directory.GetFiles(_root, "*", SearchOption.AllDirectories));
+        AssertNothingStored();
     }
 
     [Fact]
@@ -156,7 +158,7 @@ public sealed class UploadPipelineTests : IDisposable
 
         Assert.True(stored.IsFailure);
         Assert.Equal("DOCUMENTS.SCAN_REJECTED", stored.Error.Code);
-        Assert.Empty(Directory.GetFiles(_root, "*", SearchOption.AllDirectories));
+        AssertNothingStored();
     }
 
     [Fact]
@@ -180,6 +182,22 @@ public sealed class UploadPipelineTests : IDisposable
 
         Assert.True(stored.IsSuccess);
         Assert.Equal(ScanVerdict.Failed, stored.Value.ScanVerdict);
+    }
+
+    /// <summary>
+    /// Nothing was written.
+    /// <para>
+    /// An absent root counts, and is in fact the stronger result: the provider
+    /// creates its directory on the first write, so a refused upload leaves not
+    /// even a folder behind.
+    /// </para>
+    /// </summary>
+    private void AssertNothingStored()
+    {
+        if (Directory.Exists(_root))
+        {
+            Assert.Empty(Directory.GetFiles(_root, "*", SearchOption.AllDirectories));
+        }
     }
 
     [Fact]

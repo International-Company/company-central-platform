@@ -1,4 +1,5 @@
 using CCP.Modules.Documents.Application.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CCP.Modules.Documents.Infrastructure.Storage;
@@ -11,14 +12,24 @@ public sealed class LocalStorageOptions
     /// <summary>
     /// The directory the objects live under.
     /// <para>
-    /// Defaults to a folder beside the application. On a container that means
-    /// the files disappear when it restarts, which is correct for development
-    /// and is why production points this at a mounted volume — or, better, uses
-    /// object storage and never touches this provider at all.
+    /// <b>Defaults to a temporary directory, and that default is deliberate
+    /// rather than lazy.</b> It used to be a folder beside the application, which
+    /// worked everywhere except the place the Platform actually runs: the
+    /// container image runs as an unprivileged user and <c>/app</c> belongs to
+    /// root, so creating a subdirectory there is refused — and because that
+    /// happened while the container was starting, one module's optional storage
+    /// default stopped the whole Platform from coming up.
+    /// </para>
+    /// <para>
+    /// A temporary directory is writable by whoever is running and is not
+    /// durable, which is exactly what an unconfigured deployment should get: it
+    /// works, it says so in the log, and nothing pretends the files are safe.
+    /// A deployment that keeps real documents configures object storage, or
+    /// points this at a mounted volume.
     /// </para>
     /// </summary>
     public string RootPath { get; set; } =
-        Path.Combine(AppContext.BaseDirectory, "document-store");
+        Path.Combine(Path.GetTempPath(), "ccp-document-store");
 }
 
 /// <summary>
@@ -38,14 +49,31 @@ public sealed class LocalStorageOptions
 public sealed class LocalFileStorageProvider : IDocumentStorageProvider
 {
     private readonly string _rootPath;
+    private readonly ILogger<LocalFileStorageProvider> _logger;
 
-    public LocalFileStorageProvider(IOptions<LocalStorageOptions> options)
+    /// <summary>
+    /// <para>
+    /// <b>Does no I/O.</b> That is the whole of the fix for a defect that took
+    /// the Platform down: this provider is a singleton resolved while the host
+    /// is being built, so a constructor that touched the filesystem made an
+    /// unwritable directory fatal to every module at once — identity,
+    /// authorization, workflow, all of it, because documents could not create a
+    /// folder.
+    /// </para>
+    /// <para>
+    /// A storage problem must cost the company its documents and nothing else.
+    /// The directory is created on the first write instead, where a failure
+    /// fails that upload.
+    /// </para>
+    /// </summary>
+    public LocalFileStorageProvider(
+        IOptions<LocalStorageOptions> options,
+        ILogger<LocalFileStorageProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         _rootPath = options.Value.RootPath;
-
-        Directory.CreateDirectory(_rootPath);
+        _logger = logger;
     }
 
     public string Name => "local";
@@ -59,6 +87,8 @@ public sealed class LocalFileStorageProvider : IDocumentStorageProvider
         ArgumentNullException.ThrowIfNull(content);
 
         string path = ResolvePath(objectKey);
+
+        EnsureRootExists();
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
@@ -115,6 +145,36 @@ public sealed class LocalFileStorageProvider : IDocumentStorageProvider
         TimeSpan lifetime,
         CancellationToken cancellationToken = default)
         => Task.FromResult<Uri?>(null);
+
+    /// <summary>
+    /// Creates the root on first use, and says once that it is not durable.
+    /// <para>
+    /// Here rather than in the constructor so that a deployment which never
+    /// uploads a document never touches the filesystem — and so that a directory
+    /// it cannot create fails an upload rather than a startup.
+    /// </para>
+    /// </summary>
+    private void EnsureRootExists()
+    {
+        if (Directory.Exists(_rootPath))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(_rootPath);
+
+        if (_logger.IsEnabled(LogLevel.Warning))
+        {
+            // Worth a warning every time it has to be created, because on a
+            // container that is every restart — which is the operator's signal
+            // that yesterday's documents are gone.
+            _logger.LogWarning(
+                "Documents are being stored on the local filesystem at {RootPath}. This is not "
+                + "durable on a container. Configure Documents:S3 for anything that must survive "
+                + "a restart.",
+                _rootPath);
+        }
+    }
 
     /// <summary>
     /// Turns an object key into a path, and refuses anything that could escape.
