@@ -10,6 +10,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
+import { UserForm } from './user-form';
 import { IfPermitted } from '@/lib/permissions';
 import type { PagedResult, UserDto } from '@/types/platform';
 
@@ -48,6 +49,10 @@ export function UsersScreen() {
     action: 'enable' | 'disable' | 'unlock';
   } | null>(null);
   const [applying, setApplying] = useState(false);
+
+  // `null` means closed; `{ editing: null }` means creating. Modelled as one
+  // value so "which form is open, and on what" cannot disagree with itself.
+  const [form, setForm] = useState<{ editing: UserDto | null } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -207,7 +212,12 @@ export function UsersScreen() {
           // an action that would be refused. The Platform refuses it anyway —
           // this only spares them the surprise.
           <IfPermitted permission="platform.users.create">
-            <Button variant="primary">{t('createUser')}</Button>
+            <Button
+              variant="primary"
+              onClick={() => setForm({ editing: null })}
+            >
+              {t('createUser')}
+            </Button>
           </IfPermitted>
         }
       />
@@ -279,6 +289,14 @@ export function UsersScreen() {
               // button that does nothing teaches people to distrust the others.
               <IfPermitted permission="platform.users.edit">
                 <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setForm({ editing: user })}
+                  >
+                    {tCommon('edit')}
+                  </Button>
+
                   {user.status === 'Locked' ? (
                     <Button
                       variant="quiet"
@@ -340,6 +358,21 @@ export function UsersScreen() {
         busyLabel={tCommon('loading')}
         onConfirm={() => void applyStatus()}
         onCancel={() => setPending(null)}
+      />
+
+      <UserForm
+        open={form !== null}
+        editing={form?.editing ?? null}
+        onClose={() => setForm(null)}
+        onSaved={() => {
+          setForm(null);
+
+          // Reload rather than patch the row in place. The Platform decides
+          // what the saved record looks like — a normalised username, a status
+          // — and guessing here would show something subtly different from what
+          // was stored.
+          void load();
+        }}
       />
     </>
   );

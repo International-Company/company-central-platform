@@ -756,15 +756,15 @@ export interface components {
             /** Format: uuid */
             unitId: string;
             /** Format: uuid */
-            positionId: null | string;
+            positionId?: null | string;
             /** Format: uuid */
-            managerId: null | string;
+            managerId?: null | string;
             /** Format: uuid */
-            userId: null | string;
-            workEmail: null | string;
-            workPhone: null | string;
+            userId?: null | string;
+            workEmail?: null | string;
+            workPhone?: null | string;
             /** Format: date */
-            hireDate: null | string;
+            hireDate?: null | string;
         };
         CreateUnitRequest: {
             /** Format: uuid */

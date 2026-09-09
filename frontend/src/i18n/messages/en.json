@@ -109,7 +109,11 @@
     "disableDescription": "They will not be able to sign in until the account is enabled again.",
     "enableConfirm": "Enable {name}?",
     "enableDescription": "They will be able to sign in again.",
-    "statusChanged": "Done."
+    "statusChanged": "Done.",
+    "editUser": "Edit user",
+    "createDescription": "The account is created with a one-time password the person must change at first sign-in.",
+    "initialPassword": "Initial password",
+    "initialPasswordHint": "A one-time handover credential. Choose something the person can type."
   },
   "audit": {
     "title": "Audit",

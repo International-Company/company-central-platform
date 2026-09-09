@@ -1588,13 +1588,7 @@
           "employeeNumber",
           "fullNameAr",
           "fullNameEn",
-          "unitId",
-          "positionId",
-          "managerId",
-          "userId",
-          "workEmail",
-          "workPhone",
-          "hireDate"
+          "unitId"
         ],
         "type": "object",
         "properties": {

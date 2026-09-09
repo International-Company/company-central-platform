@@ -331,17 +331,28 @@ public sealed record RenameUnitRequest(string NameAr, string NameEn)
 public sealed record MoveUnitRequest(Guid? NewParentId);
 
 /// <summary>Create-employee request body.</summary>
+/// <remarks>
+/// The optional parameters carry defaults so the generated contract marks them
+/// optional too. Without them the OpenAPI document lists all ten as required —
+/// a positional record parameter is "required" to the generator whether or not
+/// its type admits null — and a client generated from that document would force
+/// every caller to send a manager, a position and a hire date for someone who
+/// has none.
+///
+/// Noticed only because the contract is now a file that can be read. It was
+/// wrong from the first version of this endpoint.
+/// </remarks>
 public sealed record CreateEmployeeRequest(
     string EmployeeNumber,
     string FullNameAr,
     string FullNameEn,
     Guid UnitId,
-    Guid? PositionId,
-    Guid? ManagerId,
-    Guid? UserId,
-    string? WorkEmail,
-    string? WorkPhone,
-    DateOnly? HireDate)
+    Guid? PositionId = null,
+    Guid? ManagerId = null,
+    Guid? UserId = null,
+    string? WorkEmail = null,
+    string? WorkPhone = null,
+    DateOnly? HireDate = null)
 {
     public Result Validate()
     {

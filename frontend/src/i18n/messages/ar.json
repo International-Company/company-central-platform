@@ -109,7 +109,11 @@
     "disableDescription": "لن يستطيع الدخول حتى يُفعَّل الحساب مجددًا.",
     "enableConfirm": "تفعيل {name}؟",
     "enableDescription": "سيستطيع الدخول مجددًا.",
-    "statusChanged": "تم."
+    "statusChanged": "تم.",
+    "editUser": "تعديل المستخدم",
+    "createDescription": "يُنشأ الحساب بكلمة مرور لمرة واحدة يجب على صاحبه تغييرها عند أول دخول.",
+    "initialPassword": "كلمة المرور الأولية",
+    "initialPasswordHint": "اعتماد تسليم لمرة واحدة. اختر ما يستطيع الشخص كتابته."
   },
   "audit": {
     "title": "سجل التدقيق",
