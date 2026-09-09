@@ -72,6 +72,38 @@ test('the sign-in page has no accessibility violations', async ({ page }, testIn
   expect(await report(page)).toEqual([]);
 });
 
+test('the administrator sees the controls their permissions allow', async ({
+  page,
+}, testInfo) => {
+  const current = locale(testInfo.project.name);
+
+  await page.goto(`/${current}/users`);
+
+  // The session's own view of what it may do, read the way the browser reads
+  // it. Checked first and separately, so a failure says which half broke: a
+  // session that cannot read its permissions is a different defect from a
+  // provider that receives them and hides the controls anyway.
+  const granted = await page.evaluate(async () => {
+    const response = await fetch('/api/me/permissions');
+
+    return response.ok
+      ? ((await response.json()) as { permissions: string[] }).permissions
+      : null;
+  });
+
+  expect(granted, 'the signed-in administrator could not read their own permissions')
+    .not.toBeNull();
+  expect(granted).toContain('platform.users.create');
+
+  // And then the control itself. Hiding a button the user cannot use is UX;
+  // hiding one they can is a Platform that looks empty to the person who
+  // administers it — which is how it looked the morning the administrator held
+  // no role at all.
+  await expect(
+    page.getByRole('button', { name: /إنشاء مستخدم|Create user/ }),
+  ).toBeVisible();
+});
+
 test('a dialog is announced and traps focus', async ({ page }, testInfo) => {
   const current = locale(testInfo.project.name);
 

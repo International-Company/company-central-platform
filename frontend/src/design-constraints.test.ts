@@ -205,3 +205,81 @@ describe('rendering never refreshes the session', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('text is readable', () => {
+  /** WCAG relative luminance, from the sRGB definition. */
+  function luminance(hex: string): number {
+    const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255);
+
+    const linear = channels.map((channel) =>
+      channel <= 0.04045
+        ? channel / 12.92
+        : ((channel + 0.055) / 1.055) ** 2.4,
+    );
+
+    return (
+      0.2126 * (linear[0] ?? 0) +
+      0.7152 * (linear[1] ?? 0) +
+      0.0722 * (linear[2] ?? 0)
+    );
+  }
+
+  function contrast(a: string, b: string): number {
+    const first = luminance(a);
+    const second = luminance(b);
+
+    return (
+      (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+    );
+  }
+
+  /** Every `--color-x: #hex` in the token set. */
+  function tokens(): Map<string, string> {
+    const css = readFileSync(join(sourceRoot, 'styles', 'globals.css'), 'utf8');
+
+    return new Map(
+      [...css.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})/gi)].map(
+        (match) => [match[1] ?? '', match[2] ?? ''],
+      ),
+    );
+  }
+
+  it('meets WCAG AA against both surfaces', () => {
+    // `--color-text-muted` was #7b8794 — 3.66:1 on white, comfortably under
+    // the 4.5:1 AA needs, and it was the colour of the word "(Required)" beside
+    // every field label. The design says the rule in words rather than with a
+    // red asterisk precisely so it can be read; setting it too faint to read
+    // undid the decision it was serving.
+    //
+    // Computed rather than eyeballed, because "it looks fine" is exactly the
+    // judgement that produced the failing value.
+    const palette = tokens();
+    const surfaces = ['surface', 'surface-sunken'] as const;
+
+    const failures: string[] = [];
+
+    for (const [name, value] of palette) {
+      if (!name.startsWith('text') || name === 'text-on-primary') {
+        continue;
+      }
+
+      for (const surfaceName of surfaces) {
+        const surface = palette.get(surfaceName);
+
+        if (!surface) {
+          continue;
+        }
+
+        const ratio = contrast(value, surface);
+
+        if (ratio < 4.5) {
+          failures.push(
+            `${name} ${value} on ${surfaceName} ${surface}: ${ratio.toFixed(2)}:1`,
+          );
+        }
+      }
+    }
+
+    expect(failures).toEqual([]);
+  });
+});

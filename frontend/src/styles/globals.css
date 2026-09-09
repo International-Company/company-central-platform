@@ -31,7 +31,15 @@
   /* --- Text -------------------------------------------------------------- */
   --color-text: #14181d;
   --color-text-secondary: #52606d;
-  --color-text-muted: #7b8794;
+
+  /* Was #7b8794, which reads 3.66:1 on white — below the 4.5:1 that WCAG AA
+     requires for body text, and axe found it on the word "(Required)" beside
+     every field label. That word exists because the design refuses a red
+     asterisk: it says the rule in words so a screen reader announces it and a
+     first-time user is not decoding a convention. Setting it in a colour too
+     faint to read undid exactly the decision it was serving. #616e7c is
+     5.21:1 on white and 4.90:1 on the sunken surface. */
+  --color-text-muted: #616e7c;
   --color-text-on-primary: #ffffff;
 
   /* --- Borders ----------------------------------------------------------- */
