@@ -35,7 +35,14 @@ public sealed class StepUpCoverageTests
         "POST api/v1/users/{id:guid}/disable",     // removes the person who would notice
         "POST api/v1/users/{id:guid}/unlock",      // undoes a lockout that was working
         "POST api/v1/users/{id:guid}/roles",       // how access is created
-        "DELETE api/v1/users/{id:guid}/roles/{assignmentId:guid}"  // how access is destroyed
+        "DELETE api/v1/users/{id:guid}/roles/{assignmentId:guid}",  // how access is destroyed
+
+        // Changing what a role carries changes what everyone already holding it
+        // can do, without touching a single assignment — so it reaches further
+        // than any one grant while looking like an edit. Creating and renaming
+        // a role are not here: an empty role grants nothing, and a name is not
+        // access.
+        "PUT api/v1/roles/{id:guid}/permissions"
     ];
 
     [Fact]
