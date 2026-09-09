@@ -40,15 +40,24 @@ export default async function DashboardPage({
   // In parallel: four independent reads, and the slowest decides the page.
   // In sequence this would be four round trips to the Platform for a screen
   // that shows four numbers.
+  //
+  // `duringRender` on every one: a page may not refresh the session. Rotating
+  // the token during render spends it and then cannot store the replacement,
+  // which would sign the person out for loading a page.
   const [users, employees, units, roles] = await Promise.all([
-    callPlatform<PagedResult<UserDto>>({ path: '/api/v1/users?page=1&pageSize=1' }),
+    callPlatform<PagedResult<UserDto>>({
+      path: '/api/v1/users?page=1&pageSize=1',
+      duringRender: true,
+    }),
     callPlatform<PagedResult<EmployeeDto>>({
       path: '/api/v1/organization/employees?page=1&pageSize=1',
+      duringRender: true,
     }),
     callPlatform<OrganizationUnitTreeDto[]>({
       path: '/api/v1/organization/units/tree',
+      duringRender: true,
     }),
-    callPlatform<RoleDto[]>({ path: '/api/v1/roles' }),
+    callPlatform<RoleDto[]>({ path: '/api/v1/roles', duringRender: true }),
   ]);
 
   const cards = [

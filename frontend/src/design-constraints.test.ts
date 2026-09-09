@@ -172,3 +172,36 @@ describe('no token reaches the browser', () => {
     expect(session).toContain("import 'server-only'");
   });
 });
+
+describe('rendering never refreshes the session', () => {
+  it('passes duringRender from every page and layout that calls the Platform', () => {
+    // Refreshing rotates the token: the old one is spent the instant the
+    // Platform answers, and the new pair must be written to the cookie or the
+    // session is gone. Next.js forbids writing a cookie during render, so a
+    // refresh started from a page or layout consumes the refresh token and then
+    // throws — signing the person out for loading a page.
+    //
+    // Route handlers are exempt: writing a cookie is exactly what they are
+    // allowed to do, and refreshing there is the whole point.
+    const renderFiles = sourceFiles().filter(
+      (file) =>
+        /\.tsx$/.test(file)
+        && !file.includes(join('app', 'api'))
+        && codeOf(file).includes('callPlatform'),
+    );
+
+    const offenders = renderFiles.filter((file) => {
+      const code = codeOf(file);
+
+      // One `duringRender: true` per call. Counting rather than merely looking
+      // for the phrase, because a page that adds a fifth call and forgets it is
+      // exactly how this returns.
+      const calls = code.match(/callPlatform\s*</g)?.length ?? 0;
+      const guards = code.match(/duringRender:\s*true/g)?.length ?? 0;
+
+      return guards < calls;
+    });
+
+    expect(offenders).toEqual([]);
+  });
+});

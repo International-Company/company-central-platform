@@ -54,6 +54,23 @@ export interface PlatformRequest {
    * recovery, which are reached before a session exists.
    */
   authenticated?: boolean;
+
+  /**
+   * Set when the caller is rendering rather than handling a request.
+   *
+   * **A server component must not refresh.** Refreshing rotates the token: the
+   * old one is spent the moment the Platform answers, and the new pair has to be
+   * written to the cookie or the session is destroyed. Next.js forbids writing a
+   * cookie during render — it throws — so a refresh started from a page or
+   * layout would consume the refresh token and then fail to keep what it got
+   * back, signing the person out for the crime of loading a page.
+   *
+   * So a 401 here is reported rather than repaired. The render degrades — a
+   * figure reads as unavailable, a control stays hidden — and the first call
+   * from a screen, which goes through a route handler, refreshes properly and
+   * everything recovers.
+   */
+  duringRender?: boolean;
 }
 
 export async function callPlatform<T>(
@@ -67,7 +84,12 @@ export async function callPlatform<T>(
   // is short-lived by design, so an expired one during ordinary use is normal
   // rather than exceptional — and making the user sign in again for it would be
   // the wrong answer to a problem the refresh token exists to solve.
-  if (response.status === 401 && session && request.authenticated !== false) {
+  if (
+    response.status === 401
+    && session
+    && request.authenticated !== false
+    && request.duringRender !== true
+  ) {
     const refreshed = await refresh(session);
 
     if (refreshed) {
@@ -79,6 +101,13 @@ export async function callPlatform<T>(
     // person looking at an application whose every request fails — which reads
     // as a broken system rather than as a lapsed session.
     return { ...response, sessionExpired: true };
+  }
+
+  // Rendering, and the token has lapsed. Not repaired here, and not treated as
+  // the end of the session either: the refresh token is very likely still good,
+  // and the next call from a screen will spend it correctly.
+  if (response.status === 401 && session && request.duringRender === true) {
+    return { ...response, sessionExpired: false };
   }
 
   return response;

@@ -61,6 +61,10 @@ export default async function PortalLayout({
   // page. Hiding is UX; the Platform decides.
   const permissions = await callPlatform<MyPermissionsDto>({
     path: '/api/v1/me/permissions',
+
+    // Rendering, so no refresh may be attempted: rotating the token here would
+    // spend it and then be unable to store what it got back.
+    duringRender: true,
   });
 
   return (
