@@ -207,6 +207,132 @@ jobs:
       - name: Build
         run: npm run build
 
+  # ---------------------------------------------------------------------------
+  # End to end
+  #
+  # The whole stack: a database, the API, and the frontend serving through its
+  # BFF. Every spec runs twice, once per language, because the Arabic interface
+  # mirrors the layout rather than translating it and a suite that tested one
+  # direction would leave half the company untested.
+  #
+  # This job exists because of a day on which four defects reached the deployed
+  # application while every unit test passed: portal pages prerendered so
+  # sign-in bounced back to login, no custom colour rendered at all, the
+  # employees screen called a path that does not exist, and concurrent requests
+  # each refreshed the token until the Platform revoked the session. None of
+  # those lives in a unit.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: End to end
+    runs-on: ubuntu-latest
+    needs: [build-and-test, frontend]
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ccp_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_only_not_a_real_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CCP_ConnectionStrings__Platform: "Host=localhost;Port=5432;Database=ccp_e2e;Username=postgres;Password=ci_only_not_a_real_secret"
+      CCP_Database__ApplyMigrationsOnStartup: "true"
+
+      # A fresh database every run, so the seeder creates the account these
+      # tests sign in as. The password is a CI-only value for a throwaway
+      # database that exists for four minutes.
+      CCP_Identity__Bootstrap__Enabled: "true"
+      CCP_Identity__Bootstrap__Username: "e2e-admin"
+      CCP_Identity__Bootstrap__Email: "e2e@example.invalid"
+      CCP_Identity__Bootstrap__DisplayName: "End To End"
+      CCP_Identity__Bootstrap__InitialPassword: "e2e-not-a-real-secret-2026"
+
+      E2E_USERNAME: "e2e-admin"
+      E2E_PASSWORD: "e2e-not-a-real-secret-2026"
+      E2E_BASE_URL: "http://localhost:3000"
+      PLATFORM_API_URL: "http://localhost:5080"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Generated at run time and never committed. A signing key in the
+      # repository would be a signing key in every clone.
+      - name: Generate development keys
+        run: |
+          echo "CCP_Identity__SigningKey=$(openssl genrsa 3072 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
+          echo "CCP_Security__MfaProtection__Key=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      - name: Start the API
+        run: |
+          dotnet run --project src/Host/CCP.Api.Host --configuration Release --urls http://localhost:5080 &
+          for _ in $(seq 1 60); do
+            if curl -sf http://localhost:5080/health/ready > /dev/null; then
+              echo "API ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "The API did not become ready." >&2
+          exit 1
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Start the frontend
+        working-directory: frontend
+        run: |
+          npm start -- --port 3000 &
+          for _ in $(seq 1 60); do
+            if curl -sf http://localhost:3000/ar/login > /dev/null; then
+              echo "Frontend ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "The frontend did not become ready." >&2
+          exit 1
+
+      - name: Run end-to-end tests
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+          retention-days: 7
+
   container:
     name: Container image
     runs-on: ubuntu-latest
