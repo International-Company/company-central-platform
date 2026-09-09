@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -74,8 +75,12 @@ public sealed class StubProvider : IAsyncDisposable
         builder.Logging.ClearProviders();
         // Port zero: the operating system picks one. A fixed number would make
         // two tests running at once fight over it.
+        //
+        // The loopback address explicitly, not ListenLocalhost — that overload
+        // binds both IPv4 and IPv6 and refuses a dynamic port, because it cannot
+        // promise the same one on each. One address is all this needs.
         builder.WebHost.ConfigureKestrel(
-            kestrel => kestrel.ListenLocalhost(0));
+            kestrel => kestrel.Listen(IPAddress.Loopback, 0));
 
         WebApplication app = builder.Build();
 
