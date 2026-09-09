@@ -58,6 +58,34 @@ Both are supplied as values rather than mounted files because Railway offers no
 mounted files. A path is better and remains preferred wherever one exists — see
 `docs/security/secrets-management.md`.
 
+#### Document storage
+
+Nothing here is required for the service to start, and **that is a trap worth
+naming.** With no object storage configured the Documents module falls back to a
+directory inside the container, which a Railway deployment discards on every
+restart. Files uploaded on Tuesday are gone on Wednesday, and nothing fails
+loudly when it happens.
+
+So a deployment that will hold real documents sets these:
+
+```
+CCP_Documents__S3__BucketName       = ccp-documents
+CCP_Documents__S3__ServiceUrl       = <endpoint, for anything that is not AWS>
+CCP_Documents__S3__Region           = <region>
+CCP_Documents__S3__AccessKeyId      = <key id>
+CCP_Documents__S3__SecretAccessKey  = <secret>
+```
+
+Any S3-compatible service will do — Cloudflare R2, Backblaze B2, DigitalOcean
+Spaces, MinIO, or AWS itself. The module uses object storage when it is
+configured and the local directory when it is not; it does not decide from the
+environment name, because "production means S3" works right up until the first
+production deployment without a bucket.
+
+**The bucket must not be publicly readable.** Every download is authorized by
+the Platform and served either as a short-lived pre-signed URL or as a stream; a
+public bucket makes every access rule in the module decorative.
+
 ### `ccp-frontend`
 
 ```

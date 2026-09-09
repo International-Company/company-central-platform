@@ -82,6 +82,7 @@ export default async function PortalLayout({
           { href: '/employees', label: t('employees') },
           { href: '/organization', label: t('organization') },
           { href: '/workflow', label: t('workflow') },
+          { href: '/documents', label: t('documents') },
           { href: '/roles', label: t('roles') },
           { href: '/security', label: t('security') },
           { href: '/audit', label: t('audit') },

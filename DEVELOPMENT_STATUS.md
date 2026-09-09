@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 9 — Notifications** |
-| Phase status | 🟢 **Messages reach people. Password reset completes for the first time since Phase 2.** |
-| Next phase | **Phase 10 — Documents** |
+| Current phase | **Phase 10 — Documents** |
+| Phase status | 🟢 **Files are stored, versioned, shared by rule, and destroyed on a schedule.** |
+| Next phase | **Phase 11 — External API Platform & App Registry** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -24,8 +24,8 @@
 | 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
 | 7 | Frontend Foundation & Core Admin UI | 🟢 **Complete** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. Twelve screens, every one of them able to write: company setup, organizational structure, employees, users, role definition and permission editing, role granting with a step-up prompt, own-account two-factor enrolment, and a dashboard of live figures. Types generated from the OpenAPI document the API emits. Playwright sweeps every screen in both locales and passes. |
 | 8 | Workflow | 🟢 **Complete** | A reusable approval engine holding no business rule — verified by a test that fails the build if business vocabulary appears in the module at all. Definitions as versioned data, registered by applications through the API with no Platform code change. Versions frozen once published; instances run on the version they started with. Six organizational assignee strategies plus a caller-supplied list, which is where business-conditional routing lives — outside the engine. Approve, reject, return, delegate, comment, cancel; first to act settles a step and the rest are withdrawn. Service levels escalated once by a background sweep that raises an event and does not reassign. Task inbox and administrator view in both locales. Integration tests walk a whole approval on a real database. |
-| 9 | Notifications | 🟡 **Core complete** | Templates per locale with declared variables and escaping that cannot be opted out of; no template language, substitution only. In-app and email, with `INotificationChannelProvider` as the seam — adding SMS is one interface and one registration. Retry, backoff with jitter, and giving up live in the dispatcher so every channel behaves the same when a vendor is down. Per-user, per-category, per-channel preferences, with security refused at the resolver and at creation. Delivery log keeps permanent failures visible. Listens to Workflow and Identity, neither of which knows it exists. 23 unit tests, 6 integration tests. |
-| 10 | Documents | ⬜ Not started | |
+| 9 | Notifications | 🟢 **Complete** | Templates per locale with declared variables and escaping that cannot be opted out of; no template language, substitution only. In-app and email, with `INotificationChannelProvider` as the seam — adding SMS is one interface and one registration. Retry, backoff with jitter, and giving up live in the dispatcher so every channel behaves the same when a vendor is down. Per-user, per-category, per-channel preferences, with security refused at the resolver and at creation. Delivery log keeps permanent failures visible. Listens to Workflow and Identity, neither of which knows it exists. 23 unit tests, 6 integration tests. |
+| 10 | Documents | 🟡 **Core complete** | Metadata in PostgreSQL, bytes in object storage, behind `IDocumentStorageProvider` — a directory on disk in development, S3-compatible in production, chosen by what is configured rather than by the environment name. Uploads are identified by reading their first bytes: an executable renamed to `report.pdf` is refused and named. Random object keys, SHA-256, size enforced during the copy rather than after it. A scanner hook whose default reports *NotScanned* rather than *Clean*, so an audit of what was checked tells the truth. Versions are added, never edited. Access decided by one evaluator used by every path — user, role or unit rules that add up rather than override — and every access logged, **including the refusals**. Two-stage deletion with a thirty-day grace period and a purge sweep that destroys bytes before it marks the record. Polymorphic linking with no foreign key, so a business system files a document against its own record. Screens in both locales, and an upload control any screen can embed. 47 unit tests, 7 integration tests. |
 | 11 | External API Platform & App Registry | ⬜ Not started | |
 | 12 | Integrations | ⬜ Not started | |
 | 13 | Configuration & Feature Flags | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–9 in progress.**
+**Completed: 1 of 22 phases. Phases 1–10 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -927,6 +927,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 32 | Per-user language is not stored | Medium | `IRecipientDirectory.GetLocaleAsync` returns the company default for everybody. The seam is in place and the preference is not, so an English speaker in an Arabic company receives Arabic. |
 | 33 | The email provider is a direct SMTP adapter | Low | Planned: outbound calls get a governed path in Phase 12 (§17.2, §19.1). Until then this talks to a mail server directly, with no shared circuit breaker or outbound policy. |
 | 34 | ~~No stub provider demonstrates the third channel~~ | — | ✅ **Resolved.** An integration test registers a third provider into the real host and asserts the dispatcher resolves it — one class, one registration, nothing else changed. Written as a test rather than a paragraph because it stops being true the moment somebody adds a switch on channel type, and a paragraph would not notice. |
+| 35 | No orphan-object reconciliation job | Medium | ADR-014 names one as a Phase 10 follow-up and it is not built. The upload writes the object before the row, so a failure between them leaves an object nothing references — costing storage, not correctness. The reverse order would cost somebody their file, which is why it is this way round. Needs a sweep comparing keys in the store against `documents.versions`. |
+| 36 | The object-storage path is not tested against a real bucket | Medium | Every test runs against the local provider. So the S3 provider's pre-signed URL — its expiry, its content-disposition, and the bucket being unreadable without it — is verified by reading the code, which is exactly the kind of assurance ADR-014 asks not to rely on. MinIO is already in the compose file; the tests are not written. |
+| 37 | A ZIP is accepted on the strength of its extension | Low | The bytes prove it is an archive; which member of the ZIP family it is comes from the file name, because telling a `.docx` from an `.xlsx` means opening the archive. The security question is answered by the content and the cosmetic one by the name, so the worst outcome is a spreadsheet labelled as a document. |
+| 38 | A unit access rule is evaluated against the caller's unit, not the document's | Low | Access is decided by rules alone; a document sitting in a unit grants nobody anything by virtue of sitting there. That is deliberate — the alternative hands a department head every private letter written to anybody who reports to them — but it does mean `organizationUnitId` on a document is a filter and not a permission, which is easy to misread. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -1204,12 +1208,120 @@ green with the module unreachable.
 
 ---
 
-## 12. Next step
+## 12. Phase 10 report — the file is not the row
 
-**Phase 10 — Documents.** The remaining Platform capability with nothing built
-behind it, and the one every business system will want: split storage, metadata
-in PostgreSQL and bytes in object storage, with access decided by the same
-permission model as everything else.
+### 12.1 What the bytes say, not what the caller says
+
+The declared content type and the extension are both strings the caller chose,
+and both are trivially set to `application/pdf` on a Windows executable. So
+neither decides anything: the first bytes do.
+
+`FileTypeInspector` lives in the domain rather than the infrastructure, because
+"which files may this company store" is a rule and not a detail of how HTTP
+works. It reads a header, never a whole file, and it names what it refused — "a
+Windows program", "a script" — because the common cause is a rename to get past
+an extension check and the second most common is an honest mistake, and both are
+cleared up by being told what the file really is.
+
+Text is decided last and by exclusion, after every signature has had its turn. A
+PNG whose header happened to decode as text would otherwise be stored as a text
+file.
+
+### 12.2 The order of the upload pipeline is the design
+
+Buffer, measure, identify, hash, scan, write. Each step can refuse, and a
+refusal at any of them leaves nothing behind.
+
+Two decisions in there are worth stating. The **size limit stops the copy**
+rather than checking a length afterwards — checking afterwards means having
+already written a two-gigabyte file to disk to discover it was not allowed,
+which is the denial of service the limit exists to prevent. And the content
+reaches storage **before** the version row exists, so a row that exists is one
+whose content exists; the other order costs somebody their file, this one costs
+a little unreferenced storage.
+
+### 12.3 The scanner does not lie
+
+The Platform ships without one, because bundling a scanner means choosing a
+vendor, a licence and a deployment shape on behalf of every company that installs
+this.
+
+What it does not do is claim otherwise. The default reports `NotScanned` rather
+than `Clean`, that verdict is written into the access-log entry for the upload,
+and so a version record says plainly whether anything ever looked at the file. A
+default that reported "clean" would produce an audit trail asserting that every
+file the company holds was checked — a false record, which is worse than none.
+
+A scanner that throws is recorded as *failed*, not as *clean*. Swallowing that
+into a pass is how an outage becomes an infection.
+
+### 12.4 One evaluator, and it logs the refusals
+
+Access checks do not go wrong because somebody writes a bad one. They go wrong
+because somebody writes a *second* one, slightly different, and the two disagree
+— a document appears in a search that its finder cannot then open, or worse.
+
+So `DocumentAccessEvaluator` is one pure function, and every path reaches it:
+upload, download, sharing, deletion. The search filter is the only restatement,
+because one of them has to run in SQL, and the pair is what the integration tests
+exercise from both ends.
+
+The guard that calls it also writes the log entry, in the same class, for the
+same reason: a handler that checked access itself would record the successes —
+that is the part somebody remembers — and **the refusals are the half of a
+document access log worth reading**. One person failing to open a document is a
+wrong link; one person failing to open forty is something else.
+
+A denial is committed on its own before the failure is returned. It has to be:
+the request is about to end without saving anything, and a denial recorded in a
+transaction nobody commits is a denial nobody can see.
+
+### 12.5 Deleting twice, and keeping the record of what was destroyed
+
+Mark, then purge after thirty days. Two stages because otherwise a misclick and a
+legal instruction look identical to the system, and only one of them should be
+able to destroy something.
+
+The purge destroys the content and keeps everything said about it — the file
+name, the size, the hash, the whole access history. "This document existed, these
+people read it, and it was destroyed on this date by this person" is the question
+asked *after* a deletion, and a removed row cannot answer it.
+
+The sweep deletes the bytes before it marks the record, which is the order that
+can only fail in the harmless direction. Marking first and then failing to delete
+would leave a document recorded as destroyed whose content is still in the
+bucket: a false statement in the one place a company will be asked to prove
+something.
+
+### 12.6 The link that cannot be a foreign key
+
+A business system files a document against `purchase-order` / `PO-2026-0041`, and
+the Platform stores two strings. There is no constraint and there cannot be one:
+the Platform is built before the systems that use it and must outlive any of
+them, so a foreign key into `purchasing.orders` would make this module
+undeployable without the purchasing system and undeletable with it.
+
+The honest consequence, stated rather than hidden: a link can outlive the record
+it points at. That shows as a link the caller cannot resolve, which is much
+better than a module that refuses to start.
+
+### 12.7 What was added to another module, and why
+
+`IRoleDirectory` gained one method — the roles a person holds. It is the same
+question as the existing one from the other end, and it earns its place because
+the alternative is fetching the full membership of every role named on a document
+on every request to answer a question about one person. It returns role
+identifiers, not permissions: a caller can compare them against rules it owns and
+cannot make an authorization decision with them.
+
+---
+
+## 13. Next step
+
+**Phase 11 — External API Platform & App Registry.** Everything built so far is
+reachable by a person with a browser. The next phase is what makes it reachable
+by a system: registered applications, credentials that are not a person's, and a
+public surface that is versioned deliberately rather than by accident.
 
 Still outstanding across all phases:
 

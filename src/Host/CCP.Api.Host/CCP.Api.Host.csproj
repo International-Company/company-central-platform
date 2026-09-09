@@ -19,6 +19,8 @@
     <ProjectReference Include="..\..\Modules\Audit\CCP.Modules.Audit.Infrastructure\CCP.Modules.Audit.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Security\CCP.Modules.Security.Api\CCP.Modules.Security.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Security\CCP.Modules.Security.Infrastructure\CCP.Modules.Security.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Documents\CCP.Modules.Documents.Api\CCP.Modules.Documents.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Documents\CCP.Modules.Documents.Infrastructure\CCP.Modules.Documents.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

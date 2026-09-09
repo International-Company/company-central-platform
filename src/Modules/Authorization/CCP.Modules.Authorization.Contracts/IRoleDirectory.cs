@@ -28,4 +28,23 @@ public interface IRoleDirectory
     /// </summary>
     Task<IReadOnlyList<Guid>> GetUserIdsWithRoleAsync(
         Guid roleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The roles one person holds, at any scope, whose grant is live.
+    /// <para>
+    /// The same question from the other end, and it earns its place because
+    /// the alternative is worse. Documents may be shared with a role, and
+    /// deciding whether a caller is in one of the roles named on a document
+    /// through <see cref="GetUserIdsWithRoleAsync"/> would mean fetching the
+    /// full membership of every role mentioned — on every request, to answer a
+    /// question about one person.
+    /// </para>
+    /// <para>
+    /// Still not "what may this person do". These are role identifiers, not
+    /// permissions: a caller can compare them against rules it owns and cannot
+    /// use them to make an authorization decision of its own.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetRoleIdsForUserAsync(
+        Guid userId, CancellationToken cancellationToken = default);
 }

@@ -32,6 +32,7 @@ const Screens = [
   'employees',
   'organization',
   'workflow',
+  'documents',
   'audit',
 ] as const;
 

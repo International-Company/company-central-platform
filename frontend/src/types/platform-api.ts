@@ -380,6 +380,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/{resourceType}/{resourceId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything filed against one business record, as the caller may see it. */
+        get: operations["GetDocumentsForResource"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/company": {
         parameters: {
             query?: never;
@@ -1054,6 +1071,165 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Documents the caller may see. */
+        get: operations["SearchDocuments"];
+        put?: never;
+        /** Stores a file and the document that holds it. */
+        post: operations["UploadDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One document, with every version of it. */
+        get: operations["GetDocument"];
+        /** Renames a document, and moves it if the caller may. */
+        put: operations["UpdateDocument"];
+        post?: never;
+        /** Marks a document for deletion. Content survives the grace period. */
+        delete: operations["DeleteDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The content, by redirect to storage or streamed from here. */
+        get: operations["DownloadDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/access-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who opened this document, and who tried and could not. */
+        get: operations["GetDocumentAccessLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds a version. The previous one stays downloadable. */
+        post: operations["AddDocumentVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Takes back a deletion, inside the grace period. */
+        post: operations["RestoreDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who else can see this document. */
+        get: operations["GetDocumentAccess"];
+        /** Shares a document, or changes what somebody already has. */
+        put: operations["GrantDocumentAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/access/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Takes access away. */
+        delete: operations["RevokeDocumentAccess"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What this document is filed against. */
+        get: operations["GetDocumentLinks"];
+        put?: never;
+        /** Attaches a document to a record in a business system. */
+        post: operations["LinkDocument"];
+        /** Detaches it again. */
+        delete: operations["UnlinkDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1169,6 +1345,87 @@ export interface components {
             /** Format: uuid */
             sessionId: string;
         };
+        DocumentAccessLogDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            versionNumber: null | number | string;
+            /** Format: uuid */
+            actorUserId: string;
+            action: string;
+            wasAllowed: boolean;
+            detail: null | string;
+            ipAddress: null | string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        DocumentAccessRuleDto: {
+            /** Format: uuid */
+            id: string;
+            subjectKind: string;
+            /** Format: uuid */
+            subjectId: string;
+            level: string;
+            includesSubUnits: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DocumentDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            category: null | string;
+            /** Format: uuid */
+            ownerUserId: string;
+            /** Format: uuid */
+            organizationUnitId: null | string;
+            status: string;
+            /** Format: int32 */
+            currentVersionNumber: number | string;
+            fileName: null | string;
+            contentType: null | string;
+            /** Format: int64 */
+            sizeInBytes: null | number | string;
+            accessLevel: string;
+            /** Format: date-time */
+            markedForDeletionAt: null | string;
+            /** Format: date-time */
+            purgeAfter: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: null | string;
+            versions: components["schemas"]["DocumentVersionDto"][];
+        };
+        DocumentLinkDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            documentId: string;
+            resourceType: string;
+            resourceId: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DocumentLinkRequest: {
+            resourceType: string;
+            resourceId: string;
+        };
+        DocumentVersionDto: {
+            /** Format: int32 */
+            versionNumber: number | string;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeInBytes: number | string;
+            sha256: string;
+            /** Format: uuid */
+            uploadedBy: string;
+            /** Format: date-time */
+            uploadedAt: string;
+            notes: null | string;
+            contentRemoved: boolean;
+        };
         EmployeeDto: {
             /** Format: uuid */
             id: string;
@@ -1193,6 +1450,13 @@ export interface components {
         ForgotPasswordRequest: {
             email: null | string;
         };
+        GrantAccessRequest: {
+            subjectKind: string;
+            /** Format: uuid */
+            subjectId: string;
+            level: string;
+            includesSubUnits: null | boolean;
+        };
         GrantRoleRequest: {
             /** Format: uuid */
             roleId: string;
@@ -1203,6 +1467,8 @@ export interface components {
             expiresAt: null | string;
             parsedScope?: components["schemas"]["ScopeType"];
         };
+        /** Format: binary */
+        IFormFile: string;
         IngestAuditEventDto: {
             module: string;
             action: string;
@@ -1358,6 +1624,32 @@ export interface components {
         OrganizationUnitType: number;
         PagedResultOfAuditEventDto: {
             items: components["schemas"]["AuditEventDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
+        PagedResultOfDocumentAccessLogDto: {
+            items: components["schemas"]["DocumentAccessLogDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
+        PagedResultOfDocumentDto: {
+            items: components["schemas"]["DocumentDto"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -1618,6 +1910,12 @@ export interface components {
         TransitionRequest: {
             action: string;
             targetStepKey?: null | string;
+        };
+        UpdateDocumentRequest: {
+            title: string;
+            category: null | string;
+            /** Format: uuid */
+            organizationUnitId: null | string;
         };
         UpdateRoleRequest: {
             nameAr: string;
@@ -2274,6 +2572,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedResultOfSecurityEventDto"];
+                };
+            };
+        };
+    };
+    GetDocumentsForResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resourceType: string;
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDto"][];
                 };
             };
         };
@@ -3446,6 +3767,358 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NotificationTemplateDto"];
                 };
+            };
+        };
+    };
+    SearchDocuments: {
+        parameters: {
+            query?: {
+                term?: string;
+                category?: string;
+                organizationUnitId?: string;
+                includeDeleted?: boolean;
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfDocumentDto"];
+                };
+            };
+        };
+    };
+    UploadDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["IFormFile"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDto"];
+                };
+            };
+        };
+    };
+    GetDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDto"];
+                };
+            };
+        };
+    };
+    UpdateDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDto"];
+                };
+            };
+        };
+    };
+    DeleteDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DownloadDocument: {
+        parameters: {
+            query?: {
+                version?: number | string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetDocumentAccessLog: {
+        parameters: {
+            query?: {
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfDocumentAccessLogDto"];
+                };
+            };
+        };
+    };
+    AddDocumentVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["IFormFile"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDto"];
+                };
+            };
+        };
+    };
+    RestoreDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetDocumentAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentAccessRuleDto"][];
+                };
+            };
+        };
+    };
+    GrantDocumentAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentAccessRuleDto"];
+                };
+            };
+        };
+    };
+    RevokeDocumentAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetDocumentLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLinkDto"][];
+                };
+            };
+        };
+    };
+    LinkDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLinkDto"];
+                };
+            };
+        };
+    };
+    UnlinkDocument: {
+        parameters: {
+            query: {
+                resourceType: string;
+                resourceId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

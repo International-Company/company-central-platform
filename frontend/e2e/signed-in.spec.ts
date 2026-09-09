@@ -70,6 +70,7 @@ test.describe('the portal', () => {
     'employees',
     'organization',
     'workflow',
+    'documents',
     'roles',
     'security',
     'audit',

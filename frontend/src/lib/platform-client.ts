@@ -260,3 +260,84 @@ function safeParse(text: string): unknown {
     return null;
   }
 }
+
+/**
+ * A call whose body is bytes rather than JSON, in either direction.
+ *
+ * **Why this exists separately.** `callPlatform` reads the whole response as
+ * text and parses it, which is right for every endpoint that answers with a
+ * document and wrong for the two that answer with a file. Uploading is the same
+ * problem in reverse: a multipart body must reach the Platform unaltered, and
+ * `JSON.stringify` of a `FormData` is the string `[object Object]`.
+ *
+ * The request body is a buffer and not a stream, deliberately. A 401 has to be
+ * retryable after a refresh, and a stream that has been read once cannot be sent
+ * again — so the upload is held in memory for the length of the call, bounded by
+ * the Platform's own file size limit.
+ */
+export interface RawPlatformRequest {
+  path: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  body?: ArrayBuffer;
+  contentType?: string;
+}
+
+export interface RawPlatformResponse {
+  response: Response | null;
+  sessionExpired?: boolean;
+}
+
+export async function callPlatformRaw(
+  request: RawPlatformRequest,
+): Promise<RawPlatformResponse> {
+  const session = await readSession();
+
+  const first = await sendRaw(request, session);
+
+  if (first?.status !== 401 || !session) {
+    return { response: first };
+  }
+
+  const refreshed = await refresh(session);
+
+  if (!refreshed) {
+    return { response: first, sessionExpired: true };
+  }
+
+  return { response: await sendRaw(request, refreshed) };
+}
+
+async function sendRaw(
+  request: RawPlatformRequest,
+  session: Session | null,
+): Promise<Response | null> {
+  const headers: Record<string, string> = {};
+
+  if (session) {
+    headers['Authorization'] = `Bearer ${session.accessToken}`;
+  }
+
+  if (request.contentType) {
+    headers['Content-Type'] = request.contentType;
+  }
+
+  try {
+    return await fetch(`${baseUrl}${request.path}`, {
+      method: request.method ?? 'GET',
+      headers,
+      ...(request.body === undefined ? {} : { body: request.body }),
+
+      // **Not followed.** The Platform answers a download with a redirect to a
+      // short-lived storage URL precisely so the bytes never pass through an
+      // application server. Following it here would pull the whole file into
+      // this process and stream it out again, which is the cost the redirect
+      // exists to avoid — and it would send the storage the Platform's
+      // Authorization header.
+      redirect: 'manual',
+
+      cache: 'no-store',
+    });
+  } catch {
+    return null;
+  }
+}

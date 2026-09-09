@@ -53,6 +53,12 @@ export type MfaEnrolmentDto = Schemas['MfaEnrolmentDto'];
 export type MfaVerificationDto = Schemas['MfaVerificationDto'];
 export type RecoveryCodesDto = Schemas['RecoveryCodesDto'];
 
+export type DocumentDto = Schemas['DocumentDto'];
+export type DocumentVersionDto = Schemas['DocumentVersionDto'];
+export type DocumentAccessRuleDto = Schemas['DocumentAccessRuleDto'];
+export type DocumentLinkDto = Schemas['DocumentLinkDto'];
+export type DocumentAccessLogDto = Schemas['DocumentAccessLogDto'];
+
 /**
  * The envelope every list endpoint returns (ADR-008).
  *
