@@ -45,6 +45,13 @@
     <Project Path="src/Modules/Security/CCP.Modules.Security.Domain/CCP.Modules.Security.Domain.csproj" />
     <Project Path="src/Modules/Security/CCP.Modules.Security.Infrastructure/CCP.Modules.Security.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Workflow/">
+    <Project Path="src/Modules/Workflow/CCP.Modules.Workflow.Api/CCP.Modules.Workflow.Api.csproj" />
+    <Project Path="src/Modules/Workflow/CCP.Modules.Workflow.Application/CCP.Modules.Workflow.Application.csproj" />
+    <Project Path="src/Modules/Workflow/CCP.Modules.Workflow.Contracts/CCP.Modules.Workflow.Contracts.csproj" />
+    <Project Path="src/Modules/Workflow/CCP.Modules.Workflow.Domain/CCP.Modules.Workflow.Domain.csproj" />
+    <Project Path="src/Modules/Workflow/CCP.Modules.Workflow.Infrastructure/CCP.Modules.Workflow.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CCP.Api.IntegrationTests/CCP.Api.IntegrationTests.csproj" />
     <Project Path="tests/CCP.Architecture.Tests/CCP.Architecture.Tests.csproj" />

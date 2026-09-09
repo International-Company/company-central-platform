@@ -997,6 +997,34 @@ In all three the domain layer was complete and correct — `Role.Create`,
 the application and API layers were missing. **A domain model can be finished and
 the product still be unusable**, and no test that stops at the domain will say so.
 
+### 9.1a One claim, read three ways, and the portal looked empty
+
+Found after the three deadlocks and worse than any of them, because it hid
+them: **the administration portal showed no administrative control at all, and
+no role could be granted or revoked.**
+
+Three copies of "read the subject from the principal" had grown. Two read
+`sub` and fell back to `ClaimTypes.NameIdentifier`; the third read only `sub`.
+ASP.NET Core's JWT handler renames inbound claims by default — `sub` arrives as
+`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier` — so the
+third copy found nothing on a perfectly valid token and its endpoints answered
+401 to every caller, always.
+
+Those endpoints were `GET /me/permissions`, which is how the portal decides
+which controls to show, and the two that create and destroy access. The
+Platform could not tell an administrator what they were allowed to do, and
+could not hand out access at all.
+
+Both versions look correct. `FindFirst("sub")` is what anyone would write, and
+it is wrong here for a reason that lives in framework configuration three files
+away. `CallerIdentity` in the kernel is now the only implementation, and the
+host stops the renaming with `MapInboundClaims = false` — a claim should be
+called what the token calls it.
+
+It surfaced because a test written to answer "why is this button missing"
+checked the session's own view of its permissions *separately* from the
+control, and reported which half broke. Splitting the two was the whole point.
+
 ### 9.2 The BFF broke every action that succeeded
 
 The Platform answers 204 to a command with nothing to return — changing a
@@ -1018,6 +1046,21 @@ followed by a stack trace.
 
 **The suite now passes in both locales, and the whole pipeline is green for the
 first time.**
+
+### 9.3a Two acceptance criteria measured for the first time
+
+axe against WCAG 2.1 AA on every screen in both locales, and four viewport
+widths. The responsive rule held everywhere — no page scrolls sideways at any
+width, in either direction. Accessibility found one real defect:
+`--color-text-muted` at #7b8794 reads 3.66:1 on white, below the 4.5:1 AA
+requires, and it is the colour of the word "(Required)" beside every field
+label. That word exists because the design refuses a red asterisk — it says
+the rule in words so a screen reader announces it — and setting it too faint
+to read undid the decision it was serving. Now #616e7c, with a unit test that
+computes the ratio for every text token.
+
+Automated checks find perhaps a third of real barriers. Passing them is a
+floor, not a certificate.
 
 ### 9.4 What was built
 
