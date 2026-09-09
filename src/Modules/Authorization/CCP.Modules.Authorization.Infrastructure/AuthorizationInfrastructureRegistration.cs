@@ -85,10 +85,17 @@ public sealed class AccessDenialRecorder(
     IRequestContext requestContext,
     CCP.Kernel.Application.Auditing.IAuditTrail auditTrail,
     Kernel.Primitives.IClock clock,
+    Kernel.Api.Observability.PlatformMetrics metrics,
     Microsoft.Extensions.Logging.ILogger<AccessDenialRecorder> logger) : IAccessDenialRecorder
 {
     public async Task RecordAsync(Guid userId, ClaimsPrincipal principal, string permission)
     {
+        // Counted first, and outside the try. The measurement is what an alert
+        // watches, and it must not be lost because the write that follows it
+        // failed — which is precisely the moment somebody would want to see a
+        // burst of denials.
+        metrics.PermissionDenied(permission);
+
         try
         {
             await outbox.EnqueueAsync(new AccessDeniedEvent(

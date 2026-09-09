@@ -4,6 +4,7 @@ using CCP.Api.Host.Configuration;
 using CCP.Api.Host.Modules;
 using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
+using CCP.Kernel.Api.Observability;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Api.Versioning;
 using CCP.Kernel.Application.Abstractions;
@@ -85,6 +86,12 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
+
+    // Credentials are removed on the way out, not left to the discipline of
+    // whoever writes each log statement (ARCHITECTURE.md §22.2). Every leak of
+    // this kind is written by somebody being careful who did not know the object
+    // they logged carried a token three properties down.
+    .Enrich.With<LogRedactionEnricher>()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture));
 
 // ---------------------------------------------------------------------------
@@ -141,10 +148,32 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<PlatformDocumentTransformer>();
 });
 
+// Traces and metrics (ADR-015). Instrumented always; exported only where an
+// OTLP endpoint has been configured, so a developer machine instruments and
+// sends nothing.
+builder.Services.AddPlatformObservability(
+    builder.Configuration,
+    serviceName: "company-central-platform",
+    serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0");
+
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<KernelDbContext>(
         name: "database",
         failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready"])
+
+    // Readiness that only asks about the database is readiness that lies. The
+    // Platform serves most requests with object storage unreachable and no
+    // request that touches a document, so a failing store should route traffic
+    // away rather than accept uploads it will drop (§22.4).
+    .AddCheck<DocumentStorageHealthCheck>(
+        name: "document-storage",
+
+        // Degraded, not unhealthy. Documents stop working; identity,
+        // authorization and workflow do not, and taking the whole Platform out
+        // of rotation because a bucket is unreachable would be the same mistake
+        // that once stopped it starting over a folder.
+        failureStatus: HealthStatus.Degraded,
         tags: ["ready"]);
 
 // Rate limiting (ARCHITECTURE.md §12.6). Named policies per endpoint class,

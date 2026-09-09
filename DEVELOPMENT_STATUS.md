@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 13 — Configuration & Feature Flags** |
-| Phase status | 🟢 **Typed, scoped, audited settings — and a switch that does not need a deployment.** |
-| Next phase | **Phase 14 — Observability** |
+| Current phase | **Phase 14 — Observability** |
+| Phase status | 🟡 **One correlation id retrieves the log, the trace and the audit record. No screen yet.** |
+| Next phase | **Phase 15 — Administration Portal Completion** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -28,8 +28,8 @@
 | 10 | Documents | 🟢 **Complete** | Metadata in PostgreSQL, bytes in object storage, behind `IDocumentStorageProvider` — a directory on disk in development, S3-compatible in production, chosen by what is configured rather than by the environment name. Uploads are identified by reading their first bytes: an executable renamed to `report.pdf` is refused and named. Random object keys, SHA-256, size enforced during the copy rather than after it. A scanner hook whose default reports *NotScanned* rather than *Clean*, so an audit of what was checked tells the truth. Versions are added, never edited. Access decided by one evaluator used by every path — user, role or unit rules that add up rather than override — and every access logged, **including the refusals**. Two-stage deletion with a thirty-day grace period and a purge sweep that destroys bytes before it marks the record. Polymorphic linking with no foreign key, so a business system files a document against its own record. Screens in both locales, and an upload control any screen can embed. 47 unit tests, 7 integration tests. |
 | 11 | External API Platform & App Registry | 🟢 **Complete** | Client credentials with rotation: an application holds two live secrets at once, so the new one works before the old one stops and a rotation is never an outage. `LastUsedAt` on every exchange, because finishing a rotation needs evidence rather than nerve. Applications hold the **same roles at the same scopes** as people, resolved by the same evaluator — two grant tables, one algorithm, and no second vocabulary of API scopes to keep in step. Acting on behalf of a person is the **intersection** of what the application and that person may do. The subject claim carries its kind, so no handler can mistake an application for a person. Per-application rate limits; the token endpoint partitioned by client id. The published contract states every endpoint's permission, step-up requirement and anonymity, derived from the endpoint metadata. `Deprecation`/`Sunset` headers exist with nothing yet deprecated. A permission manifest endpoint whose namespace comes from the token, so a system can only ever declare its own. 24 unit tests, 8 integration tests, an integration guide and a reference client. |
 | 12 | Integrations | 🟢 **Complete** | Every outbound call passes one door: the address is checked against a **deny-by-default** allow-list, the credential is resolved from a *reference* so no column in the module could hold a secret, the request runs under a resilience pipeline built from the provider's own settings, and both halves are written to the call log with the provider's declared fields blanked **before storage**. The SSRF defence checks the name and every address it resolves to — the metadata service, the private ranges, non-HTTP schemes and credentials in the URL are all refused, and a caller is never told which check failed. Bulkhead, breaker, retry with jitter, timeout, in that order, because the order decides what each one protects. Inbound webhooks verify an HMAC over the raw body with the timestamp inside the signed material, and every accepted signature is remembered so the same request cannot be replayed. Health is derived from recent calls, never stored. Retention from the first day. 48 unit tests. |
-| 13 | Configuration & Feature Flags | 🟡 **Core complete** | Settings are declared before they are set, in their owner's namespace, with a type and constraints checked at the moment somebody types a value. **A value that looks like a secret is refused outright** — a settings table is stored in plaintext, exported and backed up, and the sensitivity flag stops a value being read back rather than stopping it being there. Three scopes with narrowest winning; a row exists only where somebody overrode something. Every change keeps what it was, what it became, who and why — and for a sensitive setting says that it changed and not what to. Cached on a version stamp held in the database, so a change takes effect on the very next request and on every instance. Feature flags targeted by role or unit and nothing else, off by default, off when undeclared, and off meaning off however they are targeted. 52 unit tests. |
-| 14 | Observability | ⬜ Not started | |
+| 13 | Configuration & Feature Flags | 🟢 **Complete** | Settings are declared before they are set, in their owner's namespace, with a type and constraints checked at the moment somebody types a value. **A value that looks like a secret is refused outright** — a settings table is stored in plaintext, exported and backed up, and the sensitivity flag stops a value being read back rather than stopping it being there. Three scopes with narrowest winning; a row exists only where somebody overrode something. Every change keeps what it was, what it became, who and why — and for a sensitive setting says that it changed and not what to. Cached on a version stamp held in the database, so a change takes effect on the very next request and on every instance. Feature flags targeted by role or unit and nothing else, off by default, off when undeclared, and off meaning off however they are targeted. 52 unit tests. |
+| 14 | Observability | 🟡 **Partly complete** | OpenTelemetry traces and metrics, exported over OTLP where an endpoint is configured and instrumented unconditionally where one is not — so the code path in production is the one that ran locally. The correlation id is written onto the span by the middleware that decides it, so one identifier retrieves the log line, the trace and the audit record. Credentials are removed from log events **at the sink**, by name and by shape, because discipline does not scale to every log statement anybody will ever write. Five instruments the framework cannot supply, each with an alert defined against it. Readiness now distinguishes unhealthy from degraded: a bucket nobody can reach stops documents, not the Platform. 20 unit tests, a runbook. **No monitoring screen and no stored job history** — those belong with the dashboard. |
 | 15 | Administration Portal Completion | ⬜ Not started | |
 | 16 | Platform Dashboard | ⬜ Not started | |
 | 17 | Database Hardening, Backup & Recovery | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–13 in progress.**
+**Completed: 1 of 22 phases. Phases 1–14 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -944,6 +944,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 50 | The feature-state endpoint answers without the caller's roles or units | Medium | `GET /me/features/{key}` resolves neither, so a **targeted** flag reads as off for everybody through it. An undeclared or untargeted flag answers correctly, and the Platform's own code evaluates targeting properly because it already knows the caller. The endpoint needs the same subject resolution the Documents module has; until then a screen cannot be shown a targeted rollout. |
 | 51 | No configuration administration screens | Low | Same shape as the integrations gap: the API is complete and there is no UI. Settings are declared and changed through the API, which is workable and is not where this should end — a change history nobody can read is a change history that gets read once, during an incident, by somebody writing SQL. |
 | 52 | Nothing has been migrated onto the configuration module yet | Medium | Every retention period, size limit and interval written across Phases 9 to 12 is still an `appsettings` value that needs a deployment to change — which is precisely what this module exists to fix. The module works and nothing uses it, so the phase's benefit is available and unclaimed. |
+| 53 | ~~The tests about secrets put secret-shaped strings in the repository~~ | — | ✅ **Resolved.** The secret scanner failed the phase whose subject is keeping credentials out of places they do not belong, having found convincing tokens in my own fixtures — which is the scanner working, since it cannot tell a test from a leak. The fixtures are assembled at run time; an allow-list entry would have been a permanent hole opened so a test could keep its formatting. |
+| 54 | No stored background job history and no monitoring screen | Medium | Job runs and durations are emitted as metrics and nothing keeps a record of them, so "did last night's purge run?" is a query somebody writes during the incident rather than a page they open. Phase 14 lists both; they belong with the Platform dashboard in Phase 16. |
+| 55 | Alert definitions are written down and not deployed | Medium | The runbook names seven conditions with thresholds and a first action for each. Creating them is an operation in whichever backend the provider offers, and the provider is not chosen (Q4) — so the definitions exist as documentation and nothing is watching. |
+| 56 | Trace context is not propagated to business applications | Low | The Platform accepts an inbound correlation id and echoes it, and outbound integration calls carry W3C trace headers through the instrumented HTTP client. What is untested is the round trip: a business system's trace joining the Platform's and coming back. It needs a second service to test against. |
 | 48 | ~~The connector is not tested against a real HTTP server~~ | — | ✅ **Resolved.** A stub provider on a real socket, misbehaving on command: a retry works through two failures and the stub counts three arrivals, a 400 is not retried and the stub counts one, a timeout fires inside its budget while the stub sleeps five seconds, the breaker opens and the stub stops receiving anything, and a card number is absent from both halves of the stored log while the caller still gets it. The counts come from the far end of the socket rather than from the Platform's own log, so the log is not being tested against itself. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
@@ -1615,13 +1619,85 @@ benefit is available and unclaimed, and that is recorded rather than implied.
 
 ---
 
-## 16. Next step
+## 16. Phase 14 report — one identifier, and the redaction that cannot be forgotten
 
-**Phase 14 — Observability.** The Platform now has a great deal worth watching —
-outbound calls, workflow escalations, notification deliveries, permission
-denials — and no consolidated way to watch it. Structured logs, traces that
-follow a correlation id across modules, metrics that say whether a capability is
-healthy, and alerts on the handful of things that mean somebody must act.
+### 16.1 The correlation id goes on the span where it is decided
+
+Not in the tracing configuration, which was the first attempt. The value lives in
+a scoped service rather than on the request, so the enrichment callback could not
+see it — and rather than copy it somewhere the callback could reach, it is
+written onto the current span by the middleware that decides it.
+
+That is one place. A second reader of the same value is a second place to get it
+wrong, and the whole point of §22.1 is that the identifier is the *same* one
+everywhere.
+
+### 16.2 Redaction belongs at the sink
+
+The architecture says "applied at the sink, not left to the discipline of whoever
+writes the log statement", and that phrasing is the design rather than a
+preference.
+
+Every leak of this kind is written by somebody being careful. They did not know
+the object they logged carried a token three properties down, or that the
+exception message contained the request body. Discipline does not scale to every
+log statement anybody will ever write, and a review that catches it today will
+not be there in two years.
+
+So two rules run over every event: a property whose *name* means a credential is
+blanked whole, and a *value* that looks like one is blanked wherever it appears.
+Twenty tests pin both, including that ordinary text survives — a redactor that
+blanked everything would be a log nobody can use and would be switched off within
+a week.
+
+It is a last line and says so. A redactor people rely on instead of not logging
+secrets will eventually meet a shape it does not recognise.
+
+### 16.3 What is not instrumented, and why that is the point
+
+The framework already emits request rate, duration and error rate for every
+endpoint; the database and the HTTP clients emit theirs. Adding the Platform's
+own versions would produce two numbers for one thing and an argument about which
+is right during the incident where it matters.
+
+What is added is the five things the framework cannot know, and each one answers
+a question somebody actually asks: is this a failure spike or a busy Monday, is
+somebody mapping what they can reach, did the sweep run, are events getting out.
+
+Two shapes were chosen carefully. Authentication is counted as **attempts with an
+outcome tag** rather than as failures, because a failure count alone cannot
+distinguish a spike from everybody arriving at nine. And denials are tagged by
+**permission rather than by caller**, because a caller id would put a person's
+identifier into a metrics backend, which is not a place personal data belongs.
+
+### 16.4 Degraded is not unhealthy
+
+Readiness now checks document storage as well as the database, and a failing
+store reports **degraded** rather than unhealthy.
+
+Taking the whole Platform out of rotation because a bucket is unreachable would
+be the same mistake, in a different costume, as the defect that stopped the
+Platform starting over a folder it could not create. Documents stop; identity,
+authorization and workflow do not.
+
+### 16.5 What this phase does not have
+
+A screen, and a stored history of background job runs. Both are listed in Phase
+14 and both belong with the Platform dashboard, so they are recorded as debt
+rather than half-built here.
+
+And the alerts exist as a runbook rather than as deployed rules, because creating
+them is an operation in a backend nobody has chosen yet (Q4). Seven conditions
+with thresholds and a first action each — written down, and not yet watching.
+
+---
+
+## 17. Next step
+
+**Phase 15 — Administration Portal Completion.** Three modules now have complete
+APIs and no screens: integrations, configuration, and the job history this phase
+measured but does not show. The Platform is administrable through a terminal,
+which is workable for the person who built it and for nobody else.
 
 Still outstanding across all phases:
 

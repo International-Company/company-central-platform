@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Primitives;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +17,12 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
     public const string CorrelationHeader = "X-Correlation-Id";
     public const string RequestHeader = "X-Request-Id";
 
+    /// <summary>
+    /// The span attribute the correlation id is written to, so a trace can be
+    /// found from a log line and the other way round.
+    /// </summary>
+    public const string TraceTag = "ccp.correlation_id";
+
     private const int MaxHeaderLength = 128;
 
     public async Task InvokeAsync(HttpContext context, RequestContextAccessor accessor)
@@ -28,6 +35,13 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
             CorrelationId: correlationId,
             IpAddress: context.Connection.RemoteIpAddress?.ToString(),
             UserAgent: Truncate(context.Request.Headers.UserAgent.ToString(), 512)));
+
+        // Onto the current span as well, which is what makes one identifier
+        // retrieve the log line, the trace and the audit record for a request
+        // (ARCHITECTURE.md §22.1). Here rather than in the tracing
+        // configuration because this is where the value is decided, and a
+        // second place that read it would be a second place to get it wrong.
+        Activity.Current?.SetTag(TraceTag, correlationId);
 
         // Echo both so a caller can correlate their side with ours.
         context.Response.Headers[CorrelationHeader] = correlationId;

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CCP.Kernel.Api.Security;
 
@@ -92,8 +93,17 @@ public static class RateLimitPolicies
         // needed it, which an integration test caught. A conservative answer is
         // far better than none: a client with no guidance retries immediately
         // and is refused again.
-        options.OnRejected = static (context, cancellationToken) =>
+        options.OnRejected = (context, cancellationToken) =>
         {
+            // Counted as well as refused. A surge of rejections is one of the
+            // conditions worth waking somebody for, and a refusal that leaves no
+            // measurement leaves nothing to alert on
+            // (docs/deployment/observability.md).
+            context.HttpContext.RequestServices
+                .GetService<Observability.PlatformMetrics>()
+                ?.RateLimitRejected(
+                    context.HttpContext.GetEndpoint()?.DisplayName ?? "global");
+
             TimeSpan retryAfter =
                 context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan fromLease)
                     ? fromLease

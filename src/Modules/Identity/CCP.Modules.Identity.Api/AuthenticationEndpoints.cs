@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
+using CCP.Kernel.Api.Observability;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Results;
 using CCP.Modules.Identity.Application.Authentication;
@@ -35,6 +36,7 @@ public static class AuthenticationEndpoints
             HttpContext context,
             [FromServices] SignInHandler handler,
             [FromServices] RequestContextAccessor requestContext,
+            [FromServices] PlatformMetrics metrics,
             CancellationToken cancellationToken) =>
         {
             Result validation = request.Validate();
@@ -52,6 +54,12 @@ public static class AuthenticationEndpoints
                     requestContext.UserAgent,
                     request.DeviceFingerprint),
                 cancellationToken);
+
+            // Attempts with an outcome tag rather than a failure count. A count
+            // of failures alone cannot answer "is this a spike, or is everybody
+            // signing in this morning?" — and that ratio is what an alert
+            // actually watches (ARCHITECTURE.md §22.3).
+            metrics.AuthenticationAttempted(result.IsSuccess);
 
             return result.ToHttpResult(context, requestContext);
         })
