@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-09-08 |
+| Last updated | 2026-09-09 |
 | Current phase | **Phase 7 — Frontend Foundation** |
-| Phase status | 🟡 **Nine screens built in both locales. Create/edit forms, OpenAPI types and E2E outstanding** |
-| Next phase | Complete Phase 7, then **Phase 8 — Workflow** |
+| Phase status | 🟢 **Every administrative screen reads and writes. CI green end to end for the first time.** |
+| Next phase | Accessibility and responsive verification, then **Phase 8 — Workflow** |
 | Blocked | ⚠️ Partially — see §4 |
-| Deployed | ✅ **Live on Railway** — https://company-central-platform-production.up.railway.app |
+| Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
 ---
 
@@ -22,7 +22,7 @@
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
 | 5 | Security Hardening | 🟡 **Core complete** | Per-endpoint rate limits, TOTP two-factor with recovery codes, AES-256-GCM secret protection, step-up authentication enforced on six privileged endpoints, security event log with bounded search. 56 unit tests, 3 new architecture tests. |
 | 6 | Audit | 🟡 **Core complete** | Append-only trail, monthly range partitioning with a maintenance job, redaction before storage, internal and external ingestion, bounded search, privileges revoked to INSERT+SELECT at the database. **Wired into 15 state-changing handlers across Identity, Organization, Authorization and Security**, through a neutral kernel seam so no module references Audit. 50 unit tests + 3 architecture tests. |
-| 7 | Frontend Foundation & Core Admin UI | 🟡 **Foundation** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. |
+| 7 | Frontend Foundation & Core Admin UI | 🟡 **Administrable** | Next.js 15 / React 19 / TypeScript strict / Tailwind 4 / next-intl. White-and-blue token set, no icon package installed at all. Arabic-first with full RTL mirroring by logical properties, 98 catalogue keys at parity. BFF with httpOnly session, no token in the browser. Shell, DataTable, form primitives. Nine screens: sign-in, MFA, forgot/reset password, dashboard, users, employees, roles, audit. Lint rules enforce the RTL and no-hardcoded-string criteria. Production build green in both locales. Twelve screens, every one of them able to write: company setup, organizational structure, employees, users, role definition and permission editing, role granting with a step-up prompt, own-account two-factor enrolment, and a dashboard of live figures. Types generated from the OpenAPI document the API emits. Playwright sweeps every screen in both locales and passes. |
 | 8 | Workflow | ⬜ Not started | |
 | 9 | Notifications | ⬜ Not started | |
 | 10 | Documents | ⬜ Not started | |
@@ -905,11 +905,11 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 9 | ~~Permission attributes declared but not enforced~~ | — | ✅ **Resolved in Phase 4.** Enforced by the policy provider and permission handler, with the scope filter applied at the data layer for employee search. |
 | 15 | The user list endpoint applies no scope filter | Medium | Identity has no organizational dimension, so what `Unit` scope means there needs deciding. Until then a caller with `platform.users.view` at any scope sees every user. |
 | 16 | Authorization integration tests not written | **Medium** | 63 unit tests cover evaluation and enforcement; the permission join, the version stamp under concurrency, and the seeder have never run against a real database. |
-| 17 | Role and application management endpoints missing | Medium | Roles are readable and grantable but not creatable through the API. Application registration endpoints arrive with client credentials in Phase 11. |
+| 17 | ~~Role management endpoints missing~~ | — | ✅ **Resolved.** Roles can be created, renamed, filled with permissions and deactivated, behind `platform.roles.manage` and with the anti-escalation rule applied at definition as well as at grant. Application registration still arrives with client credentials in Phase 11. Until this existed the Platform had one role — the seeder's, holding everything — so granting anybody anything made them a full administrator. |
 | 10 | Password reset cannot complete end to end | Medium | The token is issued and staged on the outbox, but nothing sends the email until Notifications (Phase 9). |
 | 11 | No recovery path if the last administrator is lost | Medium | Bootstrapping refuses to run once users exist. Revisit in Phase 4 when roles can express "more than one administrator". |
 | 12 | Organization integration tests not written | **Medium** | 48 unit tests cover the hierarchy logic, but atomic moves, the `text_pattern_ops` index actually being used, and unique constraints are unverified against a real database. |
-| 13 | Position and company endpoints missing | Low | The entities, repository methods and validation exist. Creating the company is currently a seeding concern with no endpoint. |
+| 13 | ~~Company endpoint missing~~ | **Was High, not Low** | ✅ **Resolved.** The company can be established, read and renamed. This was recorded as Low and was in fact a deadlock: every read in the module resolves the company first and answered 404 without one, so the whole section reported failure on a working installation — and no endpoint created a company, while `CreateUnit` required one. Reads now treat an empty Platform as empty; writes still refuse. Position endpoints remain outstanding. |
 | 18 | MFA protection key cannot be rotated | **Medium** | Rotating it today would make every enrolled secret undecryptable. The stored `nonce \| tag \| ciphertext` format has no key version field; that must come first. Documented in `docs/security/secrets-management.md` §5 rather than left implicit. |
 | 19 | No administrator-initiated MFA reset | Medium | A user who loses both phone and recovery codes cannot recover. Needs an audited, permission-gated flow; deferred with the account-recovery work. |
 | 20 | TOTP is not phishing-resistant | Medium | A convincing fake login page can collect and replay a code within thirty seconds. WebAuthn is the answer and is kept as an extension point. Accepted and recorded, not overlooked. |
@@ -917,6 +917,9 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 22 | Argon2id parameters are defaults, not measured | Medium | Carried from Phase 2. Needs measurement on the deployment hardware. |
 | 23 | ~~Authentication rate limiting is partitioned by IP, which fails behind NAT~~ | — | ✅ **Resolved.** Authentication is now partitioned by the account being targeted, with a separate per-address limit chained onto the global limiter for the other direction and account lockout as the third layer. `NatRateLimitTests` reproduces an office behind one address. (was:) | Every employee in one office shares one public address and therefore one budget, so 10/min is really "ten sign-ins a minute for the whole company" — the eleventh person arriving on Sunday morning is refused. Surfaced by the integration suite, which trips the limit for exactly this reason: a test process behind one address is a perfect simulation of an office behind one NAT. **Deferred by decision, not oversight.** The fix is to partition the authentication class by the account being attacked as well as by source, keeping a much looser per-IP limit as a backstop; account lockout stays the third defence. Must be resolved before real users. |
 | 24 | Rate limits are raised in the integration suite | Low | The suite shares one address, so at the production limit everything after the first ten sign-ins fails with 429. `RateLimitTests` runs at a limit of 3 and asserts the rejection and its `Retry-After` header, so the limiter itself stays covered. |
+| 25 | Accessibility not yet verified with a tool | Medium | The components were built to the rules — real labels, `role="alert"`, native `<dialog>`, text actions rather than glyphs — and none of it has been run through axe. Phase 7's own acceptance criterion. |
+| 26 | Responsive behaviour not verified at the four breakpoints | Medium | The table has a stacked form below `sm` and the page is not meant to scroll sideways at any width. Asserted nowhere. |
+| 27 | A role's permissions are replaced blind of concurrent edits | Low | Two administrators editing one role in the same minute: the second save wins silently. The read returns no version to check against. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -956,32 +959,109 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 
 ---
 
-## 9. Next step
+## 9. Phase 7 report — what the deployment taught
 
-Six phases exist and, for the first time, are **proven rather than asserted**:
-421 unit and architecture tests, 62 integration tests against real PostgreSQL on
-every push, a container image that builds and passes a vulnerability scan, and a
-running deployment.
+The frontend was written, deployed, and then found to be resting on three
+deadlocks in the backend that no unit test could see and that only a person
+trying to use the Platform would hit. All three have the same shape: **a module
+that assumes something exists, and nothing that creates it.**
 
-**Phase 7 — Frontend Foundation & Core Administration UI** is next: React,
-TypeScript, Next.js, Tailwind and shadcn/ui, Arabic and English with real RTL
-mirroring, tables as the primary interface, white and blue, no icons by default.
+### 9.1 The three deadlocks
 
-**Close first, before Phase 7:**
+**No permissions existed at all.** The seeder derives the permission list from
+endpoint metadata — which is right — but read that metadata from the
+`EndpointDataSource` registered in the container. That is a composite which never
+sees the endpoints a minimal API maps: it resolves without throwing and reports
+none. So startup declared zero permissions, granted the administrator role zero
+permissions, logged nothing (the seeder only logs on change, and nothing
+changed), and every administrative screen answered 403 with no explanation
+anywhere in the system. The first administrator could sign in and do nothing.
 
-1. **The bootstrap administrator on the deployment.** Nothing can be administered
-   until one account exists.
-2. **Phase 7 — the frontend.** Nothing has a user interface yet.
+A second defect sat behind it: `GrantAllPermissionsToAdministrator` reads the
+permissions back with a query, and they had not been saved yet. It self-heals on
+the next restart, which is exactly why it was invisible — a fresh deployment is
+unadministrable until something restarts it.
+
+**Only one role could ever exist.** The seeder creates `platform-administrator`
+holding everything; no endpoint created another. So granting anybody anything
+made them a full administrator. Scope does not rescue that — it narrows who the
+permissions reach, not which permissions they are.
+
+**No company could ever exist.** Every read in the Organization module resolves
+the company first and answered `CompanyNotFound` without one. No endpoint created
+a company, and `CreateUnit` required one. The whole section reported failure on a
+working installation.
+
+In all three the domain layer was complete and correct — `Role.Create`,
+`Company.Create`, `AddPermission`, the repository methods, the validation. Only
+the application and API layers were missing. **A domain model can be finished and
+the product still be unusable**, and no test that stops at the domain will say so.
+
+### 9.2 The BFF broke every action that succeeded
+
+The Platform answers 204 to a command with nothing to return — changing a
+password, moving a unit, granting a role, disabling an account. `relay` decided
+success by "did a body come back", so a 204 fell to the failure branch, which
+built an error body at status 204 — which `NextResponse` refuses to construct. The
+handler threw, the browser saw 500, and the screen reported failure for work the
+Platform had already done. The deployed database shows the first password change
+succeeding on the day it was reported as broken.
+
+### 9.3 The end-to-end suite had never passed
+
+Not once since it was written. Every report said `waitForURL` timed out, which is
+what a screen that never navigates looks like from outside; the reason sat in a
+response body nothing printed, and both servers in CI ran with their output
+discarded. Making the setup quote the failed calls and the text on screen, and
+keeping the server logs, turned a week of "flaky" into one line: `responded 204`
+followed by a stack trace.
+
+**The suite now passes in both locales, and the whole pipeline is green for the
+first time.**
+
+### 9.4 What was built
+
+Twelve screens, and every one of them can write: company setup, organizational
+structure (tree as a table, create, rename, move, deactivate), employees with a
+create form, users with create/edit/enable/disable/unlock, role definition and
+permission editing, role granting and revoking at a scope, own-account two-factor
+enrolment with recovery codes, and a dashboard of live figures. Step-up
+refusals are told apart from permission refusals and answered with a prompt that
+replays the original action.
+
+### 9.5 Guards added, each watched to fail before being trusted
+
+- Permission seeding, the administrator's full grant, and a loud refusal when no
+  endpoint declares a permission — integration tests against real PostgreSQL.
+- `relay` on every status shape, including the 204 that caused all this.
+- No page or layout may refresh the session: refreshing during render spends the
+  refresh token and then cannot store the replacement.
+- The role-permission editor added to the reviewed step-up set, which the
+  architecture test refused until it was recorded deliberately.
+
+---
+
+## 10. Next step
+
+**Finish Phase 7:** an axe accessibility pass and responsive verification at the
+four breakpoints. Both are its own acceptance criteria and both are unverified
+(debt 25, 26).
+
+**Then Phase 8 — Workflow.**
 
 Still outstanding across all phases:
 
-- **Q10 — the bootstrap administrator procedure** needs approval.
 - **B3 — the requirements document** is still missing, seven phases in. Every
   decision so far has been made from ARCHITECTURE.md and the master prompt.
+- **Q10 — the bootstrap administrator procedure** needs approval.
 - **The MFA protection key cannot be rotated**, and a user losing both phone and
   recovery codes has no recovery path.
+- **Password reset cannot complete** until Notifications (Phase 9) can send mail.
 
 **What changed this phase, and it is the important one:** the project stopped
-taking its own word for things. Nine latent defects surfaced in a single
-afternoon of deployment — two of which would have reached real users — after five
-phases of local testing found none of them.
+taking its own word for things. Six defects that made the Platform unusable
+survived 421 unit tests, five phases of review and a deployment — and were found
+within minutes of a test that drove the real product through a real browser
+against a real database. Every one of them lived in a seam: between the
+composition root and the database, between the API and its own client, between a
+module's domain and the fact that nothing ever called it.
