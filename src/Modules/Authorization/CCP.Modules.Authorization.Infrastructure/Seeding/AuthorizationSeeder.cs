@@ -88,6 +88,14 @@ public sealed class AuthorizationSeeder(
         (int added, int deactivated) = await ReconcilePermissionsAsync(
             dbContext, platform, declared, now, cancellationToken);
 
+        // Saved before the role is filled, for the same reason the application
+        // is saved before the permissions: what comes next reads them back from
+        // the database. Permissions that exist only in the change tracker are
+        // invisible to a query, so the administrator role was granted nothing on
+        // the run that created them — and only picked them up on the next
+        // restart, which is why a fresh deployment came up unadministrable.
+        await dbContext.SaveChangesAsync(cancellationToken);
+
         Role administrator = await EnsureAdministratorRoleAsync(dbContext, now, cancellationToken);
 
         int granted = await GrantAllPermissionsToAdministratorAsync(
