@@ -25,6 +25,12 @@ export interface PlatformResponse<T> {
 
   /** Ties this call to the Platform's logs. Shown to the user on failure. */
   correlationId: string | null;
+
+  /**
+   * The session is beyond repair and should be discarded. Distinct from an
+   * ordinary 401, which a refresh may still fix.
+   */
+  sessionExpired?: boolean;
 }
 
 export interface ProblemDetails {
@@ -67,6 +73,12 @@ export async function callPlatform<T>(
     if (refreshed) {
       return send<T>(request, refreshed);
     }
+
+    // The session cannot be repaired: the family was revoked, or the refresh
+    // token has expired. Flagged so the caller can end it rather than leave the
+    // person looking at an application whose every request fails — which reads
+    // as a broken system rather than as a lapsed session.
+    return { ...response, sessionExpired: true };
   }
 
   return response;
@@ -140,13 +152,50 @@ async function send<T>(
 }
 
 /**
+ * Refreshes in flight, keyed by the token being exchanged.
+ *
+ * **Without this the session destroys itself.** A page makes several requests at
+ * once; the access token expires; every one of them gets a 401 and every one
+ * starts a refresh. The first rotates the token, and the rest present a token
+ * that has now been used — which is precisely what the Platform's reuse
+ * detection is built to catch, so it revokes the whole family and signs the
+ * person out.
+ *
+ * That is the Platform behaving correctly. The mistake was here: rotation means
+ * a refresh token may be spent exactly once, so exactly one exchange may be in
+ * flight for it. Concurrent callers await the same one.
+ *
+ * Per process, which is what the failure needs — the requests that race are the
+ * ones this server is serving for one page load. Several instances refreshing
+ * the same session at the same instant remains possible and is much rarer; the
+ * user signs in again.
+ */
+const refreshesInFlight = new Map<string, Promise<Session | null>>();
+
+function refresh(session: Session): Promise<Session | null> {
+  const existing = refreshesInFlight.get(session.refreshToken);
+
+  if (existing) {
+    return existing;
+  }
+
+  const attempt = exchange(session).finally(() => {
+    refreshesInFlight.delete(session.refreshToken);
+  });
+
+  refreshesInFlight.set(session.refreshToken, attempt);
+
+  return attempt;
+}
+
+/**
  * Exchanges the refresh token for a new pair and stores it.
  *
  * The rotation is the Platform's; this only carries it. If the Platform refuses
  * — a revoked family, a reused token — the session is not repaired, and the
  * caller receives the 401 it already had.
  */
-async function refresh(session: Session): Promise<Session | null> {
+async function exchange(session: Session): Promise<Session | null> {
   const raw = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

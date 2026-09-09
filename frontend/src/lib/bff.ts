@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { NextResponse } from 'next/server';
+import { clearSession } from './session';
 import type { PlatformResponse } from './platform-client';
 
 /**
@@ -15,7 +16,15 @@ import type { PlatformResponse } from './platform-client';
  * places drift: the Platform starts answering 409 and the screen keeps showing
  * a generic failure because nobody updated the translation.
  */
-export function relay<T>(response: PlatformResponse<T>): NextResponse {
+export async function relay<T>(response: PlatformResponse<T>): Promise<NextResponse> {
+  if (response.sessionExpired) {
+    // Drop the cookie the moment the Platform has finished with the session.
+    // Keeping it leaves the browser showing an application whose every request
+    // fails, which reads as a broken system rather than as a lapsed session —
+    // and the person has no way to discover that signing in again is the fix.
+    await clearSession();
+  }
+
   if (response.data !== null && response.problem === null) {
     return NextResponse.json(response.data, { status: response.status });
   }

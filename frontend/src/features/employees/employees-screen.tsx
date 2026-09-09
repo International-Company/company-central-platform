@@ -48,6 +48,16 @@ export function EmployeesScreen() {
       const response = await fetch(`/api/employees?${params.toString()}`);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // The session is gone, and the BFF has already dropped the cookie.
+          // A full navigation rather than a router push, so the server renders
+          // the sign-in page from scratch instead of reusing client state that
+          // belongs to a session that no longer exists.
+          window.location.href = `/${locale}/login`;
+
+          return;
+        }
+
         setError(
           response.status === 403 ? tErrors('forbidden') : tErrors('generic'),
         );
@@ -61,7 +71,7 @@ export function EmployeesScreen() {
     } finally {
       setLoading(false);
     }
-  }, [page, query, tErrors]);
+  }, [page, query, tErrors, locale]);
 
   useEffect(() => {
     void load();

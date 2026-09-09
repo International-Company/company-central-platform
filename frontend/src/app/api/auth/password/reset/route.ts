@@ -5,7 +5,7 @@ import { relay } from '@/lib/bff';
 export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
 
-  return relay(
+  return await relay(
     await callPlatform({
       path: '/api/v1/auth/password/reset',
       method: 'POST',

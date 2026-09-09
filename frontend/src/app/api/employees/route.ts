@@ -8,9 +8,9 @@ const AllowedQuery = ['page', 'pageSize', 'search', 'unitId', 'status'] as const
 export async function GET(request: Request) {
   const query = forwardQuery(request.url, AllowedQuery);
 
-  return relay(
+  return await relay(
     await callPlatform<PagedResult<EmployeeDto>>({
-      path: `/api/v1/employees${query}`,
+      path: `/api/v1/organization/employees${query}`,
     }),
   );
 }

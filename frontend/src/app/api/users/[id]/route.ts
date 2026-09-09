@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const { id } = await context.params;
 
-  return relay(
+  return await relay(
     await callPlatform<UserDto>({
       path: `/api/v1/users/${encodeURIComponent(id)}`,
     }),
@@ -25,7 +25,7 @@ export async function PUT(
   // Passed through unreshaped. The Platform validates it and answers with
   // field-level errors the form attaches to inputs; validating here as well
   // would be a second set of rules to keep in step with the first.
-  return relay(
+  return await relay(
     await callPlatform<UserDto>({
       path: `/api/v1/users/${encodeURIComponent(id)}`,
       method: 'PUT',

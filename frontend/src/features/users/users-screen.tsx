@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/shared/data-table';
@@ -28,6 +28,7 @@ export function UsersScreen() {
   const tTable = useTranslations('table');
   const tErrors = useTranslations('errors');
   const format = useFormatter();
+  const locale = useLocale();
 
   const [search, setSearch] = useState('');
 
@@ -71,6 +72,16 @@ export function UsersScreen() {
       const response = await fetch(`/api/users?${params.toString()}`);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // The session is gone, and the BFF has already dropped the cookie.
+          // A full navigation rather than a router push, so the server renders
+          // the sign-in page from scratch instead of reusing client state that
+          // belongs to a session that no longer exists.
+          window.location.href = `/${locale}/login`;
+
+          return;
+        }
+
         setError(
           response.status === 403 ? tErrors('forbidden') : tErrors('generic'),
         );
@@ -84,7 +95,7 @@ export function UsersScreen() {
     } finally {
       setLoading(false);
     }
-  }, [page, query, tErrors]);
+  }, [page, query, tErrors, locale]);
 
   useEffect(() => {
     void load();

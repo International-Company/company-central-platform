@@ -8,7 +8,7 @@ const AllowedQuery = ['page', 'pageSize', 'search', 'status', 'sort'] as const;
 export async function GET(request: Request) {
   const query = forwardQuery(request.url, AllowedQuery);
 
-  return relay(
+  return await relay(
     await callPlatform<PagedResult<UserDto>>({ path: `/api/v1/users${query}` }),
   );
 }
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   // Passed through without reshaping. The Platform validates it and returns
   // field-level errors the form can attach to inputs; validating here as well
   // would create a second set of rules to keep in step with the first.
-  return relay(
+  return await relay(
     await callPlatform<UserDto>({
       path: '/api/v1/users',
       method: 'POST',

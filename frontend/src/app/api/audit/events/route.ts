@@ -26,7 +26,7 @@ const AllowedQuery = [
 export async function GET(request: Request) {
   const query = forwardQuery(request.url, AllowedQuery);
 
-  return relay(
+  return await relay(
     await callPlatform<PagedResult<AuditEventDto>>({
       path: `/api/v1/audit/events${query}`,
     }),

@@ -35,7 +35,7 @@ export async function POST(
   // The action becomes a path segment, and the schema above is what makes that
   // safe: only the three literals it permits can reach here, so nothing a
   // caller writes is interpolated into the URL.
-  return relay(
+  return await relay(
     await callPlatform({
       path: `/api/v1/users/${encodeURIComponent(id)}/${parsed.data.action}`,
       method: 'POST',

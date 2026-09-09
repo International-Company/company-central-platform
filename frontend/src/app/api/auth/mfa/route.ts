@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: 'BFF.INVALID_REQUEST' }, { status: 422 });
   }
 
-  return relay(
+  return await relay(
     await callPlatform({
       path: '/api/v1/me/mfa/verify',
       method: 'POST',
