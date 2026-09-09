@@ -11,6 +11,7 @@ using CCP.Kernel.Application.Events;
 using CCP.Kernel.Infrastructure.Outbox;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
+using Microsoft.AspNetCore.Authorization;
 using CCP.Modules.Identity.Application;
 using CCP.Modules.Identity.Infrastructure;
 using CCP.Modules.Identity.Infrastructure.Bootstrap;
@@ -228,6 +229,13 @@ builder.Services
             new RsaSecurityKey(keyProvider.GetSigningKey()) { KeyId = keyProvider.KeyId });
 
 builder.Services.AddAuthorization();
+
+// Replaces the framework's bare 403 with a body that says which refusal it was:
+// a permission the caller does not hold, or an elevation that has lapsed. The
+// status is the same for both; the code is what the client acts on.
+builder.Services.AddSingleton<
+    IAuthorizationMiddlewareResultHandler,
+    PlatformAuthorizationResultHandler>();
 
 // ---------------------------------------------------------------------------
 // Modules

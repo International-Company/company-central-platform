@@ -69,6 +69,36 @@ public static class ProblemDetailsFactory
     }
 
     /// <summary>
+    /// The body returned when a request is refused by authorization.
+    /// <para>
+    /// Built here rather than from an <see cref="Error"/> because there is no
+    /// domain failure to convert: the request never reached a handler. The code
+    /// is what the caller acts on — it says whether to confirm a second factor
+    /// or to ask for a permission.
+    /// </para>
+    /// </summary>
+    public static ProblemDetails Forbidden(
+        string code,
+        string detail,
+        string correlationId,
+        string? instance = null)
+    {
+        var problem = new ProblemDetails
+        {
+            Type = TypeBaseUri + Slug(ErrorType.Forbidden),
+            Title = TitleFor(ErrorType.Forbidden),
+            Status = StatusCodes.Status403Forbidden,
+            Detail = detail,
+            Instance = instance
+        };
+
+        problem.Extensions["code"] = code;
+        problem.Extensions["correlationId"] = correlationId;
+
+        return problem;
+    }
+
+    /// <summary>
     /// The body returned for an unhandled exception. Deliberately says nothing
     /// about what went wrong — the correlation id is the entire diagnostic
     /// surface exposed to the caller.

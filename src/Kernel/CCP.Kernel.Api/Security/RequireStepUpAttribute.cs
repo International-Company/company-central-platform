@@ -59,4 +59,24 @@ public sealed class RequireStepUpAttribute : Attribute, IAuthorizeData
 /// either module referencing the other (§6.2).
 /// </para>
 /// </summary>
-public sealed class StepUpRequirement : IAuthorizationRequirement;
+public sealed class StepUpRequirement : IAuthorizationRequirement
+{
+    /// <summary>
+    /// Marks an authorization failure as "step-up needed" rather than "not
+    /// permitted".
+    /// <para>
+    /// Both answer 403, deliberately — an unauthenticated prober learns nothing
+    /// from the status code either way. But the signed-in person needs to be
+    /// told which, because the two have opposite remedies: one is fixed by
+    /// confirming a second factor, the other by asking an administrator for a
+    /// permission. Without this the client is guessing, and the guess is wrong
+    /// often enough to send people to ask for access they already hold.
+    /// </para>
+    /// <para>
+    /// The constant lives here, with the requirement, so the handler in Security
+    /// can set it and the result handler in the kernel can read it without
+    /// either referencing the other (§6.2).
+    /// </para>
+    /// </summary>
+    public const string FailureReason = "step-up-required";
+}

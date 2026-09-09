@@ -11,8 +11,14 @@ import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { UserForm } from './user-form';
-import { IfPermitted } from '@/lib/permissions';
-import type { PagedResult, UserDto } from '@/types/platform';
+import { UserRolesDialog } from './user-roles-dialog';
+import { IfPermitted, usePermission } from '@/lib/permissions';
+import type {
+  OrganizationUnitTreeDto,
+  PagedResult,
+  RoleDto,
+  UserDto,
+} from '@/types/platform';
 
 /**
  * The Users list.
@@ -27,6 +33,7 @@ export function UsersScreen() {
   const tCommon = useTranslations('common');
   const tTable = useTranslations('table');
   const tErrors = useTranslations('errors');
+  const tRoles = useTranslations('roles');
   const format = useFormatter();
   const locale = useLocale();
 
@@ -50,6 +57,15 @@ export function UsersScreen() {
     action: 'enable' | 'disable' | 'unlock';
   } | null>(null);
   const [applying, setApplying] = useState(false);
+
+  // Whose roles are being managed, and the reference data the dialog needs to
+  // name what it is granting. Loaded once here rather than by the dialog, so
+  // opening it is instant and closing it does not throw the lists away.
+  const [managingRoles, setManagingRoles] = useState<UserDto | null>(null);
+  const [roles, setRoles] = useState<RoleDto[]>([]);
+  const [units, setUnits] = useState<OrganizationUnitTreeDto[]>([]);
+
+  const canAssign = usePermission('platform.roles.assign');
 
   // `null` means closed; `{ editing: null }` means creating. Modelled as one
   // value so "which form is open, and on what" cannot disagree with itself.
@@ -100,6 +116,31 @@ export function UsersScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!canAssign) {
+      return;
+    }
+
+    // Failures are silent: this is reference data for a dialog, and the list
+    // behind it — which is what the screen is for — does not depend on it.
+    void (async () => {
+      const [roleResponse, unitResponse] = await Promise.all([
+        fetch('/api/roles').catch(() => null),
+        fetch('/api/organization/units').catch(() => null),
+      ]);
+
+      if (roleResponse?.ok) {
+        const body = (await roleResponse.json()) as PagedResult<RoleDto> | RoleDto[];
+
+        setRoles(Array.isArray(body) ? body : body.items);
+      }
+
+      if (unitResponse?.ok) {
+        setUnits(flattenUnits((await unitResponse.json()) as OrganizationUnitTreeDto[]));
+      }
+    })();
+  }, [canAssign]);
 
   async function applyStatus() {
     if (!pending) {
@@ -308,6 +349,16 @@ export function UsersScreen() {
                     {tCommon('edit')}
                   </Button>
 
+                  <IfPermitted permission="platform.roles.assign">
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      onClick={() => setManagingRoles(user)}
+                    >
+                      {tRoles('manageRoles')}
+                    </Button>
+                  </IfPermitted>
+
                   {user.status === 'Locked' ? (
                     <Button
                       variant="quiet"
@@ -385,6 +436,20 @@ export function UsersScreen() {
           void load();
         }}
       />
+
+      <UserRolesDialog
+        user={managingRoles}
+        roles={roles}
+        units={units}
+        onClose={() => setManagingRoles(null)}
+      />
     </>
   );
+}
+
+/** The nested structure as a flat list, for naming a grant's scope. */
+function flattenUnits(
+  units: readonly OrganizationUnitTreeDto[],
+): OrganizationUnitTreeDto[] {
+  return units.flatMap((unit) => [unit, ...flattenUnits(unit.children)]);
 }

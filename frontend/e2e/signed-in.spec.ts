@@ -63,7 +63,14 @@ test.describe('the portal', () => {
     expect(background).not.toBe('transparent');
   });
 
-  for (const screen of ['users', 'employees', 'roles', 'audit'] as const) {
+  for (const screen of [
+    'users',
+    'employees',
+    'organization',
+    'roles',
+    'security',
+    'audit',
+  ] as const) {
     test(`opens ${screen} and can read it`, async ({ page }, testInfo) => {
       await page.goto(`/${locale(testInfo.project.name)}/${screen}`);
 
@@ -83,7 +90,14 @@ test.describe('the portal', () => {
     // Navigating quickly is what set off the refresh stampede: several requests
     // in flight, all seeing an expired access token, all refreshing, and the
     // Platform revoking the family for reuse.
-    for (const screen of ['users', 'roles', 'employees', 'users', 'audit']) {
+    for (const screen of [
+      'users',
+      'roles',
+      'organization',
+      'employees',
+      'users',
+      'audit',
+    ]) {
       await page.goto(`/${current}/${screen}`);
     }
 

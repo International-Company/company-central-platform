@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { callPlatform } from '@/lib/platform-client';
 import { relay } from '@/lib/bff';
+import type { MfaStatusDto } from '@/types/platform';
 
 const VerifyRequest = z.object({
   code: z.string().min(1).max(32),
@@ -29,5 +30,12 @@ export async function POST(request: Request) {
       method: 'POST',
       body: parsed.data,
     }),
+  );
+}
+
+/** Whether a second factor is set up, and how many recovery codes are left. */
+export async function GET() {
+  return await relay(
+    await callPlatform<MfaStatusDto>({ path: '/api/v1/me/mfa' }),
   );
 }

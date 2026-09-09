@@ -62,7 +62,11 @@ public sealed class StepUpAuthorizationHandler(
             // administrative screens after their elevation lapsed would generate
             // a burst of warnings that mean nothing. The security event log
             // records the confirmations, which is the signal worth keeping.
-            context.Fail();
+            //
+            // Carrying a reason, so the response can say "confirm your identity"
+            // rather than "you do not have permission". The status stays 403
+            // either way.
+            context.Fail(new AuthorizationFailureReason(this, StepUpRequirement.FailureReason));
         }
     }
 
