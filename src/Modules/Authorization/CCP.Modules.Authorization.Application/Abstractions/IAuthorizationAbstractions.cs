@@ -69,6 +69,25 @@ public interface IPermissionResolver
     /// <summary>Evaluates one permission for one user, filter included.</summary>
     Task<AccessDecision> EvaluateAsync(
         Guid userId, string permissionName, CancellationToken cancellationToken = default);
+
+    /// <summary>Everything a registered application may do, acting as itself.</summary>
+    Task<EffectivePermissions> GetEffectivePermissionsForApplicationAsync(
+        Guid applicationId, CancellationToken cancellationToken = default);
+
+    /// <summary>Evaluates one permission for an application acting as itself.</summary>
+    Task<AccessDecision> EvaluateForApplicationAsync(
+        Guid applicationId, string permissionName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Evaluates one permission for an application acting on behalf of a person.
+    /// <para>
+    /// The intersection of the two: a delegated call may do only what the
+    /// application is trusted with and what the person is entitled to.
+    /// </para>
+    /// </summary>
+    Task<AccessDecision> EvaluateDelegatedAsync(
+        Guid applicationId, Guid userId, string permissionName,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -111,6 +130,18 @@ public interface IAuthorizationRepository
 
     Task<IReadOnlyList<Permission>> GetAllPermissionsAsync(
         bool includeInactive, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The permissions a role carries, by name.
+    /// <para>
+    /// Needed by the anti-escalation check, which has to know what granting a
+    /// role actually hands over. Checking the role rather than its contents
+    /// would let somebody pass on a role full of permissions they have never
+    /// held themselves.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Permission>> GetPermissionsForRoleAsync(
+        Guid roleId, CancellationToken cancellationToken = default);
 
     void AddPermission(Permission permission);
 

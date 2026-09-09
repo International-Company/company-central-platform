@@ -28,4 +28,20 @@ public interface IUserDirectory
 
     /// <summary>The account's display name, for addressing a message.</summary>
     Task<string?> GetDisplayNameAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether this account could sign in right now.
+    /// <para>
+    /// Asked by Authorization before an application is allowed to act on
+    /// somebody's behalf. Without it, delegation would happily mint a token
+    /// naming a disabled account, an account that never existed, or a typo — and
+    /// the audit trail would then name a person who had nothing to do with it.
+    /// </para>
+    /// <para>
+    /// A single boolean on purpose. "Why not" is Identity's business: a caller
+    /// that learned the difference between disabled, locked and non-existent
+    /// would have an account-enumeration oracle.
+    /// </para>
+    /// </summary>
+    Task<bool> CanSignInAsync(Guid userId, CancellationToken cancellationToken = default);
 }

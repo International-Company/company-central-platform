@@ -28,10 +28,12 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
     {
         get
         {
-            string? subject = Principal?.FindFirst("sub")?.Value
-                           ?? Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            return Guid.TryParse(subject, out Guid id) ? id : null;
+            // Through CallerIdentity, so that a machine token acting as itself
+            // is not reported as a person whose id happens to be the
+            // application's. Two readers of the same claim disagreeing about
+            // that is precisely the class of defect this project has already
+            // paid for once.
+            return Security.CallerIdentity.TryGetUserId(Principal, out Guid id) ? id : null;
         }
     }
 
@@ -50,7 +52,8 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
     /// signed in through the Platform's own API, which is the Platform acting.
     /// </summary>
     public string? ApplicationId
-        => Principal?.FindFirst("client_id")?.Value ?? Principal?.FindFirst("azp")?.Value;
+        => Principal?.FindFirst(Security.CallerIdentity.ApplicationCodeClaim)?.Value
+           ?? Principal?.FindFirst("client_id")?.Value;
 
     public Guid? SessionId
         => Guid.TryParse(Principal?.FindFirst("sid")?.Value, out Guid id) ? id : null;

@@ -40,8 +40,23 @@ public sealed class AuthorizationModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<GrantRoleHandler>();
         services.AddScoped<RevokeRoleHandler>();
         services.AddScoped<DeclarePermissionsHandler>();
+
+        // The application registry and the door machines come in through.
+        services.AddScoped<RegisterApplicationHandler>();
+        services.AddScoped<SetApplicationStatusHandler>();
+        services.AddScoped<IssueCredentialHandler>();
+        services.AddScoped<RevokeCredentialHandler>();
+        services.AddScoped<GrantApplicationRoleHandler>();
+        services.AddScoped<RevokeApplicationRoleHandler>();
+        services.AddScoped<GetApplicationsHandler>();
+        services.AddScoped<GetCredentialsHandler>();
+        services.AddScoped<GetApplicationRolesHandler>();
+        services.AddScoped<MachineTokenHandler>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder versionGroup)
-        => versionGroup.MapAuthorizationEndpoints();
+    {
+        versionGroup.MapAuthorizationEndpoints();
+        versionGroup.MapApplicationEndpoints();
+    }
 }

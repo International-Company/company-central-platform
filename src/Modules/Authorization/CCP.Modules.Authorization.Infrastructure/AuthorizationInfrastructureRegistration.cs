@@ -5,6 +5,7 @@ using CCP.Modules.Authorization.Application;
 using CCP.Modules.Authorization.Application.Abstractions;
 using CCP.Modules.Authorization.Domain.Roles.Events;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
+using CCP.Modules.Authorization.Infrastructure.Security;
 using CCP.Modules.Authorization.Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,20 @@ public static class AuthorizationInfrastructureRegistration
         services.AddScoped<Contracts.IRoleDirectory, RoleDirectory>();
 
         services.AddScoped<IAuthorizationRepository, AuthorizationRepository>();
+
+        // The application registry, its credentials and its grants. Same
+        // schema, same transaction, separate interface only because the main
+        // repository is already long enough to be hard to read.
+        services.AddScoped<IApplicationRepository, ApplicationRepository>();
+
+        // Stateless, and on the path of every machine call in the company.
+        services.AddSingleton<IApplicationSecretHasher, ApplicationSecretHasher>();
+
+        // Two adapters over other modules' public surfaces. Authorization
+        // decides whether a token should be issued; Identity decides what a
+        // Platform token looks like and signs it.
+        services.AddScoped<IMachineTokenIssuer, PlatformMachineTokenIssuer>();
+        services.AddScoped<IDelegationSubjectVerifier, PlatformDelegationSubjectVerifier>();
         services.AddScoped<IAuthorizationUnitOfWork, AuthorizationUnitOfWork>();
         services.AddScoped<IAuthorizationOutbox, AuthorizationOutbox>();
         services.AddScoped<IPermissionVersionStore, PermissionVersionStore>();

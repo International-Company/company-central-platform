@@ -242,7 +242,7 @@ public sealed class RevokeRoleHandler(
         // across instances; dropping the local entry just avoids one needless
         // recomputation on this one.
         await versionStore.BumpAsync(cancellationToken);
-        cache.Invalidate(assignment.UserId);
+        cache.Invalidate(PermissionSubject.ForUser(assignment.UserId));
 
         // Revocation matters as much as the grant. Stripping an administrator's
         // access is what an intruder does to buy time, and the trail is how

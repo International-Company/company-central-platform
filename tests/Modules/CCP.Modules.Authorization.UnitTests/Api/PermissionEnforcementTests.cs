@@ -208,7 +208,8 @@ public sealed class PermissionEnforcementTests
     {
         public Task<EffectivePermissions> GetEffectivePermissionsAsync(
             Guid userId, CancellationToken cancellationToken = default)
-            => Task.FromResult(EffectivePermissions.None(userId, 1));
+            => Task.FromResult(
+                EffectivePermissions.None(PermissionSubject.ForUser(userId), 1));
 
         public Task<string?> GetUserUnitPathAsync(
             Guid userId, CancellationToken cancellationToken = default)
@@ -216,9 +217,25 @@ public sealed class PermissionEnforcementTests
 
         public Task<AccessDecision> EvaluateAsync(
             Guid userId, string permissionName, CancellationToken cancellationToken = default)
-            => Task.FromResult(granted
-                ? decision ?? AccessDecision.GrantedForAll()
-                : AccessDecision.Denied);
+            => Task.FromResult(Answer());
+
+        public Task<EffectivePermissions> GetEffectivePermissionsForApplicationAsync(
+            Guid applicationId, CancellationToken cancellationToken = default)
+            => Task.FromResult(
+                EffectivePermissions.None(PermissionSubject.ForApplication(applicationId), 1));
+
+        public Task<AccessDecision> EvaluateForApplicationAsync(
+            Guid applicationId, string permissionName, CancellationToken cancellationToken = default)
+            => Task.FromResult(Answer());
+
+        public Task<AccessDecision> EvaluateDelegatedAsync(
+            Guid applicationId, Guid userId, string permissionName,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(Answer());
+
+        private AccessDecision Answer() => granted
+            ? decision ?? AccessDecision.GrantedForAll()
+            : AccessDecision.Denied;
     }
 
     private sealed class RecordingDenialRecorder : IAccessDenialRecorder

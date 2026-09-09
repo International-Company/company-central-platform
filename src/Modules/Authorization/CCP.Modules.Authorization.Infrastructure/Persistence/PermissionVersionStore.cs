@@ -86,14 +86,15 @@ public sealed class EffectivePermissionCache(IMemoryCache cache) : IEffectivePer
 {
     private static readonly TimeSpan SlidingExpiration = TimeSpan.FromMinutes(20);
 
-    public bool TryGet(Guid userId, [NotNullWhen(true)] out EffectivePermissions? permissions)
-        => cache.TryGetValue(KeyFor(userId), out permissions) && permissions is not null;
+    public bool TryGet(
+        PermissionSubject subject, [NotNullWhen(true)] out EffectivePermissions? permissions)
+        => cache.TryGetValue(KeyFor(subject), out permissions) && permissions is not null;
 
     public void Set(EffectivePermissions permissions)
     {
         ArgumentNullException.ThrowIfNull(permissions);
 
-        cache.Set(KeyFor(permissions.UserId), permissions, new MemoryCacheEntryOptions
+        cache.Set(KeyFor(permissions.Subject), permissions, new MemoryCacheEntryOptions
         {
             SlidingExpiration = SlidingExpiration,
 
@@ -103,7 +104,7 @@ public sealed class EffectivePermissionCache(IMemoryCache cache) : IEffectivePer
         });
     }
 
-    public void Invalidate(Guid userId) => cache.Remove(KeyFor(userId));
+    public void Invalidate(PermissionSubject subject) => cache.Remove(KeyFor(subject));
 
-    private static string KeyFor(Guid userId) => $"authz:permissions:{userId:N}";
+    private static string KeyFor(PermissionSubject subject) => $"authz:permissions:{subject}";
 }

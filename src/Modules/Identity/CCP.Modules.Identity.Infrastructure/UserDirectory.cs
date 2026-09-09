@@ -29,4 +29,17 @@ public sealed class UserDirectory(IdentityDbContext dbContext) : IUserDirectory
             .Where(u => u.Id == userId)
             .Select(u => u.DisplayName)
             .FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// Active only. Locked is deliberately included in the refusal: a lockout is
+    /// a live suspicion that the account is under attack, and letting an
+    /// application act as that person meanwhile would route straight around it.
+    /// </summary>
+    public async Task<bool> CanSignInAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+        => await dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(
+                u => u.Id == userId && u.Status == Domain.Users.UserStatus.Active,
+                cancellationToken);
 }

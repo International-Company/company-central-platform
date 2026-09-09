@@ -60,4 +60,39 @@ public sealed class RateLimitOptions
     /// <summary>Authenticated reads. Generous: a busy screen makes many requests.</summary>
     [Range(1, 100_000)]
     public int Read { get; set; } = 600;
+
+    /// <summary>
+    /// Requests a minute for one registered application, across every endpoint.
+    /// <para>
+    /// <b>A machine is not a person and should not share a person's budget.</b>
+    /// A limit sized for somebody clicking through screens is far too small for
+    /// a nightly reconciliation job and far too large as a floor for a
+    /// misbehaving one, so applications get their own number.
+    /// </para>
+    /// <para>
+    /// One thousand a minute: comfortably above a batch job working steadily,
+    /// and well below what a loop with no back-off achieves in a second. The
+    /// point is not to be exactly right — it is that one application cannot
+    /// consume the Platform on behalf of everybody else.
+    /// </para>
+    /// </summary>
+    [Range(1, 1_000_000)]
+    public int Application { get; set; } = 1_000;
+
+    /// <summary>
+    /// Token requests a minute for one client id.
+    /// <para>
+    /// A well-behaved client asks for a token when its last one is close to
+    /// expiring, which is a handful an hour. Anything approaching this number is
+    /// either a client with no token cache or somebody guessing a secret, and
+    /// both should be slowed down.
+    /// </para>
+    /// <para>
+    /// Partitioned by client id rather than by address so that one badly written
+    /// integration cannot starve every other application behind the same office
+    /// egress — the NAT problem again, in a different costume.
+    /// </para>
+    /// </summary>
+    [Range(1, 100_000)]
+    public int MachineToken { get; set; } = 30;
 }

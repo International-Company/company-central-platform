@@ -57,7 +57,16 @@ public static class IdentityInfrastructureRegistration
         // every request.
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
         services.AddSingleton<ISigningKeyProvider, FileSigningKeyProvider>();
-        services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<JwtTokenService>();
+        services.AddSingleton<ITokenService>(sp => sp.GetRequiredService<JwtTokenService>());
+
+        // The same instance behind both seams, deliberately. One signing key,
+        // one lifetime, one set of validation parameters — a machine token and a
+        // person's token differ in their claims and in nothing else, which is
+        // what lets a business application validate either against the published
+        // JWKS without knowing which it received.
+        services.AddSingleton<Contracts.IPlatformTokenMinter>(
+            sp => sp.GetRequiredService<JwtTokenService>());
         services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
         services.AddSingleton<IJwksProvider, JwksProvider>();
 

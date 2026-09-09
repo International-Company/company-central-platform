@@ -32,6 +32,11 @@ public sealed class AuthorizationDbContext(DbContextOptions<AuthorizationDbConte
 
     public DbSet<PermissionVersionRow> PermissionVersion => Set<PermissionVersionRow>();
 
+    public DbSet<ApplicationCredential> ApplicationCredentials => Set<ApplicationCredential>();
+
+    public DbSet<ApplicationRoleAssignment> ApplicationAssignments =>
+        Set<ApplicationRoleAssignment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(SchemaName);
@@ -47,6 +52,59 @@ public sealed class AuthorizationDbContext(DbContextOptions<AuthorizationDbConte
             entity.Property(e => e.Description).HasMaxLength(1000);
 
             entity.HasIndex(e => e.Code).HasDatabaseName("ux_applications_code").IsUnique();
+
+            entity.Ignore(e => e.DomainEvents);
+        });
+
+        modelBuilder.Entity<ApplicationCredential>(entity =>
+        {
+            entity.ToTable("application_credentials");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.ClientId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SecretHash).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Label).HasMaxLength(120).IsRequired();
+
+            // The token endpoint looks a credential up by client id on every
+            // machine call in the company. Unique as well as indexed: two rows
+            // sharing a client id would make which secret is accepted depend on
+            // which row the planner happened to read first.
+            entity.HasIndex(e => e.ClientId)
+                .HasDatabaseName("ux_application_credentials_client_id")
+                .IsUnique();
+
+            entity.HasIndex(e => e.ApplicationId)
+                .HasDatabaseName("ix_application_credentials_application");
+
+            entity.HasOne<RegisteredApplication>()
+                .WithMany()
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Ignore(e => e.DomainEvents);
+        });
+
+        modelBuilder.Entity<ApplicationRoleAssignment>(entity =>
+        {
+            entity.ToTable("application_assignments");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.ScopeType).HasConversion<int>();
+
+            entity.HasIndex(e => new { e.ApplicationId, e.RoleId })
+                .HasDatabaseName("ix_application_assignments_application_role");
+
+            entity.HasOne<RegisteredApplication>()
+                .WithMany()
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Role>()
+                .WithMany()
+                .HasForeignKey(e => e.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.Ignore(e => e.DomainEvents);
         });

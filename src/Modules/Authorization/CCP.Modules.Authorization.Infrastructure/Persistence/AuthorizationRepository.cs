@@ -140,6 +140,17 @@ public sealed class AuthorizationRepository(AuthorizationDbContext dbContext) : 
     /// remember to.
     /// </para>
     /// </summary>
+    public async Task<IReadOnlyList<Permission>> GetPermissionsForRoleAsync(
+        Guid roleId, CancellationToken cancellationToken = default)
+        => await (
+            from rolePermission in dbContext.RolePermissions.AsNoTracking()
+            where rolePermission.RoleId == roleId
+            join permission in dbContext.Permissions.AsNoTracking()
+                on rolePermission.PermissionId equals permission.Id
+            where permission.IsActive
+            select permission)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<GrantRow>> GetGrantsForUserAsync(
         Guid userId,
         DateTimeOffset now,

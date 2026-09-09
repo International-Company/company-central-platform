@@ -1,8 +1,9 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "CCP.Api.Host | v1",
-    "version": "1.0.0"
+    "title": "Company Central Platform API",
+    "description": "Shared infrastructure every business system in the company depends on:\nidentity, organization, authorization, security, audit, workflow,\nnotifications and documents.\n\n## Authenticating\n\n**A person** signs in at `POST /api/v1/auth/login` and receives an access\ntoken and a refresh token.\n\n**A system** exchanges client credentials at `POST /api/v1/oauth/token`:\n\n```\ngrant_type=client_credentials\nclient_id=ccp_...\nclient_secret=ccps_...\n```\n\nAdd `on_behalf_of=<user id>` to act for a person. The resulting call is\nallowed to do only what the application *and* that person may do.\n\nBoth kinds of token are signed with the same key and can be validated\nlocally against `/api/v1/.well-known/jwks.json`.\n\n## Permissions\n\nEvery operation below states the permission it requires. Holding it is\nnecessary and not always sufficient — a permission is granted at a\n*scope*, and the scope decides which records are in reach.\n\n## Failures\n\nErrors are RFC 9457 problem documents carrying a stable `code`. Match on\nthe code, never on the message: messages are translated and reworded, and\ncodes are not.\n\n## Versioning\n\nThe path carries the version. What may change inside `v1` without notice,\nand what cannot, is set out in `docs/api/versioning.md`. Endpoints on their\nway out answer with `Deprecation` and `Sunset` headers before they stop.",
+    "version": "v1"
   },
   "paths": {
     "/api/v1/diagnostics/ping": {
@@ -11,6 +12,7 @@
           "Diagnostics"
         ],
         "summary": "Confirms the API is reachable and returns the correlation id.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "Ping",
         "responses": {
           "200": {
@@ -25,6 +27,7 @@
           "Diagnostics"
         ],
         "summary": "Returns each error category so the contract can be verified.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "ErrorContract",
         "parameters": [
           {
@@ -49,6 +52,7 @@
           "Diagnostics"
         ],
         "summary": "Returns a paged envelope so paging and sorting rules can be verified.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "PagedSample",
         "parameters": [
           {
@@ -96,6 +100,7 @@
           "Diagnostics"
         ],
         "summary": "Raises an unhandled exception to verify the error boundary.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "ThrowSample",
         "responses": {
           "200": {
@@ -110,6 +115,7 @@
           "Authentication"
         ],
         "summary": "Authenticates a user and starts a session.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "SignIn",
         "requestBody": {
           "content": {
@@ -141,6 +147,7 @@
           "Authentication"
         ],
         "summary": "Exchanges a refresh token for a new token pair.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "RefreshToken",
         "requestBody": {
           "content": {
@@ -172,6 +179,7 @@
           "Authentication"
         ],
         "summary": "Ends the current session, revoking its tokens server-side.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "SignOut",
         "responses": {
           "200": {
@@ -186,6 +194,7 @@
           "Passwords"
         ],
         "summary": "Changes the caller's password and ends their other sessions.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "ChangePassword",
         "requestBody": {
           "content": {
@@ -210,6 +219,7 @@
           "Passwords"
         ],
         "summary": "Requests a password reset link. Always succeeds, revealing nothing.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "ForgotPassword",
         "requestBody": {
           "content": {
@@ -234,6 +244,7 @@
           "Passwords"
         ],
         "summary": "Redeems a reset token and sets a new password.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "ResetPassword",
         "requestBody": {
           "content": {
@@ -258,6 +269,7 @@
           "Current user"
         ],
         "summary": "Returns the signed-in user's profile.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetCurrentUser",
         "responses": {
           "200": {
@@ -279,6 +291,7 @@
           "Current user"
         ],
         "summary": "Lists the caller's active sessions.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMySessions",
         "responses": {
           "200": {
@@ -303,6 +316,7 @@
           "Current user"
         ],
         "summary": "Lists the caller's recent sign-in attempts, successful and failed.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMyLoginHistory",
         "parameters": [
           {
@@ -341,6 +355,7 @@
           "Users"
         ],
         "summary": "Lists users, filtered and paged.",
+        "description": "**Requires:** `platform.users.view`",
         "operationId": "SearchUsers",
         "parameters": [
           {
@@ -407,6 +422,7 @@
           "Users"
         ],
         "summary": "Creates a user who must change their password at first sign-in.",
+        "description": "**Requires:** `platform.users.create`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "CreateUser",
         "requestBody": {
           "content": {
@@ -438,6 +454,7 @@
           "Users"
         ],
         "summary": "Returns one user.",
+        "description": "**Requires:** `platform.users.view`",
         "operationId": "GetUser",
         "parameters": [
           {
@@ -468,6 +485,7 @@
           "Users"
         ],
         "summary": "Updates a user's email and display name.",
+        "description": "**Requires:** `platform.users.edit`",
         "operationId": "UpdateUser",
         "parameters": [
           {
@@ -510,6 +528,7 @@
           "Users"
         ],
         "summary": "Enables a user account.",
+        "description": "**Requires:** `platform.users.edit`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "EnableUser",
         "parameters": [
           {
@@ -535,6 +554,7 @@
           "Users"
         ],
         "summary": "Disables a user account.",
+        "description": "**Requires:** `platform.users.edit`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "DisableUser",
         "parameters": [
           {
@@ -560,6 +580,7 @@
           "Users"
         ],
         "summary": "Unlocks a user account.",
+        "description": "**Requires:** `platform.users.edit`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "UnlockUser",
         "parameters": [
           {
@@ -585,6 +606,7 @@
           "Authentication"
         ],
         "summary": "Public keys for validating Platform access tokens locally.",
+        "description": "**Anonymous.** No token is needed to call this.",
         "operationId": "Jwks",
         "responses": {
           "200": {
@@ -599,6 +621,7 @@
           "Authorization"
         ],
         "summary": "Lists the caller's permissions, for hiding controls they cannot use.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMyPermissions",
         "responses": {
           "200": {
@@ -620,6 +643,7 @@
           "Authorization"
         ],
         "summary": "Answers whether a user holds a permission, and over what data.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "CheckPermission",
         "requestBody": {
           "content": {
@@ -638,12 +662,35 @@
         }
       }
     },
+    "/api/v1/oauth/token": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Exchanges client credentials for a short-lived access token.",
+        "description": "**Anonymous.** No token is needed to call this.",
+        "operationId": "IssueMachineToken",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachineTokenDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/security/events": {
       "get": {
         "tags": [
           "Security"
         ],
         "summary": "Searches the security event log within a bounded time window.",
+        "description": "**Requires:** `platform.security.view`",
         "operationId": "SearchSecurityEvents",
         "parameters": [
           {
@@ -729,6 +776,7 @@
           "Documents"
         ],
         "summary": "Everything filed against one business record, as the caller may see it.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "GetDocumentsForResource",
         "parameters": [
           {
@@ -771,6 +819,7 @@
           "Organization"
         ],
         "summary": "Returns the company, or null when the Platform has not been set up yet.",
+        "description": "**Requires:** `platform.organization.view`",
         "operationId": "GetCompany",
         "responses": {
           "200": {
@@ -790,6 +839,7 @@
           "Organization"
         ],
         "summary": "Establishes the company. Refused once one exists.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "CreateCompany",
         "requestBody": {
           "content": {
@@ -821,6 +871,7 @@
           "Organization"
         ],
         "summary": "Renames the company in both languages. Its code is fixed.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "RenameCompany",
         "requestBody": {
           "content": {
@@ -852,6 +903,7 @@
           "Organization"
         ],
         "summary": "Returns the company structure as a nested tree.",
+        "description": "**Requires:** `platform.organization.view`",
         "operationId": "GetOrganizationTree",
         "parameters": [
           {
@@ -885,6 +937,7 @@
           "Organization"
         ],
         "summary": "Creates an organizational unit under an optional parent.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "CreateOrganizationUnit",
         "requestBody": {
           "content": {
@@ -916,6 +969,7 @@
           "Organization"
         ],
         "summary": "Renames a unit in both languages.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "RenameOrganizationUnit",
         "parameters": [
           {
@@ -958,6 +1012,7 @@
           "Organization"
         ],
         "summary": "Moves a unit and every descendant to a new parent, atomically.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "MoveOrganizationUnit",
         "parameters": [
           {
@@ -993,6 +1048,7 @@
           "Organization"
         ],
         "summary": "Deactivates a unit that has no active children or employees.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "DeactivateOrganizationUnit",
         "parameters": [
           {
@@ -1018,6 +1074,7 @@
           "Organization"
         ],
         "summary": "Lists the company's job positions.",
+        "description": "**Requires:** `platform.organization.view`",
         "operationId": "GetPositions",
         "parameters": [
           {
@@ -1049,6 +1106,7 @@
           "Organization"
         ],
         "summary": "Creates a job position.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "CreatePosition",
         "requestBody": {
           "content": {
@@ -1080,6 +1138,7 @@
           "Organization"
         ],
         "summary": "Renames a position in both languages.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "RenamePosition",
         "parameters": [
           {
@@ -1122,6 +1181,7 @@
           "Organization"
         ],
         "summary": "Deactivates a position, or brings it back. Never deletes one.",
+        "description": "**Requires:** `platform.organization.manage`",
         "operationId": "SetPositionStatus",
         "parameters": [
           {
@@ -1157,6 +1217,7 @@
           "Employees"
         ],
         "summary": "Lists employees, optionally scoped to a unit and everything beneath it.",
+        "description": "**Requires:** `platform.employees.view`",
         "operationId": "SearchEmployees",
         "parameters": [
           {
@@ -1238,6 +1299,7 @@
           "Employees"
         ],
         "summary": "Creates an employee record.",
+        "description": "**Requires:** `platform.employees.manage`",
         "operationId": "CreateEmployee",
         "requestBody": {
           "content": {
@@ -1269,6 +1331,7 @@
           "Employees"
         ],
         "summary": "Moves an employee to a different unit, position or manager.",
+        "description": "**Requires:** `platform.employees.manage`",
         "operationId": "TransferEmployee",
         "parameters": [
           {
@@ -1304,6 +1367,7 @@
           "Employees"
         ],
         "summary": "Links or unlinks an employee's Platform account.",
+        "description": "**Requires:** `platform.employees.manage`",
         "operationId": "LinkEmployeeUser",
         "parameters": [
           {
@@ -1339,6 +1403,7 @@
           "Roles"
         ],
         "summary": "Lists roles.",
+        "description": "**Requires:** `platform.roles.view`",
         "operationId": "GetRoles",
         "parameters": [
           {
@@ -1370,6 +1435,7 @@
           "Roles"
         ],
         "summary": "Creates a role. It starts empty; its permissions are set separately.",
+        "description": "**Requires:** `platform.roles.manage`",
         "operationId": "CreateRole",
         "requestBody": {
           "content": {
@@ -1401,6 +1467,7 @@
           "Roles"
         ],
         "summary": "Lists every declared permission, including those of registered applications.",
+        "description": "**Requires:** `platform.permissions.view`",
         "operationId": "GetPermissions",
         "parameters": [
           {
@@ -1434,6 +1501,7 @@
           "Roles"
         ],
         "summary": "Returns one role with the permissions it carries.",
+        "description": "**Requires:** `platform.roles.view`",
         "operationId": "GetRole",
         "parameters": [
           {
@@ -1464,6 +1532,7 @@
           "Roles"
         ],
         "summary": "Renames a role. The code is fixed once created.",
+        "description": "**Requires:** `platform.roles.manage`",
         "operationId": "UpdateRole",
         "parameters": [
           {
@@ -1506,6 +1575,7 @@
           "Roles"
         ],
         "summary": "Replaces the permissions a role carries, refusing any the caller does not hold.",
+        "description": "**Requires:** `platform.roles.manage`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "SetRolePermissions",
         "parameters": [
           {
@@ -1548,6 +1618,7 @@
           "Roles"
         ],
         "summary": "Deactivates a role, or brings it back. Never deletes one.",
+        "description": "**Requires:** `platform.roles.manage`",
         "operationId": "SetRoleStatus",
         "parameters": [
           {
@@ -1583,6 +1654,7 @@
           "Roles"
         ],
         "summary": "Lists a user's role assignments.",
+        "description": "**Requires:** `platform.roles.view`",
         "operationId": "GetUserRoles",
         "parameters": [
           {
@@ -1616,6 +1688,7 @@
           "Roles"
         ],
         "summary": "Grants a role at a scope, refusing any escalation.",
+        "description": "**Requires:** `platform.roles.assign`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "GrantRole",
         "parameters": [
           {
@@ -1651,7 +1724,316 @@
           "Roles"
         ],
         "summary": "Revokes a role assignment. Takes effect on the next request.",
+        "description": "**Requires:** `platform.roles.assign`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
         "operationId": "RevokeRole",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/applications": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Every system registered to call this Platform.",
+        "description": "**Requires:** `platform.applications.view`",
+        "operationId": "GetApplications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegisteredApplicationDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Registers a system that will call the Platform.",
+        "description": "**Requires:** `platform.applications.manage`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
+        "operationId": "RegisterApplication",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterApplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredApplicationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{id}/status": {
+      "put": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Disables an application, or brings it back.",
+        "description": "**Requires:** `platform.applications.manage`",
+        "operationId": "SetApplicationStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetApplicationStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{id}/credentials": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "An application's keys, including the withdrawn ones.",
+        "description": "**Requires:** `platform.applications.view`",
+        "operationId": "GetApplicationCredentials",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationCredentialDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Mints a client secret. The secret is in this response and nowhere else.",
+        "description": "**Requires:** `platform.applications.manage`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
+        "operationId": "IssueApplicationCredential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueCredentialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuedCredentialDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{id}/credentials/{credentialId}": {
+      "delete": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Stops a credential working, immediately.",
+        "description": "**Requires:** `platform.applications.manage`",
+        "operationId": "RevokeApplicationCredential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "credentialId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{id}/roles": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "What this application is allowed to do.",
+        "description": "**Requires:** `platform.applications.view`",
+        "operationId": "GetApplicationRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationRoleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Gives an application a role, at a scope.",
+        "description": "**Requires:** `platform.applications.manage`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
+        "operationId": "GrantApplicationRole",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantApplicationRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/applications/{id}/roles/{assignmentId}": {
+      "delete": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Takes a role away from an application.",
+        "description": "**Requires:** `platform.applications.manage`",
+        "operationId": "RevokeApplicationRole",
         "parameters": [
           {
             "name": "id",
@@ -1685,6 +2067,7 @@
           "Two-factor authentication"
         ],
         "summary": "Returns whether the caller has two-factor authentication enabled.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMfaStatus",
         "responses": {
           "200": {
@@ -1706,6 +2089,7 @@
           "Two-factor authentication"
         ],
         "summary": "Issues a TOTP secret. Returns the QR data once and never again.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "BeginMfaEnrolment",
         "responses": {
           "200": {
@@ -1727,6 +2111,7 @@
           "Two-factor authentication"
         ],
         "summary": "Activates enrolment and returns recovery codes, shown once.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "ConfirmMfaEnrolment",
         "requestBody": {
           "content": {
@@ -1758,6 +2143,7 @@
           "Two-factor authentication"
         ],
         "summary": "Verifies a TOTP or recovery code.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "VerifyMfa",
         "requestBody": {
           "content": {
@@ -1789,6 +2175,7 @@
           "Two-factor authentication"
         ],
         "summary": "Turns off two-factor authentication, after proving the current factor.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "DisableMfa",
         "requestBody": {
           "content": {
@@ -1813,6 +2200,7 @@
           "Audit"
         ],
         "summary": "Searches the audit trail. The date range is required and bounded.",
+        "description": "**Requires:** `platform.audit.view`",
         "operationId": "SearchAuditEvents",
         "parameters": [
           {
@@ -1924,6 +2312,7 @@
           "Audit"
         ],
         "summary": "Records one event, attributed to the calling application.",
+        "description": "**Requires:** `platform.audit.write`",
         "operationId": "IngestAuditEvent",
         "requestBody": {
           "content": {
@@ -1948,6 +2337,7 @@
           "Audit"
         ],
         "summary": "Records many events at once, attributed to the calling application.",
+        "description": "**Requires:** `platform.audit.write`",
         "operationId": "IngestAuditEventBatch",
         "requestBody": {
           "content": {
@@ -1975,6 +2365,7 @@
           "Workflow"
         ],
         "summary": "Lists the registered approval processes.",
+        "description": "**Requires:** `platform.workflow.view`",
         "operationId": "GetWorkflowDefinitions",
         "parameters": [
           {
@@ -2013,6 +2404,7 @@
           "Workflow"
         ],
         "summary": "Registers and publishes a version of an approval process.",
+        "description": "**Requires:** `platform.workflow.manage`",
         "operationId": "RegisterWorkflowDefinition",
         "requestBody": {
           "content": {
@@ -2044,6 +2436,7 @@
           "Workflow"
         ],
         "summary": "Stops new instances starting on a version. Running ones continue.",
+        "description": "**Requires:** `platform.workflow.manage`",
         "operationId": "RetireWorkflowDefinition",
         "parameters": [
           {
@@ -2069,6 +2462,7 @@
           "Workflow"
         ],
         "summary": "Starts an approval against a business record.",
+        "description": "**Requires:** `platform.workflow.start`",
         "operationId": "StartWorkflowInstance",
         "requestBody": {
           "content": {
@@ -2098,6 +2492,7 @@
           "Workflow"
         ],
         "summary": "Finds approvals, usually by the record they belong to.",
+        "description": "**Requires:** `platform.workflow.view`",
         "operationId": "SearchWorkflowInstances",
         "parameters": [
           {
@@ -2173,6 +2568,7 @@
           "Workflow"
         ],
         "summary": "Returns one approval with everything that happened to it.",
+        "description": "**Requires:** `platform.workflow.view`",
         "operationId": "GetWorkflowInstance",
         "parameters": [
           {
@@ -2205,6 +2601,7 @@
           "Workflow"
         ],
         "summary": "Withdraws an approval and closes every task on it.",
+        "description": "**Requires:** `platform.workflow.start`",
         "operationId": "CancelWorkflowInstance",
         "parameters": [
           {
@@ -2240,6 +2637,7 @@
           "Workflow"
         ],
         "summary": "The caller's approval inbox.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMyTasks",
         "parameters": [
           {
@@ -2294,6 +2692,7 @@
           "Workflow"
         ],
         "summary": "Approves, rejects, returns, delegates or comments on a task.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "ActOnTask",
         "parameters": [
           {
@@ -2336,6 +2735,7 @@
           "Notifications"
         ],
         "summary": "The caller's in-app inbox.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMyNotifications",
         "parameters": [
           {
@@ -2390,6 +2790,7 @@
           "Notifications"
         ],
         "summary": "Marks one of the caller's own notifications as read.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "MarkNotificationRead",
         "parameters": [
           {
@@ -2415,6 +2816,7 @@
           "Notifications"
         ],
         "summary": "What the caller has turned off. Absence means everything is on.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "GetMyNotificationPreferences",
         "responses": {
           "200": {
@@ -2437,6 +2839,7 @@
           "Notifications"
         ],
         "summary": "Turns a category on or off. Security notifications are refused.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
         "operationId": "SetMyNotificationPreference",
         "requestBody": {
           "content": {
@@ -2461,6 +2864,7 @@
           "Notifications"
         ],
         "summary": "Everything sent, with every delivery attempt. Failures surface here.",
+        "description": "**Requires:** `platform.notifications.view`",
         "operationId": "SearchNotifications",
         "parameters": [
           {
@@ -2529,6 +2933,7 @@
           "Notifications"
         ],
         "summary": "The template catalogue, one row per message per language.",
+        "description": "**Requires:** `platform.notifications.manage`",
         "operationId": "GetNotificationTemplates",
         "parameters": [
           {
@@ -2560,6 +2965,7 @@
           "Notifications"
         ],
         "summary": "Writes or revises a template. Revising bumps its version.",
+        "description": "**Requires:** `platform.notifications.manage`",
         "operationId": "SaveNotificationTemplate",
         "requestBody": {
           "content": {
@@ -2591,6 +2997,7 @@
           "Documents"
         ],
         "summary": "Documents the caller may see.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "SearchDocuments",
         "parameters": [
           {
@@ -2665,6 +3072,7 @@
           "Documents"
         ],
         "summary": "Stores a file and the document that holds it.",
+        "description": "**Requires:** `platform.documents.create`",
         "operationId": "UploadDocument",
         "requestBody": {
           "content": {
@@ -2696,6 +3104,7 @@
           "Documents"
         ],
         "summary": "One document, with every version of it.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "GetDocument",
         "parameters": [
           {
@@ -2726,6 +3135,7 @@
           "Documents"
         ],
         "summary": "Renames a document, and moves it if the caller may.",
+        "description": "**Requires:** `platform.documents.update`",
         "operationId": "UpdateDocument",
         "parameters": [
           {
@@ -2766,6 +3176,7 @@
           "Documents"
         ],
         "summary": "Marks a document for deletion. Content survives the grace period.",
+        "description": "**Requires:** `platform.documents.delete`",
         "operationId": "DeleteDocument",
         "parameters": [
           {
@@ -2791,6 +3202,7 @@
           "Documents"
         ],
         "summary": "The content, by redirect to storage or streamed from here.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "DownloadDocument",
         "parameters": [
           {
@@ -2828,6 +3240,7 @@
           "Documents"
         ],
         "summary": "Who opened this document, and who tried and could not.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "GetDocumentAccessLog",
         "parameters": [
           {
@@ -2884,6 +3297,7 @@
           "Documents"
         ],
         "summary": "Adds a version. The previous one stays downloadable.",
+        "description": "**Requires:** `platform.documents.update`",
         "operationId": "AddDocumentVersion",
         "parameters": [
           {
@@ -2926,6 +3340,7 @@
           "Documents"
         ],
         "summary": "Takes back a deletion, inside the grace period.",
+        "description": "**Requires:** `platform.documents.delete`",
         "operationId": "RestoreDocument",
         "parameters": [
           {
@@ -2951,6 +3366,7 @@
           "Documents"
         ],
         "summary": "Who else can see this document.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "GetDocumentAccess",
         "parameters": [
           {
@@ -2984,6 +3400,7 @@
           "Documents"
         ],
         "summary": "Shares a document, or changes what somebody already has.",
+        "description": "**Requires:** `platform.documents.share`",
         "operationId": "GrantDocumentAccess",
         "parameters": [
           {
@@ -3026,6 +3443,7 @@
           "Documents"
         ],
         "summary": "Takes access away.",
+        "description": "**Requires:** `platform.documents.share`",
         "operationId": "RevokeDocumentAccess",
         "parameters": [
           {
@@ -3060,6 +3478,7 @@
           "Documents"
         ],
         "summary": "What this document is filed against.",
+        "description": "**Requires:** `platform.documents.read`",
         "operationId": "GetDocumentLinks",
         "parameters": [
           {
@@ -3093,6 +3512,7 @@
           "Documents"
         ],
         "summary": "Attaches a document to a record in a business system.",
+        "description": "**Requires:** `platform.documents.update`",
         "operationId": "LinkDocument",
         "parameters": [
           {
@@ -3133,6 +3553,7 @@
           "Documents"
         ],
         "summary": "Detaches it again.",
+        "description": "**Requires:** `platform.documents.update`",
         "operationId": "UnlinkDocument",
         "parameters": [
           {
@@ -3171,6 +3592,117 @@
   },
   "components": {
     "schemas": {
+      "ApplicationCredentialDto": {
+        "required": [
+          "id",
+          "clientId",
+          "label",
+          "expiresAt",
+          "revokedAt",
+          "lastUsedAt",
+          "isLive",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isLive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApplicationRoleDto": {
+        "required": [
+          "assignmentId",
+          "roleId",
+          "roleCode",
+          "roleNameAr",
+          "roleNameEn",
+          "scope",
+          "scopeUnitId",
+          "grantedAt",
+          "expiresAt",
+          "isRevoked"
+        ],
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleCode": {
+            "type": "string"
+          },
+          "roleNameAr": {
+            "type": "string"
+          },
+          "roleNameEn": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scopeUnitId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isRevoked": {
+            "type": "boolean"
+          }
+        }
+      },
       "AuditEventDto": {
         "required": [
           "id",
@@ -4044,6 +4576,38 @@
           }
         }
       },
+      "GrantApplicationRoleRequest": {
+        "required": [
+          "roleId",
+          "scope",
+          "scopeUnitId",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scopeUnitId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "GrantRoleRequest": {
         "required": [
           "roleId",
@@ -4171,6 +4735,62 @@
           }
         }
       },
+      "IssueCredentialRequest": {
+        "required": [
+          "label",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "IssuedCredentialDto": {
+        "required": [
+          "id",
+          "clientId",
+          "secret",
+          "label",
+          "expiresAt",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "LinkUserRequest": {
         "required": [
           "userId"
@@ -4246,6 +4866,36 @@
             "type": "string"
           },
           "deviceFingerprint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MachineTokenDto": {
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
+        ],
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "expires_in": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "scope": {
             "type": [
               "null",
               "string"
@@ -5312,6 +5962,28 @@
           }
         }
       },
+      "RegisterApplicationRequest": {
+        "required": [
+          "code",
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RegisterDefinitionRequest": {
         "required": [
           "applicationCode",
@@ -5360,6 +6032,64 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RegisteredApplicationDto": {
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "isSystem",
+          "isActive",
+          "liveCredentials",
+          "declaredPermissions",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "liveCredentials": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "declaredPermissions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5657,6 +6387,17 @@
             "format": "date-time"
           },
           "isCurrent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SetApplicationStatusRequest": {
+        "required": [
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "isActive": {
             "type": "boolean"
           }
         }
@@ -6449,6 +7190,9 @@
     },
     {
       "name": "Authorization"
+    },
+    {
+      "name": "Applications"
     },
     {
       "name": "Security"

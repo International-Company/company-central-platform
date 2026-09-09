@@ -21,7 +21,7 @@ public sealed class EffectivePermissionsTests
     private const string HrPath = "/hq/hr/";
 
     private static EffectivePermissions Held(params HeldPermission[] permissions)
-        => new(UserId, version: 1, permissions);
+        => new(PermissionSubject.ForUser(UserId), version: 1, permissions);
 
     private static HeldPermission Permission(string name, params ResolvedScope[] scopes)
         => new(name, scopes);
@@ -45,7 +45,7 @@ public sealed class EffectivePermissionsTests
     public void AnEmptySet_DeniesEverything()
     {
         AccessDecision decision = EffectivePermissions
-            .None(UserId, version: 1)
+            .None(PermissionSubject.ForUser(UserId), version: 1)
             .Evaluate("platform.users.view", FinancePath);
 
         Assert.False(decision.IsGranted);

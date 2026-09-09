@@ -159,6 +159,59 @@ public static class AuthorizationErrors
     public static readonly Error AlreadyGranted = Error.Conflict(
         "AUTHZ.ALREADY_GRANTED", "The user already holds this role at this scope.");
 
+    // --- Application credentials -------------------------------------------
+
+    public static readonly Error CredentialLabelRequired = Error.Validation(
+        "AUTHZ.CREDENTIAL_LABEL_REQUIRED",
+        "A credential needs a label, so that revoking the right one is possible later.",
+        "label");
+
+    public static readonly Error CredentialNotFound = Error.NotFound(
+        "AUTHZ.CREDENTIAL_NOT_FOUND", "The credential does not exist.");
+
+    public static readonly Error CredentialAlreadyRevoked = Error.Conflict(
+        "AUTHZ.CREDENTIAL_ALREADY_REVOKED", "The credential is already revoked.");
+
+    public static Error TooManyLiveCredentials(int limit) => Error.Conflict(
+        "AUTHZ.TOO_MANY_LIVE_CREDENTIALS",
+        $"An application may hold {limit} live credentials at once. "
+        + "Revoke the one being replaced before issuing another.");
+
+    /// <summary>
+    /// The token endpoint refused. One error for every reason, on purpose.
+    /// </summary>
+    public static readonly Error InvalidClient = Error.Unauthenticated(
+        "AUTHZ.INVALID_CLIENT", "The client credentials are not valid.");
+
+    public static readonly Error SelfScopeMeaninglessForApplication = Error.Validation(
+        "AUTHZ.SELF_SCOPE_FOR_APPLICATION",
+        "An application has no place in the organization, so a Self scope has nothing to follow. "
+        + "Anchor the grant to a unit, or grant it company-wide.",
+        "scope");
+
+    public static readonly Error AssignmentAlreadyRevoked = Error.Conflict(
+        "AUTHZ.ASSIGNMENT_ALREADY_REVOKED", "The grant is already revoked.");
+
+    public static readonly Error ApplicationAlreadyHoldsRole = Error.Conflict(
+        "AUTHZ.APPLICATION_ALREADY_GRANTED",
+        "The application already holds this role at this scope.");
+
+    public static readonly Error ApplicationInactive = Error.Forbidden(
+        "AUTHZ.APPLICATION_INACTIVE",
+        "The application is disabled.");
+
+    /// <summary>
+    /// An application asked to act as somebody without being allowed to.
+    /// </summary>
+    public static readonly Error DelegationNotPermitted = Error.Forbidden(
+        "AUTHZ.DELEGATION_NOT_PERMITTED",
+        "This application may not act on behalf of a user.");
+
+    public static readonly Error DelegationSubjectNotFound = Error.Validation(
+        "AUTHZ.DELEGATION_SUBJECT_NOT_FOUND",
+        "The user this application asked to act for does not exist, or cannot sign in.",
+        "on_behalf_of");
+
     // --- Access ------------------------------------------------------------
 
     /// <summary>

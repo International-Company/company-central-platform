@@ -43,7 +43,17 @@ public sealed class PermissionAuthorizationHandler(
             return;
         }
 
-        if (!TryGetUserId(context.User, out Guid userId))
+        // Three kinds of caller, and the difference decides whose permissions
+        // are consulted: a person, an application acting as itself, and an
+        // application acting on somebody's behalf. The third is the
+        // intersection of the other two — a delegated call may do only what the
+        // application is trusted with and what the person is entitled to.
+        bool isMachine = CallerIdentity.TryGetApplicationId(
+            context.User, out Guid applicationId);
+
+        bool isPerson = TryGetUserId(context.User, out Guid userId);
+
+        if (!isMachine && !isPerson)
         {
             logger.LogWarning(
                 "An authenticated principal carried no usable subject claim. Denying {Permission}.",
@@ -54,14 +64,31 @@ public sealed class PermissionAuthorizationHandler(
             return;
         }
 
-        AccessDecision decision = await resolver.EvaluateAsync(userId, requirement.Permission);
+        AccessDecision decision = (isMachine, isPerson) switch
+        {
+            (true, true) => await resolver.EvaluateDelegatedAsync(
+                applicationId, userId, requirement.Permission),
+
+            (true, false) => await resolver.EvaluateForApplicationAsync(
+                applicationId, requirement.Permission),
+
+            _ => await resolver.EvaluateAsync(userId, requirement.Permission)
+        };
 
         if (!decision.IsGranted)
         {
             // Recorded, not merely refused. One denial is noise; a burst across
             // many permissions from one caller is someone mapping what they can
             // reach (ARCHITECTURE.md §14.5).
-            await denialRecorder.RecordAsync(userId, context.User, requirement.Permission);
+            //
+            // A machine acting as itself has no user id to record it against,
+            // and recording the application id in that column would put a
+            // machine into a table of people. The application is on the
+            // principal either way, which is where the recorder reads it from.
+            if (isPerson)
+            {
+                await denialRecorder.RecordAsync(userId, context.User, requirement.Permission);
+            }
 
             context.Fail();
 

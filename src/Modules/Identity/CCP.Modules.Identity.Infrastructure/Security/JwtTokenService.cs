@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using CCP.Modules.Identity.Application;
 using CCP.Modules.Identity.Application.Abstractions;
+using CCP.Modules.Identity.Contracts;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -24,7 +25,7 @@ namespace CCP.Modules.Identity.Infrastructure.Security;
 /// (Phase 4) decides how those travel (ADR-007 §14.4).
 /// </para>
 /// </summary>
-public sealed class JwtTokenService : ITokenService, IDisposable
+public sealed class JwtTokenService : ITokenService, IPlatformTokenMinter, IDisposable
 {
     private readonly IdentityOptions _options;
     private readonly RSA _rsa;
@@ -65,6 +66,64 @@ public sealed class JwtTokenService : ITokenService, IDisposable
                 // a token back to revocable server-side state.
                 ["sid"] = sessionId.ToString()
             }
+        };
+
+        return _handler.CreateToken(descriptor);
+    }
+
+    /// <summary>
+    /// A token for a registered application, signed by the same key as everybody
+    /// else's.
+    /// <para>
+    /// <b>The subject depends on what the application is doing.</b> Acting as
+    /// itself, the subject is the application; acting for somebody, the subject
+    /// is that person and the application travels alongside. A resource server
+    /// reading the token can therefore answer "who is this?" the same way it
+    /// always has, and answer "who asked?" as well.
+    /// </para>
+    /// <para>
+    /// No session claim. A machine token belongs to no session, has no refresh
+    /// token, and is not revocable once issued — which is exactly why its
+    /// lifetime is the same short one as everybody else's. Revoking a credential
+    /// stops new tokens immediately and lets outstanding ones expire, and the
+    /// documentation says so rather than implying revocation is instantaneous
+    /// all the way down.
+    /// </para>
+    /// </summary>
+    public string MintMachineToken(MachineTokenRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        bool delegated = request.OnBehalfOfUserId is not null;
+
+        var claims = new Dictionary<string, object>
+        {
+            [JwtRegisteredClaimNames.Sub] =
+                (request.OnBehalfOfUserId ?? request.ApplicationId).ToString(),
+            [JwtRegisteredClaimNames.Jti] = Guid.CreateVersion7().ToString(),
+
+            // Read by the kernel to decide whether the subject is a person. A
+            // machine token whose subject went unmarked would be treated as a
+            // user whose id happens to be the application's.
+            ["sub_type"] = delegated ? "user" : "application",
+
+            ["app_id"] = request.ApplicationId.ToString(),
+            ["app"] = request.ApplicationCode,
+
+            // The credential used, so a leaked token points at one key to
+            // revoke rather than at an application with several.
+            ["client_id"] = request.ClientId
+        };
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = _options.Issuer,
+            Audience = _options.Audience,
+            IssuedAt = request.IssuedAt.UtcDateTime,
+            NotBefore = request.IssuedAt.UtcDateTime,
+            Expires = request.IssuedAt.Add(_options.AccessTokenLifetime).UtcDateTime,
+            SigningCredentials = _signingCredentials,
+            Claims = claims
         };
 
         return _handler.CreateToken(descriptor);

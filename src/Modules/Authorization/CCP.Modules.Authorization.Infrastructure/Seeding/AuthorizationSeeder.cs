@@ -118,6 +118,26 @@ public sealed class AuthorizationSeeder(
     }
 
     /// <summary>
+    /// Permissions that gate something other than reaching a route.
+    /// <para>
+    /// <b>The exception to deriving the set from the endpoints, and it is worth
+    /// keeping short.</b> Everything else is discovered from what the running
+    /// application actually enforces, which is why the list cannot drift. These
+    /// cannot be: they are checked inside a handler rather than in front of a
+    /// route, so no endpoint declares them and nothing would ever create them.
+    /// </para>
+    /// </summary>
+    private static readonly string[] PermissionsWithNoEndpoint =
+    [
+        // Checked by the token endpoint before an application is allowed to act
+        // as a named person. Not on the endpoint itself, because that endpoint
+        // is anonymous — it is where a caller with no token gets one — so the
+        // requirement is evaluated against the application's own grants after
+        // its credentials have been verified.
+        "platform.applications.act-on-behalf"
+    ];
+
+    /// <summary>
     /// Reads every permission declared by a mapped endpoint.
     /// <para>
     /// This is the whole point of deriving rather than listing: the set is
@@ -135,6 +155,11 @@ public sealed class AuthorizationSeeder(
             {
                 permissions.Add(attribute.Permission);
             }
+        }
+
+        foreach (string permission in PermissionsWithNoEndpoint)
+        {
+            permissions.Add(permission);
         }
 
         return [.. permissions];

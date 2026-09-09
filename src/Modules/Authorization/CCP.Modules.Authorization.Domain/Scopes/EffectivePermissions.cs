@@ -37,16 +37,26 @@ public sealed class EffectivePermissions
 {
     private readonly Dictionary<string, HeldPermission> _permissions;
 
-    public EffectivePermissions(Guid userId, long version, IReadOnlyList<HeldPermission> permissions)
+    public EffectivePermissions(
+        PermissionSubject subject, long version, IReadOnlyList<HeldPermission> permissions)
     {
         ArgumentNullException.ThrowIfNull(permissions);
 
-        UserId = userId;
+        Subject = subject;
         Version = version;
         _permissions = permissions.ToDictionary(p => p.PermissionName, StringComparer.Ordinal);
     }
 
-    public Guid UserId { get; }
+    /// <summary>
+    /// Whose these are — a person or an application.
+    /// <para>
+    /// Carrying the kind rather than a bare id is what keeps one cache safe for
+    /// both: the two are different tables of GUIDs, and a key that ignored the
+    /// difference would be one mistake away from answering a question about a
+    /// machine with a person's answer.
+    /// </para>
+    /// </summary>
+    public PermissionSubject Subject { get; }
 
     /// <summary>
     /// The permission-version stamp these were computed at. A cached instance
@@ -58,8 +68,8 @@ public sealed class EffectivePermissions
     public IReadOnlyCollection<string> PermissionNames => _permissions.Keys;
 
     /// <summary>An empty set, for an unauthenticated or unknown caller.</summary>
-    public static EffectivePermissions None(Guid userId, long version)
-        => new(userId, version, []);
+    public static EffectivePermissions None(PermissionSubject subject, long version)
+        => new(subject, version, []);
 
     /// <summary>
     /// Evaluates a permission, returning both the decision and the filter that

@@ -82,7 +82,15 @@ public sealed class EndpointSecurityTests
             // Public keys, by definition. A business application fetches these
             // before it holds any credential, and there is nothing here to
             // protect — the private key cannot reach this document.
-            "api/v1/.well-known/jwks.json"
+            "api/v1/.well-known/jwks.json",
+
+            // The machine equivalent of sign-in, and anonymous for the same
+            // reason: it is where a caller holding no token gets one, so
+            // demanding a token would be circular. It is authenticated in the
+            // sense that matters — by a client secret in the request body — and
+            // it carries the same strict rate limit as the other credential
+            // endpoints, because it is the one an attacker guesses against.
+            "api/v1/oauth/token"
         ];
 
         var unexpected = new List<string>();

@@ -23,26 +23,37 @@ namespace CCP.Modules.Authorization.Application;
 /// </summary>
 public sealed class PermissionResolver(
     IAuthorizationRepository repository,
+    IApplicationRepository applications,
     IOrganizationScopeReader organizationReader,
     IPermissionVersionStore versionStore,
     IEffectivePermissionCache cache,
     IClock clock) : IPermissionResolver
 {
-    public async Task<EffectivePermissions> GetEffectivePermissionsAsync(
+    public Task<EffectivePermissions> GetEffectivePermissionsAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
+        => GetAsync(PermissionSubject.ForUser(userId), cancellationToken);
+
+    public Task<EffectivePermissions> GetEffectivePermissionsForApplicationAsync(
+        Guid applicationId,
+        CancellationToken cancellationToken = default)
+        => GetAsync(PermissionSubject.ForApplication(applicationId), cancellationToken);
+
+    private async Task<EffectivePermissions> GetAsync(
+        PermissionSubject subject,
+        CancellationToken cancellationToken)
     {
         long currentVersion = await versionStore.GetCurrentAsync(cancellationToken);
 
         // A cached set computed at an older stamp is stale, and stale here means
         // possibly granting revoked access. Discard rather than use.
-        if (cache.TryGet(userId, out EffectivePermissions? cached)
+        if (cache.TryGet(subject, out EffectivePermissions? cached)
             && cached.Version == currentVersion)
         {
             return cached;
         }
 
-        EffectivePermissions resolved = await ComputeAsync(userId, currentVersion, cancellationToken);
+        EffectivePermissions resolved = await ComputeAsync(subject, currentVersion, cancellationToken);
 
         cache.Set(resolved);
 
@@ -52,37 +63,135 @@ public sealed class PermissionResolver(
     public Task<string?> GetUserUnitPathAsync(Guid userId, CancellationToken cancellationToken = default)
         => organizationReader.GetUnitPathForUserAsync(userId, cancellationToken);
 
-    public async Task<AccessDecision> EvaluateAsync(
+    public Task<AccessDecision> EvaluateAsync(
+        Guid userId,
+        string permissionName,
+        CancellationToken cancellationToken = default)
+        => EvaluateForAsync(PermissionSubject.ForUser(userId), permissionName, cancellationToken);
+
+    public Task<AccessDecision> EvaluateForApplicationAsync(
+        Guid applicationId,
+        string permissionName,
+        CancellationToken cancellationToken = default)
+        => EvaluateForAsync(
+            PermissionSubject.ForApplication(applicationId), permissionName, cancellationToken);
+
+    /// <summary>
+    /// An application acting for a person, which is the narrower of the two.
+    /// <para>
+    /// <b>The intersection, deliberately.</b> A delegated call may do only what
+    /// the application is trusted with <i>and</i> what the person is entitled to.
+    /// Taking the user's rights alone would make every registered application a
+    /// way to act as anybody it can name; taking the application's alone would
+    /// let it reach data the person it claims to be acting for cannot see.
+    /// </para>
+    /// <para>
+    /// The narrower scope wins as well as the narrower grant, so an application
+    /// scoped to one department acting for somebody with company-wide access
+    /// still reaches only that department.
+    /// </para>
+    /// </summary>
+    public async Task<AccessDecision> EvaluateDelegatedAsync(
+        Guid applicationId,
         Guid userId,
         string permissionName,
         CancellationToken cancellationToken = default)
     {
-        EffectivePermissions permissions =
-            await GetEffectivePermissionsAsync(userId, cancellationToken);
+        AccessDecision application =
+            await EvaluateForApplicationAsync(applicationId, permissionName, cancellationToken);
 
-        // Only fetched when something actually needs it. A user whose grants are
-        // all All-scoped or anchored never triggers this lookup.
+        if (!application.IsGranted)
+        {
+            return AccessDecision.Denied;
+        }
+
+        AccessDecision user = await EvaluateAsync(userId, permissionName, cancellationToken);
+
+        if (!user.IsGranted)
+        {
+            return AccessDecision.Denied;
+        }
+
+        return Narrower(application, user);
+    }
+
+    private async Task<AccessDecision> EvaluateForAsync(
+        PermissionSubject subject,
+        string permissionName,
+        CancellationToken cancellationToken)
+    {
+        EffectivePermissions permissions = await GetAsync(subject, cancellationToken);
+
+        // Only fetched when something actually needs it. A caller whose grants
+        // are all All-scoped or anchored never triggers this lookup — and an
+        // application has no unit to follow at all.
         string? callerUnitPath = null;
 
-        if (NeedsCallerUnit(permissions))
+        if (subject.HasPlaceInOrganization && NeedsCallerUnit(permissions))
         {
-            callerUnitPath = await organizationReader.GetUnitPathForUserAsync(userId, cancellationToken);
+            callerUnitPath =
+                await organizationReader.GetUnitPathForUserAsync(subject.Id, cancellationToken);
         }
 
         return permissions.Evaluate(permissionName, callerUnitPath);
     }
 
+    /// <summary>
+    /// The more restrictive of two grants of the same permission.
+    /// <para>
+    /// Company-wide loses to anything narrower. Between two unit-scoped
+    /// decisions the reach is the intersection, which for materialized paths
+    /// means keeping a prefix only when the other side already covers it.
+    /// </para>
+    /// </summary>
+    private static AccessDecision Narrower(AccessDecision application, AccessDecision user)
+    {
+        if (application.Scope == ScopeType.All)
+        {
+            return user;
+        }
+
+        if (user.Scope == ScopeType.All)
+        {
+            return application;
+        }
+
+        if (application.Scope == ScopeType.Self || user.Scope == ScopeType.Self)
+        {
+            // Self means "the caller's own records", and an application has no
+            // records of its own. A delegated call that comes down to Self is
+            // the user's own data, checked by the handler that owns it.
+            return AccessDecision.GrantedForSelf();
+        }
+
+        ScopeType scope = application.Scope < user.Scope ? application.Scope : user.Scope;
+
+        List<string> reach = [.. application.UnitPathPrefixes.Where(user.Covers)];
+
+        reach.AddRange(user.UnitPathPrefixes.Where(
+            prefix => application.Covers(prefix) && !reach.Contains(prefix, StringComparer.Ordinal)));
+
+        return reach.Count == 0
+            ? AccessDecision.Denied
+            : AccessDecision.GrantedForUnits(scope, reach);
+    }
+
     private async Task<EffectivePermissions> ComputeAsync(
-        Guid userId,
+        PermissionSubject subject,
         long version,
         CancellationToken cancellationToken)
     {
-        IReadOnlyList<GrantRow> grants =
-            await repository.GetGrantsForUserAsync(userId, clock.UtcNow, cancellationToken);
+        // The same join, from whichever grant table the subject lives in. Two
+        // queries and one algorithm: a machine caller and a person are evaluated
+        // by identical code, which is why there is no second set of rules to
+        // keep in step with the first.
+        IReadOnlyList<GrantRow> grants = subject.Kind == PermissionSubjectKind.Application
+            ? await applications.GetGrantsForApplicationAsync(subject.Id, clock.UtcNow, cancellationToken)
+            : await repository.GetGrantsForUserAsync(subject.Id, clock.UtcNow, cancellationToken);
 
         if (grants.Count == 0)
         {
-            return EffectivePermissions.None(userId, version);
+            return EffectivePermissions.None(subject, version);
         }
 
         // Anchor unit ids are turned into paths once, here, so that evaluation —
@@ -129,7 +238,7 @@ public sealed class PermissionResolver(
             }
         }
 
-        return new EffectivePermissions(userId, version, held);
+        return new EffectivePermissions(subject, version, held);
     }
 
     /// <summary>
@@ -161,7 +270,7 @@ public sealed class PermissionResolver(
 /// </summary>
 public interface IEffectivePermissionCache
 {
-    bool TryGet(Guid userId, [NotNullWhen(true)] out EffectivePermissions? permissions);
+    bool TryGet(PermissionSubject subject, [NotNullWhen(true)] out EffectivePermissions? permissions);
 
     void Set(EffectivePermissions permissions);
 
@@ -169,5 +278,5 @@ public interface IEffectivePermissionCache
     /// Drops one user's entry. An optimisation for the common case of revoking
     /// one person's role; correctness comes from the version stamp regardless.
     /// </summary>
-    void Invalidate(Guid userId);
+    void Invalidate(PermissionSubject subject);
 }

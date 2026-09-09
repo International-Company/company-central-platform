@@ -42,7 +42,20 @@ public sealed class StepUpCoverageTests
         // than any one grant while looking like an edit. Creating and renaming
         // a role are not here: an empty role grants nothing, and a name is not
         // access.
-        "PUT api/v1/roles/{id:guid}/permissions"
+        "PUT api/v1/roles/{id:guid}/permissions",
+
+        // Registering an application hands out a permission namespace and the
+        // ability to hold roles: the machine equivalent of creating an
+        // administrator, and reviewed as one.
+        "POST api/v1/applications",
+
+        // A client secret acts with no person present, for as long as nobody
+        // revokes it. It is a way in that does not sleep.
+        "POST api/v1/applications/{id:guid}/credentials",
+
+        // Granting a role to a machine gives it to something that never
+        // notices it has been compromised.
+        "POST api/v1/applications/{id:guid}/roles"
     ];
 
     [Fact]

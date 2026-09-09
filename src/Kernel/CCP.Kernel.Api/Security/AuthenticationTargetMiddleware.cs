@@ -31,6 +31,12 @@ public sealed class AuthenticationTargetMiddleware(RequestDelegate next)
     /// <summary>Where the extracted account name travels on the request.</summary>
     public const string HttpContextKey = "ccp.auth.target";
 
+    /// <summary>Where the extracted client id travels on the request.</summary>
+    public const string ClientIdKey = "ccp.auth.client-id";
+
+    /// <summary>The machine token endpoint, whose body names a client rather than a person.</summary>
+    private const string TokenPath = "/oauth/token";
+
     /// <summary>
     /// Paths whose body names an account. Matched as a suffix so the version
     /// prefix does not have to be repeated here.
@@ -57,8 +63,49 @@ public sealed class AuthenticationTargetMiddleware(RequestDelegate next)
         {
             context.Items[HttpContextKey] = await ReadUsernameAsync(context);
         }
+        else if (IsTokenRequest(context))
+        {
+            // The same trick for machines. The client id is public — safe to
+            // read, safe to log, useless alone — so keying a limit on it before
+            // anything is authenticated gives away nothing, and it is what stops
+            // one badly written integration starving every other application
+            // behind the same office egress.
+            context.Items[ClientIdKey] = ReadClientId(context);
+        }
 
         await next(context);
+    }
+
+    private static bool IsTokenRequest(HttpContext context)
+        => HttpMethods.IsPost(context.Request.Method)
+        && context.Request.HasFormContentType
+        && context.Request.Path.Value?.EndsWith(TokenPath, StringComparison.OrdinalIgnoreCase) == true;
+
+    /// <summary>
+    /// The client id from a form-encoded token request, or null.
+    /// <para>
+    /// Reading the form here parses it once and caches it on the request, so the
+    /// endpoint that reads it afterwards costs nothing extra. A body that will
+    /// not parse falls back to an address-keyed limit, which is the safe
+    /// direction.
+    /// </para>
+    /// </summary>
+    private static string? ReadClientId(HttpContext context)
+    {
+        try
+        {
+            return context.Request.Form["client_id"].ToString() is { Length: > 0 } clientId
+                ? clientId
+                : null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
     }
 
     private static bool ShouldInspect(HttpContext context)

@@ -50,6 +50,17 @@ public static class RateLimitPolicies
     public const string Read = "read";
 
     /// <summary>
+    /// The machine token endpoint, partitioned by client id.
+    /// <para>
+    /// Its own policy rather than the authentication one, because the two are
+    /// keyed on different things: that one protects an account being guessed at,
+    /// this one protects a client secret being guessed at, and a shared
+    /// partition would let traffic on either starve the other.
+    /// </para>
+    /// </summary>
+    public const string MachineToken = "machine-token";
+
+    /// <summary>
     /// The window every policy measures against. One minute, and one constant:
     /// the <c>Retry-After</c> fallback is only honest while it matches the
     /// window the limiter actually uses.
@@ -96,8 +107,9 @@ public static class RateLimitPolicies
 
         options.AddPolicy(Authentication, PartitionAuthentication(limits.Authentication));
         options.AddPolicy(Anonymous, PartitionAnonymous(limits.Anonymous));
-        options.AddPolicy(Write, PartitionByIdentity(limits.Write, Window));
-        options.AddPolicy(Read, PartitionByIdentity(limits.Read, Window));
+        options.AddPolicy(Write, PartitionByIdentity(limits.Write, limits.Application, Window));
+        options.AddPolicy(Read, PartitionByIdentity(limits.Read, limits.Application, Window));
+        options.AddPolicy(MachineToken, PartitionByClient(limits.MachineToken));
 
         return options;
     }
@@ -171,10 +183,32 @@ public static class RateLimitPolicies
     /// </para>
     /// </summary>
     private static Func<HttpContext, RateLimitPartition<string>> PartitionByIdentity(
-        int permitLimit,
+        int userLimit,
+        int applicationLimit,
         TimeSpan window)
         => context =>
         {
+            // An application gets its own partition and its own budget, whether
+            // it is acting as itself or for somebody. Charging a delegated call
+            // to the person would let one integration exhaust the allowance of
+            // every employee it acts for — and would make a person's own screens
+            // stop working because a batch job was busy.
+            string? application =
+                context.User.FindFirst(CallerIdentity.ApplicationIdClaim)?.Value;
+
+            if (application is not null)
+            {
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    $"app:{application}",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = applicationLimit,
+                        Window = window,
+                        SegmentsPerWindow = 6,
+                        QueueLimit = 0
+                    });
+            }
+
             string? subject = context.User.FindFirst("sub")?.Value;
 
             string key = subject is not null
@@ -185,12 +219,39 @@ public static class RateLimitPolicies
                 key,
                 _ => new SlidingWindowRateLimiterOptions
                 {
-                    PermitLimit = permitLimit,
+                    PermitLimit = userLimit,
                     Window = window,
                     SegmentsPerWindow = 6,
                     QueueLimit = 0
                 });
         };
+
+    /// <summary>
+    /// The token endpoint, keyed on the client id in the request.
+    /// <para>
+    /// The client id is public — it is safe to read, safe to log, and useless on
+    /// its own — which is what makes it usable as a partition key before
+    /// anything has been authenticated.
+    /// </para>
+    /// <para>
+    /// Falls back to the address when no client id was sent, so a caller posting
+    /// nothing useful is limited rather than unlimited.
+    /// </para>
+    /// </summary>
+    private static Func<HttpContext, RateLimitPartition<string>> PartitionByClient(int permitLimit)
+        => context => RateLimitPartition.GetSlidingWindowLimiter(
+            context.Items.TryGetValue(
+                    AuthenticationTargetMiddleware.ClientIdKey, out object? value)
+                && value is string clientId
+                    ? $"client:{clientId}"
+                    : $"client-ip:{ClientAddress(context)}",
+            _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = Window,
+                SegmentsPerWindow = 6,
+                QueueLimit = 0
+            });
 
     /// <summary>
     /// The partition key for an authentication attempt: the account being

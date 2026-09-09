@@ -5,6 +5,7 @@ using CCP.Api.Host.Modules;
 using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
 using CCP.Kernel.Api.Security;
+using CCP.Kernel.Api.Versioning;
 using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Application.Events;
@@ -126,7 +127,15 @@ builder.Services.AddDbContext<KernelDbContext>(options =>
 // API surface
 // ---------------------------------------------------------------------------
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // The permission each endpoint demands, written into the published contract
+    // from the endpoint metadata itself. Phase 11 asks that an outside developer
+    // integrate from the documentation alone, and a contract that lists shapes
+    // but not permissions fails that on the first 403.
+    options.AddOperationTransformer<SecurityAnnotationTransformer>();
+    options.AddDocumentTransformer<PlatformDocumentTransformer>();
+});
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<KernelDbContext>(
@@ -310,6 +319,12 @@ app.UseRateLimiter();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After routing has chosen an endpoint, because the deprecation lives on the
+// endpoint's metadata, and before anything writes a body. Nothing is deprecated
+// today; the machinery exists so that the first one is a two-line change rather
+// than a scramble to tell everybody (docs/api/versioning.md).
+app.UseMiddleware<DeprecationHeaderMiddleware>();
 
 // ---------------------------------------------------------------------------
 // Health checks
