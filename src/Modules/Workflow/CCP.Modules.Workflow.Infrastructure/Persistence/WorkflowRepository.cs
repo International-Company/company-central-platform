@@ -171,7 +171,7 @@ public sealed class WorkflowRepository(WorkflowDbContext dbContext) : IWorkflowR
     public async Task<IReadOnlyList<WorkflowTask>> GetPendingTasksAsync(
         Guid instanceId, CancellationToken cancellationToken = default)
         => await dbContext.Tasks
-            .Where(t => t.InstanceId == instanceId && t.Status == Domain.Instances.TaskStatus.Pending)
+            .Where(t => t.InstanceId == instanceId && t.Status == Domain.Instances.WorkflowTaskStatus.Pending)
             .ToListAsync(cancellationToken);
 
     public async Task<(IReadOnlyList<WorkflowTask> Items, long Total)> GetTasksForUserAsync(
@@ -184,7 +184,7 @@ public sealed class WorkflowRepository(WorkflowDbContext dbContext) : IWorkflowR
 
         if (pendingOnly)
         {
-            query = query.Where(t => t.Status == Domain.Instances.TaskStatus.Pending);
+            query = query.Where(t => t.Status == Domain.Instances.WorkflowTaskStatus.Pending);
         }
 
         long total = await query.LongCountAsync(cancellationToken);
@@ -205,7 +205,7 @@ public sealed class WorkflowRepository(WorkflowDbContext dbContext) : IWorkflowR
     public async Task<IReadOnlyList<WorkflowTask>> GetOverdueTasksAsync(
         DateTimeOffset now, int limit, CancellationToken cancellationToken = default)
         => await dbContext.Tasks
-            .Where(t => t.Status == Domain.Instances.TaskStatus.Pending
+            .Where(t => t.Status == Domain.Instances.WorkflowTaskStatus.Pending
                      && t.DueAt != null
                      && t.DueAt < now
                      && t.EscalatedAt == null)

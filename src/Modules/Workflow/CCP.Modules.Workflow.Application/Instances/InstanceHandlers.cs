@@ -173,7 +173,7 @@ public sealed class ActOnTaskHandler(
                 cancellationToken);
 
             return Result.Failure<WorkflowInstanceDto>(
-                task.Status == Domain.Instances.TaskStatus.Pending
+                task.Status == Domain.Instances.WorkflowTaskStatus.Pending
                     ? WorkflowErrors.NotTheAssignee
                     : WorkflowErrors.TaskNotPending);
         }

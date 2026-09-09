@@ -35,7 +35,7 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
         InstanceId = instanceId;
         StepKey = stepKey;
         AssignedToUserId = assignedToUserId;
-        Status = TaskStatus.Pending;
+        Status = WorkflowTaskStatus.Pending;
         AssignedAt = now;
         DueAt = dueAt;
         CreatedAt = now;
@@ -57,7 +57,7 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
     /// </summary>
     public Guid? DelegatedFromUserId { get; private set; }
 
-    public TaskStatus Status { get; private set; }
+    public WorkflowTaskStatus Status { get; private set; }
 
     public DateTimeOffset AssignedAt { get; private set; }
 
@@ -110,12 +110,12 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
 
     /// <summary>Whether this person may act on this task.</summary>
     public bool MayBeActedOnBy(Guid userId)
-        => Status == TaskStatus.Pending && AssignedToUserId == userId;
+        => Status == WorkflowTaskStatus.Pending && AssignedToUserId == userId;
 
     /// <summary>Settles the task with the action that closed it.</summary>
     public Result Complete(WorkflowActionType action, Guid actorUserId, DateTimeOffset now)
     {
-        if (Status != TaskStatus.Pending)
+        if (Status != WorkflowTaskStatus.Pending)
         {
             return Result.Failure(WorkflowErrors.TaskNotPending);
         }
@@ -128,7 +128,7 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
             return Result.Failure(WorkflowErrors.NotTheAssignee);
         }
 
-        Status = TaskStatus.Completed;
+        Status = WorkflowTaskStatus.Completed;
         CompletedWith = action;
         CompletedAt = now;
         UpdatedAt = now;
@@ -145,7 +145,7 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
     /// </summary>
     public Result DelegateTo(Guid actorUserId, Guid newAssigneeUserId, DateTimeOffset now)
     {
-        if (Status != TaskStatus.Pending)
+        if (Status != WorkflowTaskStatus.Pending)
         {
             return Result.Failure(WorkflowErrors.TaskNotPending);
         }
@@ -177,12 +177,12 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
     /// </summary>
     public Result Withdraw(DateTimeOffset now)
     {
-        if (Status != TaskStatus.Pending)
+        if (Status != WorkflowTaskStatus.Pending)
         {
             return Result.Failure(WorkflowErrors.TaskNotPending);
         }
 
-        Status = TaskStatus.Withdrawn;
+        Status = WorkflowTaskStatus.Withdrawn;
         CompletedAt = now;
         UpdatedAt = now;
 
@@ -192,7 +192,7 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
     /// <summary>Marks that the service level was missed and escalation has fired.</summary>
     public Result Escalate(DateTimeOffset now)
     {
-        if (Status != TaskStatus.Pending)
+        if (Status != WorkflowTaskStatus.Pending)
         {
             return Result.Failure(WorkflowErrors.TaskNotPending);
         }
@@ -212,11 +212,11 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
 
     /// <summary>Whether this task has passed its due time without being acted on.</summary>
     public bool IsOverdue(DateTimeOffset now)
-        => Status == TaskStatus.Pending && DueAt is { } due && now > due;
+        => Status == WorkflowTaskStatus.Pending && DueAt is { } due && now > due;
 }
 
 /// <summary>What has become of a task.</summary>
-public enum TaskStatus
+public enum WorkflowTaskStatus
 {
     /// <summary>Waiting for its assignee.</summary>
     Pending = 1,
