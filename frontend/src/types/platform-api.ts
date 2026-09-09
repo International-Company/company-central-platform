@@ -380,6 +380,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization/company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the company, or null when the Platform has not been set up yet. */
+        get: operations["GetCompany"];
+        put?: never;
+        /** Establishes the company. Refused once one exists. */
+        post: operations["CreateCompany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/company/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Renames the company in both languages. Its code is fixed. */
+        put: operations["RenameCompany"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/units/tree": {
         parameters: {
             query?: never;
@@ -802,6 +837,20 @@ export interface components {
             /** Format: uuid */
             userId: null | string;
         };
+        CompanyDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: components["schemas"]["LocalizedNameDto"];
+            defaultLocale: string;
+            isActive: boolean;
+        };
+        CreateCompanyRequest: {
+            code: string;
+            nameAr: string;
+            nameEn: string;
+            defaultLocale?: null | string;
+        };
         CreateEmployeeRequest: {
             employeeNumber: string;
             fullNameAr: string;
@@ -1037,6 +1086,10 @@ export interface components {
         };
         RefreshRequest: {
             refreshToken: string;
+        };
+        RenameCompanyRequest: {
+            nameAr: string;
+            nameEn: string;
         };
         RenameUnitRequest: {
             nameAr: string;
@@ -1642,6 +1695,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyDto"];
+                };
+            };
+        };
+    };
+    CreateCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCompanyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyDto"];
+                };
+            };
+        };
+    };
+    RenameCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameCompanyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyDto"];
+                };
             };
         };
     };

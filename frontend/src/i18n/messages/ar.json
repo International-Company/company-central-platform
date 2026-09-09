@@ -238,7 +238,17 @@
     "typeCenter": "مركز",
     "typeDivision": "قطاع",
     "typeBranch": "فرع",
-    "typeTeam": "فريق"
+    "typeTeam": "فريق",
+    "companyTitle": "الشركة",
+    "companyMissingTitle": "لم تُعرَّف الشركة بعد",
+    "companyMissingDescription": "كل شيء في هذا القسم يتبع الشركة: الوحدات تتبعها، والموظفون يتبعون الوحدات. عرّف الشركة أولًا.",
+    "createCompany": "تعريف الشركة",
+    "renameCompany": "تعديل اسم الشركة",
+    "companyCode": "رمز الشركة",
+    "companyCodeHint": "رمز قصير ثابت لا يتغيّر بعد التعريف.",
+    "defaultLocale": "اللغة الافتراضية",
+    "localeAr": "العربية",
+    "localeEn": "الإنجليزية"
   },
   "security": {
     "title": "الأمان",

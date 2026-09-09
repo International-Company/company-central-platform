@@ -379,7 +379,12 @@ public sealed class SearchEmployeesHandler(IOrganizationRepository repository)
 
         if (company is null)
         {
-            return Result.Failure<PagedResult<EmployeeDto>>(OrganizationErrors.CompanyNotFound);
+            // An empty page, not a 404 — for the same reason the tree returns an
+            // empty list. Nobody has been hired by a company that does not exist
+            // yet, and saying "not found" turns a new installation into a broken
+            // one on the screen.
+            return Result.Success(new PagedResult<EmployeeDto>(
+                [], query.Page.Page, query.Page.PageSize, 0));
         }
 
         // A restriction with no reachable paths returns nothing, rather than

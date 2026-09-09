@@ -334,8 +334,14 @@ public sealed class GetUnitTreeHandler(IOrganizationRepository repository)
 
         if (company is null)
         {
-            return Result.Failure<IReadOnlyList<OrganizationUnitTreeDto>>(
-                OrganizationErrors.CompanyNotFound);
+            // An empty answer, not a 404. A Platform that has just been
+            // installed has no company and therefore no structure — which is
+            // what "empty" means. Answering "not found" made every screen that
+            // reads the structure show a failure on a working installation, and
+            // gave the person no hint that what they needed was to create the
+            // company. Writes still refuse: a unit cannot be added to a company
+            // that does not exist.
+            return Result.Success<IReadOnlyList<OrganizationUnitTreeDto>>([]);
         }
 
         IReadOnlyList<OrganizationUnit> units =

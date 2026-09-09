@@ -3,6 +3,7 @@ using CCP.Kernel.Api.Errors;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Paging;
 using CCP.Kernel.Results;
+using CCP.Modules.Organization.Application.Companies;
 using CCP.Modules.Organization.Application.Employees;
 using CCP.Modules.Organization.Application.Units;
 using CCP.Modules.Organization.Contracts.Dtos;
@@ -34,8 +35,97 @@ public static class OrganizationEndpoints
 {
     public static void MapOrganizationEndpoints(this IEndpointRouteBuilder versionGroup)
     {
+        MapCompanyEndpoints(versionGroup);
         MapUnitEndpoints(versionGroup);
         MapEmployeeEndpoints(versionGroup);
+    }
+
+    /// <summary>
+    /// The company the Platform serves.
+    /// <para>
+    /// <b>Nothing else in this module works until it exists.</b> A unit belongs
+    /// to a company, an employee belongs to a unit, and every read resolves the
+    /// company first — so a Platform without one had an organization module that
+    /// could do nothing and no way through the product to fix that. The module
+    /// assumed a company and nothing created one.
+    /// </para>
+    /// </summary>
+    private static void MapCompanyEndpoints(IEndpointRouteBuilder versionGroup)
+    {
+        RouteGroupBuilder company = versionGroup
+            .MapGroup("/organization/company")
+            .WithTags("Organization");
+
+        company.MapGet("/", async (
+            HttpContext context,
+            [FromServices] GetCompanyHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<CompanyDto?> result = await handler.HandleAsync(
+                new GetCompanyQuery(), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.view"))
+            .Produces<CompanyDto>(StatusCodes.Status200OK)
+            .WithName("GetCompany")
+            .WithSummary("Returns the company, or null when the Platform has not been set up yet.");
+
+        company.MapPost("/", async (
+            CreateCompanyRequest request,
+            HttpContext context,
+            [FromServices] CreateCompanyHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result validation = request.Validate();
+
+            if (validation.IsFailure)
+            {
+                return validation.ToHttpResult(context, requestContext);
+            }
+
+            Result<CompanyDto> result = await handler.HandleAsync(
+                new CreateCompanyCommand(
+                    request.Code, request.NameAr, request.NameEn, request.DefaultLocale ?? "ar"),
+                cancellationToken);
+
+            return result.IsSuccess
+                ? result.ToCreatedResult("/api/v1/organization/company", context, requestContext)
+                : result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .Produces<CompanyDto>(StatusCodes.Status201Created)
+            .WithName("CreateCompany")
+            .WithSummary("Establishes the company. Refused once one exists.");
+
+        company.MapPut("/name", async (
+            RenameCompanyRequest request,
+            HttpContext context,
+            [FromServices] RenameCompanyHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result validation = request.Validate();
+
+            if (validation.IsFailure)
+            {
+                return validation.ToHttpResult(context, requestContext);
+            }
+
+            Result<CompanyDto> result = await handler.HandleAsync(
+                new RenameCompanyCommand(request.NameAr, request.NameEn), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.organization.manage"))
+            .Produces<CompanyDto>(StatusCodes.Status200OK)
+            .WithName("RenameCompany")
+            .WithSummary("Renames the company in both languages. Its code is fixed.");
     }
 
     private static void MapUnitEndpoints(IEndpointRouteBuilder versionGroup)
@@ -281,6 +371,36 @@ public static class OrganizationEndpoints
 // ---------------------------------------------------------------------------
 // Request bodies
 // ---------------------------------------------------------------------------
+
+/// <summary>Create-company request body.</summary>
+public sealed record CreateCompanyRequest(
+    string Code,
+    string NameAr,
+    string NameEn,
+    string? DefaultLocale = null)
+{
+    public Result Validate()
+        => string.IsNullOrWhiteSpace(Code)
+        || string.IsNullOrWhiteSpace(NameAr)
+        || string.IsNullOrWhiteSpace(NameEn)
+            ? Result.Failure(Error.Validation(
+                "ORGANIZATION.COMPANY_INCOMPLETE",
+                "A company needs a code and a name in both languages.",
+                "code"))
+            : Result.Success();
+}
+
+/// <summary>Rename-company request body.</summary>
+public sealed record RenameCompanyRequest(string NameAr, string NameEn)
+{
+    public Result Validate()
+        => string.IsNullOrWhiteSpace(NameAr) || string.IsNullOrWhiteSpace(NameEn)
+            ? Result.Failure(Error.Validation(
+                "ORGANIZATION.NAME_REQUIRED",
+                "Both Arabic and English names are required.",
+                "nameAr"))
+            : Result.Success();
+}
 
 /// <summary>Create-unit request body.</summary>
 public sealed record CreateUnitRequest(

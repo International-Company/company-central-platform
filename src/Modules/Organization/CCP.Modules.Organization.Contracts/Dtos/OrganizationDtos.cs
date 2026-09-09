@@ -10,6 +10,21 @@ namespace CCP.Modules.Organization.Contracts.Dtos;
 /// </summary>
 public sealed record LocalizedNameDto(string Ar, string En);
 
+/// <summary>
+/// The company the Platform serves.
+/// <para>
+/// Identity only. Fiscal year, tax registration and bank details belong to the
+/// Financial application; putting them here would be the first step in turning
+/// the Platform into an ERP (ADR-005).
+/// </para>
+/// </summary>
+public sealed record CompanyDto(
+    Guid Id,
+    string Code,
+    LocalizedNameDto Name,
+    string DefaultLocale,
+    bool IsActive);
+
 /// <summary>One organizational unit, flat.</summary>
 public sealed record OrganizationUnitDto(
     Guid Id,

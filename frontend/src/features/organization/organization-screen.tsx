@@ -9,9 +9,10 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { IfPermitted } from '@/lib/permissions';
+import { CompanyForm } from './company-form';
 import { UnitForm } from './unit-form';
 import { MoveUnitDialog } from './move-unit-dialog';
-import type { OrganizationUnitTreeDto } from '@/types/platform';
+import type { CompanyDto, OrganizationUnitTreeDto } from '@/types/platform';
 
 /**
  * The company structure.
@@ -31,6 +32,12 @@ export function OrganizationScreen() {
   const tTable = useTranslations('table');
   const tErrors = useTranslations('errors');
   const locale = useLocale();
+
+  // Undefined until read, then either the company or null — and null is a real
+  // answer, not a failure. Everything below hangs off it, so this screen is
+  // where a new Platform is set up.
+  const [company, setCompany] = useState<CompanyDto | null | undefined>(undefined);
+  const [companyForm, setCompanyForm] = useState<{ editing: CompanyDto | null } | null>(null);
 
   const [tree, setTree] = useState<OrganizationUnitTreeDto[] | null>(null);
   const [includeInactive, setIncludeInactive] = useState(false);
@@ -56,9 +63,19 @@ export function OrganizationScreen() {
       }
 
       const query = params.toString();
-      const response = await fetch(
-        `/api/organization/units${query ? `?${query}` : ''}`,
-      );
+
+      const [companyResponse, response] = await Promise.all([
+        fetch('/api/organization/company'),
+        fetch(`/api/organization/units${query ? `?${query}` : ''}`),
+      ]);
+
+      if (companyResponse.ok) {
+        // A 204 when there is none: an empty body is how the Platform says
+        // "not set up yet", which is a state rather than an error.
+        const text = await companyResponse.text();
+
+        setCompany(text ? (JSON.parse(text) as CompanyDto) : null);
+      }
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -201,18 +218,57 @@ export function OrganizationScreen() {
         description={t('description')}
         action={
           <IfPermitted permission="platform.organization.manage">
-            <Button
-              variant="primary"
-              onClick={() => {
-                setCreatingUnder(null);
-                setCreating(true);
-              }}
-            >
-              {t('createUnit')}
-            </Button>
+            {company ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => setCompanyForm({ editing: company })}
+                >
+                  {t('renameCompany')}
+                </Button>
+
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setCreatingUnder(null);
+                    setCreating(true);
+                  }}
+                >
+                  {t('createUnit')}
+                </Button>
+              </div>
+            ) : (
+              // Creating a unit before the company exists is refused by the
+              // Platform, so it is not offered. The one action that moves this
+              // Platform forward is the one on screen.
+              <Button
+                variant="primary"
+                onClick={() => setCompanyForm({ editing: null })}
+              >
+                {t('createCompany')}
+              </Button>
+            )}
           </IfPermitted>
         }
       />
+
+      {company === null ? (
+        <div className="mb-4 rounded-md border border-border bg-surface-sunken p-3">
+          <p className="text-sm font-medium text-text">
+            {t('companyMissingTitle')}
+          </p>
+
+          <p className="mt-0.5 text-sm text-text-secondary">
+            {t('companyMissingDescription')}
+          </p>
+        </div>
+      ) : company ? (
+        <p className="mb-4 text-sm text-text-secondary">
+          {t('companyTitle')}:{' '}
+          <span className="font-medium text-text">
+            {locale === 'ar' ? company.name.ar : company.name.en} ({company.code})
+          </span>
+        </p>
+      ) : null}
 
       <div className="mb-4 flex items-center gap-2" data-print-hidden>
         <input
@@ -284,6 +340,16 @@ export function OrganizationScreen() {
           )}
         />
       )}
+
+      <CompanyForm
+        open={companyForm !== null}
+        editing={companyForm?.editing ?? null}
+        onClose={() => setCompanyForm(null)}
+        onSaved={() => {
+          setCompanyForm(null);
+          void load();
+        }}
+      />
 
       <UnitForm
         open={creating || renaming !== null}

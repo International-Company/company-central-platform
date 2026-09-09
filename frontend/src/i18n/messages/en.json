@@ -238,7 +238,17 @@
     "typeCenter": "Center",
     "typeDivision": "Division",
     "typeBranch": "Branch",
-    "typeTeam": "Team"
+    "typeTeam": "Team",
+    "companyTitle": "Company",
+    "companyMissingTitle": "The company is not defined yet",
+    "companyMissingDescription": "Everything here belongs to the company: units belong to it, and employees belong to units. Define the company first.",
+    "createCompany": "Define the company",
+    "renameCompany": "Rename the company",
+    "companyCode": "Company code",
+    "companyCodeHint": "A short, stable code that cannot change once set.",
+    "defaultLocale": "Default language",
+    "localeAr": "Arabic",
+    "localeEn": "English"
   },
   "security": {
     "title": "Security",

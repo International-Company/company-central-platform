@@ -1,5 +1,6 @@
 using CCP.Kernel.Api.Modules;
 using CCP.Kernel.Application.Modules;
+using CCP.Modules.Organization.Application.Companies;
 using CCP.Modules.Organization.Application.Employees;
 using CCP.Modules.Organization.Application.Units;
 using Microsoft.AspNetCore.Routing;
@@ -22,6 +23,10 @@ public sealed class OrganizationModule : IPlatformModule, IModuleEndpoints
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<GetCompanyHandler>();
+        services.AddScoped<CreateCompanyHandler>();
+        services.AddScoped<RenameCompanyHandler>();
+
         services.AddScoped<CreateUnitHandler>();
         services.AddScoped<MoveUnitHandler>();
         services.AddScoped<RenameUnitHandler>();
