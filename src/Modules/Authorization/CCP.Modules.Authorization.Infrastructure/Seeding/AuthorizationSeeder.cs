@@ -45,10 +45,19 @@ public sealed class AuthorizationSeeder(
     public const string AdministratorRoleCode = "platform-administrator";
 
     public async Task SeedAsync(
-        EndpointDataSource endpointDataSource,
+        IEndpointRouteBuilder endpoints,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(endpointDataSource);
+        ArgumentNullException.ThrowIfNull(endpoints);
+
+        // The route builder, not the container. Resolving EndpointDataSource
+        // from DI returns a composite that is *empty* — the endpoints a minimal
+        // API maps live in the builder's own DataSources and are never
+        // registered there. It resolves without throwing and answers "no
+        // endpoints", so the Platform seeded zero permissions, granted the
+        // administrator role zero permissions, and refused its own first
+        // administrator every screen. Silent, and past every test.
+        var endpointDataSource = new CompositeEndpointDataSource(endpoints.DataSources);
 
         using IServiceScope scope = scopeFactory.CreateScope();
 
@@ -60,6 +69,21 @@ public sealed class AuthorizationSeeder(
         RegisteredApplication platform = await EnsurePlatformApplicationAsync(dbContext, now, cancellationToken);
 
         IReadOnlyList<string> declared = ReadDeclaredPermissions(endpointDataSource);
+
+        if (declared.Count == 0)
+        {
+            // Never correct. Every module maps endpoints that require a
+            // permission, so an empty set means the endpoints were not read —
+            // not that the Platform enforces nothing. Loud, because the quiet
+            // version of this shipped: nothing was logged, nothing failed, and
+            // every administrative screen answered 403 with no explanation
+            // anywhere.
+            throw new InvalidOperationException(
+                "No endpoint declares a permission. The permission list is derived from "
+                + "endpoint metadata, so an empty set means the endpoints were not read "
+                + "rather than that none are protected. Seeding was abandoned to avoid "
+                + "deactivating every permission the Platform has.");
+        }
 
         (int added, int deactivated) = await ReconcilePermissionsAsync(
             dbContext, platform, declared, now, cancellationToken);

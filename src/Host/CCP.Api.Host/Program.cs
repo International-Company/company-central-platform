@@ -385,9 +385,11 @@ catch (Exception exception)
 try
 {
     var seeder = app.Services.GetRequiredService<AuthorizationSeeder>();
-    var endpointSource = app.Services.GetRequiredService<EndpointDataSource>();
 
-    await seeder.SeedAsync(endpointSource);
+    // `app`, not `app.Services`. The EndpointDataSource in the container is a
+    // composite that never sees the endpoints a minimal API maps; it answers
+    // "none" without complaint.
+    await seeder.SeedAsync(app);
 
     // The join between the two seeders, and the only place it can be made:
     // Identity created the account, Authorization owns the role, and neither
