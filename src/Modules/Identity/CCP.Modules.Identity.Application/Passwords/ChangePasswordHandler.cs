@@ -3,7 +3,7 @@ using CCP.Kernel.Results;
 using CCP.Modules.Identity.Application.Abstractions;
 using CCP.Modules.Identity.Domain.Credentials;
 using CCP.Modules.Identity.Domain.Users;
-using CCP.Modules.Identity.Domain.Users.Events;
+using CCP.Modules.Identity.Contracts.Events;
 
 namespace CCP.Modules.Identity.Application.Passwords;
 

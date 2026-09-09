@@ -967,6 +967,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's in-app inbox. */
+        get: operations["GetMyNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marks one of the caller's own notifications as read. */
+        post: operations["MarkNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the caller has turned off. Absence means everything is on. */
+        get: operations["GetMyNotificationPreferences"];
+        /** Turns a category on or off. Security notifications are refused. */
+        put: operations["SetMyNotificationPreference"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything sent, with every delivery attempt. Failures surface here. */
+        get: operations["SearchNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The template catalogue, one row per message per language. */
+        get: operations["GetNotificationTemplates"];
+        /** Writes or revises a template. Revising bumps its version. */
+        put: operations["SaveNotificationTemplate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1190,6 +1277,55 @@ export interface components {
             permissions: string[];
             hasOrganizationalUnit: boolean;
         };
+        NotificationChannel: number;
+        NotificationDeliveryDto: {
+            /** Format: int32 */
+            attempt: number | string;
+            succeeded: boolean;
+            providerName: null | string;
+            providerResponse: null | string;
+            /** Format: int32 */
+            durationMs: number | string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        NotificationDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            recipientUserId: string;
+            category: string;
+            channel: string;
+            locale: string;
+            subject: string;
+            body: string;
+            templateCode: null | string;
+            /** Format: int32 */
+            templateVersion: null | number | string;
+            status: string;
+            /** Format: date-time */
+            readAt: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            deliveries: components["schemas"]["NotificationDeliveryDto"][];
+        };
+        NotificationPreferenceDto: {
+            category: string;
+            channel: string;
+            isEnabled: boolean;
+        };
+        NotificationTemplateDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            locale: string;
+            subject: string;
+            body: string;
+            variables: string[];
+            /** Format: int32 */
+            version: number | string;
+            isActive: boolean;
+        };
         OrganizationUnitDto: {
             /** Format: uuid */
             id: string;
@@ -1235,6 +1371,19 @@ export interface components {
         };
         PagedResultOfEmployeeDto: {
             items: components["schemas"]["EmployeeDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
+        PagedResultOfNotificationDto: {
+            items: components["schemas"]["NotificationDto"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -1375,6 +1524,13 @@ export interface components {
             /** Format: int32 */
             permissionCount: number | string;
         };
+        SaveTemplateRequest: {
+            code: string;
+            locale: string;
+            body: string;
+            subject?: null | string;
+            variables?: null | string[];
+        };
         ScopeType: number;
         SecurityEventDto: {
             /** Format: uuid */
@@ -1405,6 +1561,12 @@ export interface components {
         };
         SetPositionActiveRequest: {
             isActive: boolean;
+        };
+        SetPreferenceRequest: {
+            category: string;
+            channel: string;
+            isEnabled: boolean;
+            parsedChannel?: components["schemas"]["NotificationChannel"];
         };
         SetRoleActiveRequest: {
             isActive: boolean;
@@ -3125,6 +3287,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkflowInstanceDto"];
+                };
+            };
+        };
+    };
+    GetMyNotifications: {
+        parameters: {
+            query?: {
+                unreadOnly?: boolean;
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfNotificationDto"];
+                };
+            };
+        };
+    };
+    MarkNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetMyNotificationPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferenceDto"][];
+                };
+            };
+        };
+    };
+    SetMyNotificationPreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SearchNotifications: {
+        parameters: {
+            query?: {
+                status?: string;
+                category?: string;
+                channel?: string;
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfNotificationDto"];
+                };
+            };
+        };
+    };
+    GetNotificationTemplates: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationTemplateDto"][];
+                };
+            };
+        };
+    };
+    SaveNotificationTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationTemplateDto"];
                 };
             };
         };

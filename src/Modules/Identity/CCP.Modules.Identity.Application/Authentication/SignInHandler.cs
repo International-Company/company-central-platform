@@ -7,7 +7,7 @@ using CCP.Modules.Identity.Contracts.Dtos;
 using CCP.Modules.Identity.Domain.Credentials;
 using CCP.Modules.Identity.Domain.Sessions;
 using CCP.Modules.Identity.Domain.Users;
-using CCP.Modules.Identity.Domain.Users.Events;
+using CCP.Modules.Identity.Contracts.Events;
 using Microsoft.Extensions.Options;
 
 namespace CCP.Modules.Identity.Application.Authentication;

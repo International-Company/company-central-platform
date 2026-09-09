@@ -27,6 +27,7 @@ const Widths = [
 const Screens = [
   'dashboard',
   'tasks',
+  'notifications',
   'users',
   'employees',
   'organization',

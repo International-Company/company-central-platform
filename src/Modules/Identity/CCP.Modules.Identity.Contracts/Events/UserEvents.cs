@@ -1,7 +1,13 @@
 using CCP.Kernel.Domain;
 using CCP.Kernel.Primitives;
 
-namespace CCP.Modules.Identity.Domain.Users.Events;
+namespace CCP.Modules.Identity.Contracts.Events;
+
+// In Contracts, not Domain. An integration event is the published shape another
+// module reads (ARCHITECTURE.md §6.3), so it belongs with the other published
+// shapes — putting it in Domain would force every subscriber to reference a
+// module's internals, which is the coupling the Contracts projects exist to
+// prevent. Notifications is the first subscriber; it will not be the last.
 
 /// <summary>
 /// Base for identity integration events.

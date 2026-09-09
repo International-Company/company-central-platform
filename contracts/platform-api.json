@@ -2287,6 +2287,261 @@
           }
         }
       }
+    },
+    "/api/v1/me/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "The caller's in-app inbox.",
+        "operationId": "GetMyNotifications",
+        "parameters": [
+          {
+            "name": "unreadOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfNotificationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Marks one of the caller's own notifications as read.",
+        "operationId": "MarkNotificationRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/me/notification-preferences": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "What the caller has turned off. Absence means everything is on.",
+        "operationId": "GetMyNotificationPreferences",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationPreferenceDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Turns a category on or off. Security notifications are refused.",
+        "operationId": "SetMyNotificationPreference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPreferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Everything sent, with every delivery attempt. Failures surface here.",
+        "operationId": "SearchNotifications",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfNotificationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/templates": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "The template catalogue, one row per message per language.",
+        "operationId": "GetNotificationTemplates",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationTemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Writes or revises a template. Revising bumps its version.",
+        "operationId": "SaveNotificationTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationTemplateDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3184,6 +3439,202 @@
           }
         }
       },
+      "NotificationChannel": {
+        "type": "integer"
+      },
+      "NotificationDeliveryDto": {
+        "required": [
+          "attempt",
+          "succeeded",
+          "providerName",
+          "providerResponse",
+          "durationMs",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "providerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "providerResponse": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotificationDto": {
+        "required": [
+          "id",
+          "recipientUserId",
+          "category",
+          "channel",
+          "locale",
+          "subject",
+          "body",
+          "templateCode",
+          "templateVersion",
+          "status",
+          "readAt",
+          "createdAt",
+          "deliveries"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipientUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "category": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "templateCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "templateVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDeliveryDto"
+            }
+          }
+        }
+      },
+      "NotificationPreferenceDto": {
+        "required": [
+          "category",
+          "channel",
+          "isEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationTemplateDto": {
+        "required": [
+          "id",
+          "code",
+          "locale",
+          "subject",
+          "body",
+          "variables",
+          "version",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
       "OrganizationUnitDto": {
         "required": [
           "id",
@@ -3370,6 +3821,61 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EmployeeDto"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalItems": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PagedResultOfNotificationDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDto"
             }
           },
           "page": {
@@ -3942,6 +4448,40 @@
           }
         }
       },
+      "SaveTemplateRequest": {
+        "required": [
+          "code",
+          "locale",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "subject": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "variables": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "ScopeType": {
         "type": "integer"
       },
@@ -4059,6 +4599,28 @@
         "properties": {
           "isActive": {
             "type": "boolean"
+          }
+        }
+      },
+      "SetPreferenceRequest": {
+        "required": [
+          "category",
+          "channel",
+          "isEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "parsedChannel": {
+            "$ref": "#/components/schemas/NotificationChannel"
           }
         }
       },
@@ -4812,6 +5374,9 @@
     },
     {
       "name": "Workflow"
+    },
+    {
+      "name": "Notifications"
     }
   ]
 }

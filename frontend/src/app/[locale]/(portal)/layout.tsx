@@ -77,6 +77,7 @@ export default async function PortalLayout({
           // Second, because it is the one item most people in the company will
           // ever use. Everything below it is administration.
           { href: '/tasks', label: t('tasks') },
+          { href: '/notifications', label: t('notifications') },
           { href: '/users', label: t('users') },
           { href: '/employees', label: t('employees') },
           { href: '/organization', label: t('organization') },

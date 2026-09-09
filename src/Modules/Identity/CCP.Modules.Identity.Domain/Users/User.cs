@@ -1,7 +1,7 @@
 using CCP.Kernel.Domain;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
-using CCP.Modules.Identity.Domain.Users.Events;
+using CCP.Modules.Identity.Contracts.Events;
 
 namespace CCP.Modules.Identity.Domain.Users;
 

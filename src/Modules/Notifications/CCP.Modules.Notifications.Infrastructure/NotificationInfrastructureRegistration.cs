@@ -72,6 +72,19 @@ public static class NotificationInfrastructureRegistration
                 Modules.Workflow.Contracts.Events.WorkflowInstanceCompletedEvent>,
             Listeners.InstanceCompletedListener>();
 
+        // Security. The reset listener closes the oldest debt in the project:
+        // the token has been staged on the outbox since Phase 2 with nothing to
+        // deliver it, so the flow existed, was tested, and could not complete.
+        services.AddScoped<
+            CCP.Kernel.Application.Events.IIntegrationEventHandler<
+                Modules.Identity.Contracts.Events.PasswordResetRequestedEvent>,
+            Listeners.PasswordResetRequestedListener>();
+
+        services.AddScoped<
+            CCP.Kernel.Application.Events.IIntegrationEventHandler<
+                Modules.Identity.Contracts.Events.UserPasswordChangedEvent>,
+            Listeners.PasswordChangedListener>();
+
         return services;
     }
 }

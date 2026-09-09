@@ -65,6 +65,7 @@ test.describe('the portal', () => {
 
   for (const screen of [
     'tasks',
+    'notifications',
     'users',
     'employees',
     'organization',
