@@ -88,11 +88,11 @@ public sealed class BootstrapAdministratorSeeder(
     /// Runs the bootstrap if it is enabled and the Platform has no users.
     /// Returns what happened, so a caller can report it rather than guess.
     /// </summary>
-    public async Task<BootstrapOutcome> RunAsync(CancellationToken cancellationToken = default)
+    public async Task<BootstrapResult> RunAsync(CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled)
         {
-            return BootstrapOutcome.Disabled;
+            return new BootstrapResult(BootstrapOutcome.Disabled);
         }
 
         using IServiceScope scope = scopeFactory.CreateScope();
@@ -111,7 +111,27 @@ public sealed class BootstrapAdministratorSeeder(
                 "Bootstrap is enabled but the Platform already has users. Nothing was created. "
                 + "Disable Identity:Bootstrap:Enabled.");
 
-            return BootstrapOutcome.AlreadyBootstrapped;
+            // The configured account's id is still reported. Nothing is created
+            // and no password is touched — but the composition root can use it
+            // to repair a Platform whose first administrator exists and holds no
+            // role, which is a state the earlier version of this seeder left
+            // behind: an account that could sign in and do nothing.
+            //
+            // Safe because it grants only where nothing at all is granted yet.
+            // Once anyone holds any role, this path grants nothing.
+            // Normalised here rather than in the query. Usernames are stored
+            // lower-cased (Phase 2), so this is a plain equality comparison the
+            // unique index serves — not a function applied to every row.
+            string? wanted = _options.Username?.Trim().ToLowerInvariant();
+
+            Guid? existing = string.IsNullOrWhiteSpace(wanted)
+                ? null
+                : await dbContext.Users
+                    .Where(u => u.Username == wanted)
+                    .Select(u => (Guid?)u.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            return new BootstrapResult(BootstrapOutcome.AlreadyBootstrapped, existing);
         }
 
         if (string.IsNullOrWhiteSpace(_options.Username)
@@ -176,7 +196,7 @@ public sealed class BootstrapAdministratorSeeder(
             administrator.Username,
             administrator.Id);
 
-        return BootstrapOutcome.Created;
+        return new BootstrapResult(BootstrapOutcome.Created, administrator.Id);
     }
 }
 
@@ -192,3 +212,21 @@ public enum BootstrapOutcome
     /// <summary>The first administrator was created.</summary>
     Created = 3
 }
+
+/// <summary>
+/// What bootstrapping did, and to whom.
+/// <para>
+/// The user id is carried because creating the account is only half the job:
+/// the account needs the administrator role, which belongs to a different
+/// module. Identity cannot grant it and must not try (§6.2), so it reports the
+/// id and the composition root — the one place allowed to know both modules —
+/// joins the two.
+/// </para>
+/// <para>
+/// The first version returned only the outcome. The account was created and
+/// granted nothing, so the first administrator could sign in and then found
+/// every screen refusing them. A Platform whose first user can do nothing is
+/// not bootstrapped.
+/// </para>
+/// </summary>
+public sealed record BootstrapResult(BootstrapOutcome Outcome, Guid? UserId = null);

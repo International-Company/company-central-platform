@@ -126,6 +126,39 @@ public sealed class UserRoleAssignment : AggregateRoot
             Uuid7.NewGuid(now), userId, roleId, scope, grantedBy, now, expiresAt));
     }
 
+    /// <summary>
+    /// Grants a role with no granting user, for the first administrator.
+    /// <para>
+    /// <b>Deliberately outside the no-self-grant rule</b>, and worth explaining
+    /// rather than hiding. That rule stops a person who can reach the grant
+    /// endpoint from escalating themselves; here there is no person and no
+    /// endpoint. The system is creating the first account, and it can only do so
+    /// when the Platform has no users at all — the bootstrap seeder refuses
+    /// otherwise. There is nobody to escalate from.
+    /// </para>
+    /// <para>
+    /// Without it the first administrator was created holding nothing: they
+    /// could sign in, and every screen refused them. A Platform whose first user
+    /// can do nothing is not bootstrapped.
+    /// </para>
+    /// <para>
+    /// <c>GrantedBy</c> is <see cref="Guid.Empty"/>, which reads in the trail as
+    /// what it was: not a person.
+    /// </para>
+    /// </summary>
+    public static UserRoleAssignment GrantByPlatform(
+        Guid userId,
+        Guid roleId,
+        DateTimeOffset now)
+        => new(
+            Uuid7.NewGuid(now),
+            userId,
+            roleId,
+            new GrantedScope(ScopeType.All, null),
+            Guid.Empty,
+            now,
+            null);
+
     public Result Revoke(Guid revokedBy, DateTimeOffset now)
     {
         if (IsRevoked)

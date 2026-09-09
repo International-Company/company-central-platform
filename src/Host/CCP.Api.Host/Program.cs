@@ -364,15 +364,17 @@ if (databaseOptions.ApplyMigrationsOnStartup)
 //
 // Failure is logged, not fatal: a Platform that cannot bootstrap should still
 // come up and report itself, rather than crash-loop while hiding the reason.
+BootstrapResult bootstrap = new(BootstrapOutcome.Disabled);
+
 try
 {
-    BootstrapOutcome outcome = await app.Services
+    bootstrap = await app.Services
         .GetRequiredService<BootstrapAdministratorSeeder>()
         .RunAsync();
 
     if (app.Logger.IsEnabled(LogLevel.Information))
     {
-        app.Logger.LogInformation("Bootstrap: {Outcome}.", outcome);
+        app.Logger.LogInformation("Bootstrap: {Outcome}.", bootstrap.Outcome);
     }
 }
 catch (Exception exception)
@@ -386,6 +388,28 @@ try
     var endpointSource = app.Services.GetRequiredService<EndpointDataSource>();
 
     await seeder.SeedAsync(endpointSource);
+
+    // The join between the two seeders, and the only place it can be made:
+    // Identity created the account, Authorization owns the role, and neither
+    // module may reach into the other (§6.2). This runs after seeding because
+    // the role it grants is created there.
+    //
+    // Until this existed the first administrator was created holding nothing —
+    // they could sign in, and every screen refused them. A Platform whose first
+    // user can do nothing is not bootstrapped, whatever the log says.
+    if (bootstrap is { Outcome: BootstrapOutcome.Created, UserId: { } newAdministrator })
+    {
+        await seeder.GrantAdministratorAsync(newAdministrator);
+    }
+    else if (bootstrap is { Outcome: BootstrapOutcome.AlreadyBootstrapped, UserId: { } existing })
+    {
+        // The repair path, for a Platform bootstrapped before the grant
+        // existed: the account is there and holds nothing, so nobody can
+        // administer anything and nobody can fix it either — granting requires
+        // holding. It fires only while nothing at all is granted, so it closes
+        // the moment the Platform becomes administrable.
+        await seeder.GrantAdministratorAsync(existing, onlyIfNothingGranted: true);
+    }
 }
 catch (Exception exception)
 {

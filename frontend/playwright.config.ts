@@ -16,6 +16,12 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
 
+  // Signs in once and stores the cookie. The account is created with
+  // MustChangePassword, so the first sign-in must complete that before any
+  // session is usable — and the specs share one account, so repeated sign-ins
+  // would trip its own progressive lockout.
+  globalSetup: './e2e/global-setup.ts',
+
   // A failing E2E test is usually a real failure, and a retry that hides it is
   // worse than a slow suite. One retry only, for genuine flake in CI.
   retries: process.env.CI ? 1 : 0,
@@ -36,11 +42,19 @@ export default defineConfig({
   projects: [
     {
       name: 'ar',
-      use: { ...devices['Desktop Chrome'], locale: 'ar' },
+      use: {
+        ...devices['Desktop Chrome'],
+        locale: 'ar',
+        storageState: 'e2e/.auth/admin.json',
+      },
     },
     {
       name: 'en',
-      use: { ...devices['Desktop Chrome'], locale: 'en' },
+      use: {
+        ...devices['Desktop Chrome'],
+        locale: 'en',
+        storageState: 'e2e/.auth/admin.json',
+      },
     },
   ],
 });

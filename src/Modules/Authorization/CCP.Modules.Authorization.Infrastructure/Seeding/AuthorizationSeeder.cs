@@ -4,6 +4,7 @@ using CCP.Modules.Authorization.Application.Abstractions;
 using CCP.Modules.Authorization.Domain.Applications;
 using CCP.Modules.Authorization.Domain.Permissions;
 using CCP.Modules.Authorization.Domain.Roles;
+using CCP.Modules.Authorization.Domain.Scopes;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -192,6 +193,80 @@ public sealed class AuthorizationSeeder(
         }
 
         return (added, deactivated);
+    }
+
+    /// <summary>
+    /// Gives the first administrator the administrator role.
+    /// <para>
+    /// Called by the composition root, which is the only place permitted to know
+    /// that Identity created an account and that Authorization has a role for it
+    /// (§6.2). Neither module may reach into the other, so neither can do this
+    /// on its own — and until something did, the first administrator signed in
+    /// to a Platform that refused them every screen.
+    /// </para>
+    /// <para>
+    /// Idempotent, and it will not grant a second time. Re-running startup is
+    /// normal; creating a duplicate assignment on every restart would not be.
+    /// </para>
+    /// </summary>
+    /// <param name="onlyIfNothingGranted">
+    /// When true, grants only if no role is assigned to anyone anywhere. That is
+    /// the repair case: a Platform whose first administrator exists and holds
+    /// nothing. Once any assignment exists the Platform is administrable and
+    /// this must do nothing, or it becomes a way to hand out the administrator
+    /// role on every restart.
+    /// </param>
+    public async Task GrantAdministratorAsync(
+        Guid userId,
+        bool onlyIfNothingGranted = false,
+        CancellationToken cancellationToken = default)
+    {
+        using IServiceScope scope = scopeFactory.CreateScope();
+
+        var dbContext = scope.ServiceProvider.GetRequiredService<AuthorizationDbContext>();
+        var versionStore = scope.ServiceProvider.GetRequiredService<IPermissionVersionStore>();
+
+        if (onlyIfNothingGranted
+            && await dbContext.Assignments.AnyAsync(a => a.RevokedAt == null, cancellationToken))
+        {
+            return;
+        }
+
+        Role? administrator = await dbContext.Roles
+            .FirstOrDefaultAsync(r => r.Code == AdministratorRoleCode, cancellationToken);
+
+        if (administrator is null)
+        {
+            logger.LogError(
+                "The administrator role does not exist, so {UserId} was granted nothing.",
+                userId);
+
+            return;
+        }
+
+        bool alreadyGranted = await dbContext.Assignments.AnyAsync(
+            a => a.UserId == userId && a.RoleId == administrator.Id && a.RevokedAt == null,
+            cancellationToken);
+
+        if (alreadyGranted)
+        {
+            return;
+        }
+
+        dbContext.Assignments.Add(
+            UserRoleAssignment.GrantByPlatform(userId, administrator.Id, clock.UtcNow));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Bumped so the grant is visible on the very next request rather than
+        // when some cache happens to lapse.
+        await versionStore.BumpAsync(cancellationToken);
+
+        logger.LogWarning(
+            "The bootstrap administrator {UserId} was granted the {Role} role at All scope. "
+            + "Use it to create named administrator accounts, then stop using it.",
+            userId,
+            AdministratorRoleCode);
     }
 
     private static async Task<Role> EnsureAdministratorRoleAsync(
