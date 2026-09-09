@@ -90,7 +90,17 @@ public sealed class EndpointSecurityTests
             // sense that matters — by a client secret in the request body — and
             // it carries the same strict rate limit as the other credential
             // endpoints, because it is the one an attacker guesses against.
-            "api/v1/oauth/token"
+            "api/v1/oauth/token",
+
+            // Inbound webhooks, and this one is anonymous rather than
+            // unauthenticated. It is authenticated by an HMAC signature over the
+            // raw body, which is the only credential a provider posting from the
+            // internet has — requiring a Platform token instead would mean
+            // handing one to every external service, which is a far worse trade.
+            // The signature covers a timestamp, the window is five minutes, and
+            // every accepted signature is remembered so the same request cannot
+            // be replayed.
+            "api/v1/integrations/webhooks"
         ];
 
         var unexpected = new List<string>();

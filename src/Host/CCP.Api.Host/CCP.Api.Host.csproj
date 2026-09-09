@@ -21,6 +21,8 @@
     <ProjectReference Include="..\..\Modules\Security\CCP.Modules.Security.Infrastructure\CCP.Modules.Security.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Documents\CCP.Modules.Documents.Api\CCP.Modules.Documents.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Documents\CCP.Modules.Documents.Infrastructure\CCP.Modules.Documents.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Integrations\CCP.Modules.Integrations.Api\CCP.Modules.Integrations.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Integrations\CCP.Modules.Integrations.Infrastructure\CCP.Modules.Integrations.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

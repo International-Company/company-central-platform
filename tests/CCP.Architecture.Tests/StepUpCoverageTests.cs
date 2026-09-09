@@ -55,7 +55,14 @@ public sealed class StepUpCoverageTests
 
         // Granting a role to a machine gives it to something that never
         // notices it has been compromised.
-        "POST api/v1/applications/{id:guid}/roles"
+        "POST api/v1/applications/{id:guid}/roles",
+
+        // Registering an integration provider decides where the Platform may
+        // send data and which credential travels with it. Configuring one
+        // afterwards is not here: the host is fixed at registration, and
+        // everything a configuration edit can change is bounded by the
+        // allow-list either way.
+        "POST api/v1/integrations/providers"
     ];
 
     [Fact]

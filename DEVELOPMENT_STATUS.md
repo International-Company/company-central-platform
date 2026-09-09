@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-09 |
-| Current phase | **Phase 11 — External API Platform & Application Registry** |
-| Phase status | 🟢 **A system can now integrate without the Platform team writing anything for it.** |
-| Next phase | **Phase 12 — Integrations** |
+| Current phase | **Phase 12 — Integrations** |
+| Phase status | 🟢 **One governed door out. Deny by default, credentials by reference, every call logged.** |
+| Next phase | **Phase 13 — Configuration & Feature Flags** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -26,8 +26,8 @@
 | 8 | Workflow | 🟢 **Complete** | A reusable approval engine holding no business rule — verified by a test that fails the build if business vocabulary appears in the module at all. Definitions as versioned data, registered by applications through the API with no Platform code change. Versions frozen once published; instances run on the version they started with. Six organizational assignee strategies plus a caller-supplied list, which is where business-conditional routing lives — outside the engine. Approve, reject, return, delegate, comment, cancel; first to act settles a step and the rest are withdrawn. Service levels escalated once by a background sweep that raises an event and does not reassign. Task inbox and administrator view in both locales. Integration tests walk a whole approval on a real database. |
 | 9 | Notifications | 🟢 **Complete** | Templates per locale with declared variables and escaping that cannot be opted out of; no template language, substitution only. In-app and email, with `INotificationChannelProvider` as the seam — adding SMS is one interface and one registration. Retry, backoff with jitter, and giving up live in the dispatcher so every channel behaves the same when a vendor is down. Per-user, per-category, per-channel preferences, with security refused at the resolver and at creation. Delivery log keeps permanent failures visible. Listens to Workflow and Identity, neither of which knows it exists. 23 unit tests, 6 integration tests. |
 | 10 | Documents | 🟢 **Complete** | Metadata in PostgreSQL, bytes in object storage, behind `IDocumentStorageProvider` — a directory on disk in development, S3-compatible in production, chosen by what is configured rather than by the environment name. Uploads are identified by reading their first bytes: an executable renamed to `report.pdf` is refused and named. Random object keys, SHA-256, size enforced during the copy rather than after it. A scanner hook whose default reports *NotScanned* rather than *Clean*, so an audit of what was checked tells the truth. Versions are added, never edited. Access decided by one evaluator used by every path — user, role or unit rules that add up rather than override — and every access logged, **including the refusals**. Two-stage deletion with a thirty-day grace period and a purge sweep that destroys bytes before it marks the record. Polymorphic linking with no foreign key, so a business system files a document against its own record. Screens in both locales, and an upload control any screen can embed. 47 unit tests, 7 integration tests. |
-| 11 | External API Platform & App Registry | 🟡 **Core complete** | Client credentials with rotation: an application holds two live secrets at once, so the new one works before the old one stops and a rotation is never an outage. `LastUsedAt` on every exchange, because finishing a rotation needs evidence rather than nerve. Applications hold the **same roles at the same scopes** as people, resolved by the same evaluator — two grant tables, one algorithm, and no second vocabulary of API scopes to keep in step. Acting on behalf of a person is the **intersection** of what the application and that person may do. The subject claim carries its kind, so no handler can mistake an application for a person. Per-application rate limits; the token endpoint partitioned by client id. The published contract states every endpoint's permission, step-up requirement and anonymity, derived from the endpoint metadata. `Deprecation`/`Sunset` headers exist with nothing yet deprecated. A permission manifest endpoint whose namespace comes from the token, so a system can only ever declare its own. 24 unit tests, 8 integration tests, an integration guide and a reference client. |
-| 12 | Integrations | ⬜ Not started | |
+| 11 | External API Platform & App Registry | 🟢 **Complete** | Client credentials with rotation: an application holds two live secrets at once, so the new one works before the old one stops and a rotation is never an outage. `LastUsedAt` on every exchange, because finishing a rotation needs evidence rather than nerve. Applications hold the **same roles at the same scopes** as people, resolved by the same evaluator — two grant tables, one algorithm, and no second vocabulary of API scopes to keep in step. Acting on behalf of a person is the **intersection** of what the application and that person may do. The subject claim carries its kind, so no handler can mistake an application for a person. Per-application rate limits; the token endpoint partitioned by client id. The published contract states every endpoint's permission, step-up requirement and anonymity, derived from the endpoint metadata. `Deprecation`/`Sunset` headers exist with nothing yet deprecated. A permission manifest endpoint whose namespace comes from the token, so a system can only ever declare its own. 24 unit tests, 8 integration tests, an integration guide and a reference client. |
+| 12 | Integrations | 🟡 **Core complete** | Every outbound call passes one door: the address is checked against a **deny-by-default** allow-list, the credential is resolved from a *reference* so no column in the module could hold a secret, the request runs under a resilience pipeline built from the provider's own settings, and both halves are written to the call log with the provider's declared fields blanked **before storage**. The SSRF defence checks the name and every address it resolves to — the metadata service, the private ranges, non-HTTP schemes and credentials in the URL are all refused, and a caller is never told which check failed. Bulkhead, breaker, retry with jitter, timeout, in that order, because the order decides what each one protects. Inbound webhooks verify an HMAC over the raw body with the timestamp inside the signed material, and every accepted signature is remembered so the same request cannot be replayed. Health is derived from recent calls, never stored. Retention from the first day. 48 unit tests. |
 | 13 | Configuration & Feature Flags | ⬜ Not started | |
 | 14 | Observability | ⬜ Not started | |
 | 15 | Administration Portal Completion | ⬜ Not started | |
@@ -38,7 +38,7 @@
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–11 in progress.**
+**Completed: 1 of 22 phases. Phases 1–12 in progress.**
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -935,6 +935,12 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 40 | The integration guide has not been tested on a real outside developer | Medium | Phase 11's acceptance criterion says explicitly: validated by having someone actually try, not by self-assessment. Writing it and reading it back is exactly the self-assessment the criterion rules out. Two errors were caught by checking the guide against the generated contract — an endpoint that did not exist and a method that was wrong — which is evidence that reading it back is not enough. |
 | 41 | A machine token cannot be revoked before it expires | Low | Revoking a credential stops new tokens instantly, and tokens already issued keep working for the rest of their short lifetime. The alternative is checking a revocation list on every request, which makes the Platform a synchronous dependency of every call in the company — the thing asymmetric signing and the JWKS endpoint exist to avoid. Stated in the documentation rather than implied away. |
 | 42 | An application declares its permissions with no permission of its own | Low | Being an authenticated application declaring **its own** namespace is the authorization, and the namespace comes from the token so it cannot be anything else. Declared permissions grant nobody anything until an administrator puts them in a role, so the blast radius is rows in a table — weighed against two administrator actions to onboard every system. |
+| 43 | ~~The Platform would not start if it could not create a document folder~~ | — | ✅ **Resolved.** The local storage provider created its root directory in its constructor; the container runs as an unprivileged user and the application directory belongs to root, so the call was refused — and because that provider is a singleton resolved while the host is being built, every module failed to start. The constructor now does no I/O, the default root is a writable temporary directory, and three tests pin all of it. |
+| 44 | DNS rebinding is not closed | Medium | The outbound guard checks the host name and every address it resolves to, and then the HTTP client resolves the name again to connect. Between the two, whoever controls the name can point it somewhere else. Closing it means connecting to a checked address rather than to a name, which requires taking over socket connection in the handler. The allow-list narrows it a long way: an attacker needs control of a host somebody deliberately allowed. |
+| 45 | The email channel has not been moved onto the integration layer | Medium | Phase 12 lists it, and Phase 9 recorded it as debt (#33). The SMTP adapter still talks to a mail server directly, with no shared circuit breaker, no allow-list and no entry in the call log. SMTP is not HTTP, so it needs a second connector shape rather than a configuration change — which is the reason it is not done rather than an excuse for it. |
+| 46 | Outbound webhook subscriptions are not built | Medium | Deferred from Phase 11 to here, and not built here either. Receiving a signed webhook is done; publishing Platform events to an external URL is not. It needs delivery with retry, a per-subscription secret and the same allow-list — all of which now exist, so it is assembly rather than design. |
+| 47 | No integration administration screens | Low | The API is complete and there is no UI. A provider is registered and configured through the API today, which is workable for the handful of providers a company has and is not where this should end. |
+| 48 | The connector is not tested against a real HTTP server | Medium | The policy, the redaction, the signatures and the templates all have unit tests. The pipeline itself — a retry actually retrying, a breaker actually opening, a timeout actually firing — is verified by reading the code. Phase 12's own test list asks for a stub external service, and that is the piece missing. |
 | 14 | Employee custom-attribute extension bag not built | Low | Planned in ARCHITECTURE.md §7.2.2 so business apps attach metadata without a Platform schema change. Needed before the first business system integrates. |
 
 ---
@@ -1407,13 +1413,128 @@ would be worse than building them once, in the phase that has the machinery.
 
 ---
 
-## 14. Next step
+## 14. Phase 12 report — the door, and what happens when it is not there
 
-**Phase 12 — Integrations.** Every outbound call the Platform makes — mail today,
-webhooks and third-party services tomorrow — goes through one governed door: a
-uniform resilience pipeline, credentials held by reference and never by value,
-and an allow-list of hosts the Platform may reach. It is also where the webhook
-subscriptions deferred from Phase 11 belong.
+### 14.1 The attack this exists to prevent
+
+A layer that will fetch a URL somebody else chose is a proxy into the network it
+runs in. That sentence is the whole justification for the allow-list, and it is
+worth being concrete about, because "server-side request forgery" sounds abstract
+until the list of what is reachable from inside is written down: the cloud
+metadata service at `169.254.169.254`, which hands out the instance's credentials
+to anything that asks; internal admin interfaces, unauthenticated because they
+are "not reachable from outside"; and the Platform itself.
+
+So the policy is deny by default, and an empty allow-list is a Platform that
+makes no outbound calls at all. That fails visibly on the first call and is fixed
+in a minute. The other default fails invisibly, and the failure is unbounded.
+
+Two independent checks, because one is not enough. The **name** must be on the
+list — and every **address it resolves to** must be public, since a name on the
+list today can be pointed at `127.0.0.1` tomorrow by whoever controls its DNS.
+
+### 14.2 The gap that is not closed, stated rather than hidden
+
+Between the check and the connection, the name is resolved again. DNS rebinding
+lives in that gap, and closing it means connecting to a checked address rather
+than to a name — taking over socket connection in the HTTP handler.
+
+It is recorded as debt with the reason, not quietly omitted. The allow-list
+narrows it a long way: an attacker needs control of a host somebody deliberately
+allowed, which is a much narrower position than the general case.
+
+### 14.3 Credentials by reference, and the column that does not exist
+
+The providers table holds `integrations/acme-bank/api-key`. It does not hold a
+secret, and there is **no column that could**. A database backup that leaks is
+therefore not a credential leak, and rotation is an operation on the secret store
+with no deployment.
+
+The domain refuses a value pasted where a name belongs — anything long, or
+carrying a recognisable prefix. That is a guard rail and says so; the guarantee
+is the absent column.
+
+The default resolver reads the environment, and confines references to a
+`Secrets` section. Without that confinement a reference of
+`ConnectionStrings:Platform` would resolve, and a provider row would be a way to
+read the database password out of the Platform's own configuration.
+
+### 14.4 The order of the pipeline is the design
+
+Bulkhead, breaker, retry, timeout — outermost to innermost, and each position is
+load-bearing.
+
+The bulkhead is outermost so a slow provider cannot occupy more than its share of
+the Platform's threads; inside the retry it would count attempts separately and
+mean something different for a provider that retries. The timeout is innermost so
+it bounds one attempt; outside the retry it would bound the whole sequence and
+the third attempt would inherit whatever the first two left of the budget.
+
+Retries carry jitter, for the reason the notification dispatcher carries it: a
+provider coming back from an outage met by the whole backlog at once is how a
+recovery becomes a second outage.
+
+And not every failure is retried. A 400 will be wrong again; a 401 cannot be
+fixed by repetition. A 429 is retried, because the provider explicitly said
+"later".
+
+### 14.5 Redaction happens before storage
+
+The call log is the most valuable thing this module produces and the most
+dangerous. It makes a dispute resolvable, and it is a permanent record of every
+payload the company exchanged.
+
+So the provider's declared fields are blanked **before the row is written**.
+Storing the real payload and hiding it at read time leaves the secret in the
+database, where the next query, the next export and the next backup will find it.
+
+Which fields are sensitive is per provider, because only its owner knows. And
+matching is by field name at any depth rather than by path: path matching is more
+precise and misses the same field one level deeper than whoever wrote the policy
+expected, and the failure mode of being too precise here is a leak.
+
+### 14.6 The timestamp goes inside the signature
+
+An inbound webhook is untrusted input from the internet — the URL is guessable
+and often published, and anybody can post to it.
+
+The subtle part is that the timestamp is part of the signed material rather than
+a header beside it. As a header alone, an attacker replaying a captured request
+would simply change it, and the five-minute window would be checked against a
+value they control. Signed, it cannot move.
+
+And a valid signature is not enough on its own. A correctly signed request that
+arrives twice is authentic both times: the signature proves who sent it and says
+nothing about whether it has already been acted on. Every accepted signature is
+remembered until the window passes, with a unique index to settle the race when
+two copies arrive at the same instant.
+
+### 14.7 A defect that stopped everything, found in production
+
+Not part of this phase's plan, and the most important thing in it.
+
+The container came up and died. The Documents module's local storage provider
+created its root directory in its constructor; the image runs as an unprivileged
+user, the application directory belongs to root, the call was refused — and
+because that provider is a singleton resolved while the host is being built,
+identity, authorization, workflow and everything else failed to start. Because
+documents could not create a folder.
+
+The lesson is not about directories. It is that **a constructor resolved at
+startup is a place where any failure is total**, and one module's optional
+convenience had been given that power. The fix moves the I/O to first use, where
+a failure fails an upload. Three tests now pin it, and the first two would have
+caught it before it shipped.
+
+---
+
+## 15. Next step
+
+**Phase 13 — Configuration & Feature Flags.** Settings that a company changes
+without a deployment, and switches that turn a capability off while somebody
+investigates. The Platform already has several things that want it: the outbound
+allow-list, the document scanner policy, and every retention period written so
+far.
 
 Still outstanding across all phases:
 

@@ -1,6 +1,7 @@
 using CCP.Api.Host.Modules.Diagnostics;
 using CCP.Modules.Audit.Api;
 using CCP.Modules.Documents.Api;
+using CCP.Modules.Integrations.Api;
 using CCP.Modules.Workflow.Api;
 using CCP.Modules.Notifications.Api;
 using CCP.Modules.Authorization.Api;
@@ -39,9 +40,9 @@ public static class PlatformModules
         new AuditModule(),
         new WorkflowModule(),
         new NotificationsModule(),
-        new DocumentsModule()
+        new DocumentsModule(),
+        new IntegrationsModule()
 
-        // Phase 12: new IntegrationsModule(),
         // Phase 13: new ConfigurationModule(),
         // Phase 14: new MonitoringModule(),
     ];

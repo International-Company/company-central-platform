@@ -845,6 +845,93 @@
         }
       }
     },
+    "/api/v1/integrations/webhooks/{providerCode}": {
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Accepts a signed webhook from a registered provider.",
+        "description": "**Anonymous.** No token is needed to call this.",
+        "operationId": "ReceiveWebhook",
+        "parameters": [
+          {
+            "name": "providerCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/calls": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "What the Platform sent, and what came back.",
+        "description": "**Requires:** `platform.integrations.view`",
+        "operationId": "SearchIntegrationCalls",
+        "parameters": [
+          {
+            "name": "providerCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfIntegrationCallDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organization/company": {
       "get": {
         "tags": [
@@ -3620,10 +3707,231 @@
           }
         }
       }
+    },
+    "/api/v1/integrations/providers": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Every external service the Platform may call.",
+        "description": "**Requires:** `platform.integrations.view`",
+        "operationId": "GetIntegrationProviders",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntegrationProviderDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Registers an external service the Platform may call.",
+        "description": "**Requires:** `platform.integrations.manage`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
+        "operationId": "RegisterIntegrationProvider",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationProviderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/providers/{id}": {
+      "put": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Sets resilience, redaction and the credential reference.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "ConfigureIntegrationProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigureProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationProviderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/providers/{id}/status": {
+      "put": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Stops calls to a provider, or starts them again.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "SetIntegrationProviderStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProviderEnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/providers/{id}/endpoints": {
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Adds an operation to a provider.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "AddIntegrationEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddEndpointRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationEndpointDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/providers/health": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "How each provider has been behaving, from its recent calls.",
+        "description": "**Requires:** `platform.integrations.view`",
+        "operationId": "GetIntegrationHealth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntegrationHealthDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddEndpointRequest": {
+        "required": [
+          "key",
+          "method",
+          "pathTemplate"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "pathTemplate": {
+            "type": "string"
+          }
+        }
+      },
       "ApplicationCredentialDto": {
         "required": [
           "id",
@@ -3942,6 +4250,75 @@
           },
           "isActive": {
             "type": "boolean"
+          }
+        }
+      },
+      "ConfigureProviderRequest": {
+        "required": [
+          "timeoutSeconds",
+          "maxRetries",
+          "failuresBeforeBreaking",
+          "breakDurationSeconds",
+          "maxConcurrentCalls",
+          "redactedFields",
+          "credentialReference"
+        ],
+        "type": "object",
+        "properties": {
+          "timeoutSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxRetries": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failuresBeforeBreaking": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "breakDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxConcurrentCalls": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "redactedFields": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "credentialReference": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4778,6 +5155,282 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "IntegrationCallDto": {
+        "required": [
+          "id",
+          "providerCode",
+          "endpointKey",
+          "method",
+          "path",
+          "correlationId",
+          "requestPayload",
+          "responsePayload",
+          "statusCode",
+          "outcome",
+          "failureReason",
+          "attempts",
+          "durationMs",
+          "startedAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "providerCode": {
+            "type": "string"
+          },
+          "endpointKey": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "requestPayload": {
+            "type": "string"
+          },
+          "responsePayload": {
+            "type": "string"
+          },
+          "statusCode": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "failureReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attempts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "durationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "IntegrationEndpointDto": {
+        "required": [
+          "id",
+          "key",
+          "method",
+          "pathTemplate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "pathTemplate": {
+            "type": "string"
+          }
+        }
+      },
+      "IntegrationHealthDto": {
+        "required": [
+          "providerCode",
+          "name",
+          "isEnabled",
+          "recentCalls",
+          "recentFailures",
+          "lastCallAt",
+          "lastSuccessAt",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "providerCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "recentCalls": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentFailures": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "IntegrationProviderDto": {
+        "required": [
+          "id",
+          "code",
+          "name",
+          "baseAddress",
+          "credentialReference",
+          "isEnabled",
+          "hasCredential",
+          "timeoutSeconds",
+          "maxRetries",
+          "failuresBeforeBreaking",
+          "breakDurationSeconds",
+          "maxConcurrentCalls",
+          "redactedFields",
+          "endpoints",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "baseAddress": {
+            "type": "string"
+          },
+          "credentialReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "hasCredential": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxRetries": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failuresBeforeBreaking": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "breakDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maxConcurrentCalls": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "redactedFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationEndpointDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5629,6 +6282,61 @@
           }
         }
       },
+      "PagedResultOfIntegrationCallDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationCallDto"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalItems": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
       "PagedResultOfNotificationDto": {
         "required": [
           "items",
@@ -6191,6 +6899,25 @@
           }
         }
       },
+      "RegisterProviderRequest": {
+        "required": [
+          "code",
+          "name",
+          "baseAddress"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "baseAddress": {
+            "type": "string"
+          }
+        }
+      },
       "RenameCompanyRequest": {
         "required": [
           "nameAr",
@@ -6530,6 +7257,17 @@
           },
           "parsedChannel": {
             "$ref": "#/components/schemas/NotificationChannel"
+          }
+        }
+      },
+      "SetProviderEnabledRequest": {
+        "required": [
+          "isEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean"
           }
         }
       },
@@ -7297,6 +8035,9 @@
     },
     {
       "name": "Documents"
+    },
+    {
+      "name": "Integrations"
     },
     {
       "name": "Organization"

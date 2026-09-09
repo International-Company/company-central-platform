@@ -2,6 +2,7 @@ using System.Globalization;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Modules.Audit.Infrastructure.Persistence;
 using CCP.Modules.Documents.Infrastructure.Persistence;
+using CCP.Modules.Integrations.Infrastructure.Persistence;
 using CCP.Modules.Workflow.Infrastructure.Persistence;
 using CCP.Modules.Notifications.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
@@ -180,6 +181,8 @@ public class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             NotificationDbContext.SchemaName, o => new NotificationDbContext(o));
         await MigrateAsync<DocumentDbContext>(
             DocumentDbContext.SchemaName, o => new DocumentDbContext(o));
+        await MigrateAsync<IntegrationDbContext>(
+            IntegrationDbContext.SchemaName, o => new IntegrationDbContext(o));
     }
 
     private async Task MigrateAsync<TContext>(
