@@ -33,10 +33,13 @@ export default async function globalSetup(config: FullConfig) {
   const page = await browser.newPage({ baseURL });
 
   try {
+    // The label a person reads is "Password (Required)" — the Field component
+    // says so in words rather than with a red asterisk, which is right for a
+    // screen reader and means an exact-match locator never lands.
     await page.goto('/en/login');
 
-    await page.getByLabel('Username').fill(username);
-    await page.getByLabel('Password', { exact: true }).fill(initialPassword);
+    await page.getByLabel(/^Username/).fill(username);
+    await page.getByLabel(/^Password/).fill(initialPassword);
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await page.waitForURL(/\/en\/(dashboard|change-password)/, { timeout: 30_000 });
@@ -44,9 +47,9 @@ export default async function globalSetup(config: FullConfig) {
     // Only on the very first run against a fresh database. A re-run reuses the
     // account, whose password has already been changed.
     if (page.url().includes('change-password')) {
-      await page.getByLabel('Current password').fill(initialPassword);
-      await page.getByLabel('New password').fill(AdminPassword);
-      await page.getByLabel('Confirm password').fill(AdminPassword);
+      await page.getByLabel(/^Current password/).fill(initialPassword);
+      await page.getByLabel(/^New password/).fill(AdminPassword);
+      await page.getByLabel(/^Confirm password/).fill(AdminPassword);
       await page.getByRole('button', { name: 'Save' }).click();
 
       await page.waitForURL(/\/en\/dashboard/, { timeout: 30_000 });

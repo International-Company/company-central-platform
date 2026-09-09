@@ -119,11 +119,11 @@ test.describe('signing out', () => {
     const current = locale(testInfo.project.name);
 
     await page.goto(`/${current}/login`);
-    await page.getByLabel(/اسم المستخدم|Username/).fill(
+    await page.getByLabel(/^(اسم المستخدم|Username)/).fill(
       process.env.E2E_USERNAME ?? 'e2e-admin',
     );
     await page
-      .getByLabel(/^(كلمة المرور|Password)$/)
+      .getByLabel(/^(كلمة المرور|Password)/)
       .fill(AdminPassword);
     await page.getByRole('button', { name: /تسجيل الدخول|Sign in/ }).click();
 
