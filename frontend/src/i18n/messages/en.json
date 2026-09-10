@@ -22,7 +22,8 @@
     "documents": "Documents",
     "applications": "Applications",
     "integrations": "Integrations",
-    "configuration": "Configuration"
+    "configuration": "Configuration",
+    "operations": "Operations"
   },
   "common": {
     "search": "Search",
@@ -646,5 +647,38 @@
     "everybody": "Everybody",
     "targeted": "{roles} roles, {units} units",
     "updated": "Changed"
+  },
+  "operations": {
+    "title": "Operations",
+    "description": "What the Platform's own machinery has been doing.",
+    "jobs": "Background jobs",
+    "job": "Job",
+    "noJobs": "No job has run yet",
+    "noJobsDescription": "Nothing has been recorded. A job appears here the first time it runs.",
+    "lastRun": "Last run",
+    "when": "When",
+    "did": "What it did",
+    "nothingToDo": "Nothing to do",
+    "recent": "Failures / runs",
+    "duration": "Average",
+    "outcome": "Outcome",
+    "instance": "Instance",
+    "history": "Run history",
+    "noRuns": "No runs",
+    "noRunsDescription": "Nothing has been recorded for this job.",
+    "readAt": "Read at {time}. Nothing on this page refreshes itself.",
+    "outbox": "Event delivery",
+    "outboxHint": "Events are written with the change that caused them and delivered afterwards. A backlog means delivery is behind, not that anything was lost.",
+    "pending": "Undelivered",
+    "oldestPending": "Oldest undelivered",
+    "secondsOld": "{seconds}s",
+    "behind": "Delivery is behind",
+    "deadLettered": "Given up on",
+    "deadLetteredHint": "These stopped being retried and need somebody to look at them.",
+    "outcomes": {
+      "Succeeded": "Succeeded",
+      "Failed": "Failed",
+      "Cancelled": "Stopped"
+    }
   }
 }

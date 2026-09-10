@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Primitives;
 using CCP.Modules.Workflow.Application.Abstractions;
 using CCP.Modules.Workflow.Contracts.Events;
@@ -64,8 +65,12 @@ public sealed class EscalationSweep(
     IServiceScopeFactory scopeFactory,
     IOptions<EscalationOptions> options,
     IClock clock,
+    JobRunner jobs,
     ILogger<EscalationSweep> logger) : BackgroundService
 {
+    /// <summary>The name this sweep is known by in the job history.</summary>
+    public const string JobName = "workflow.escalation";
+
     private readonly EscalationOptions _options = options.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -87,37 +92,24 @@ public sealed class EscalationSweep(
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // The runner records and swallows. The next pass finds the same
+            // tasks: a background worker that stops on a transient database
+            // error silently ends escalation for the life of the process, and
+            // nobody notices until an approval has been sitting for a month.
+            await jobs.RunAsync(JobName, SweepAsync, stoppingToken);
+
             try
             {
-                int escalated = await SweepAsync(stoppingToken);
-
-                if (escalated > 0)
-                {
-                    logger.LogWarning(
-                        "Escalated {Count} workflow tasks past their service level.",
-                        escalated);
-                }
+                await Task.Delay(_options.Interval, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break;
             }
-#pragma warning disable CA1031 // A sweep must not die of one bad pass.
-            catch (Exception exception)
-#pragma warning restore CA1031
-            {
-                // Logged and swallowed. The next pass will find the same tasks:
-                // a background worker that stops on a transient database error
-                // silently ends escalation for the life of the process, and
-                // nobody notices until an approval has been sitting for a month.
-                logger.LogError(exception, "The workflow escalation sweep failed. Retrying.");
-            }
-
-            await Task.Delay(_options.Interval, stoppingToken);
         }
     }
 
-    private async Task<int> SweepAsync(CancellationToken cancellationToken)
+    private async Task<string?> SweepAsync(CancellationToken cancellationToken)
     {
         using IServiceScope scope = scopeFactory.CreateScope();
 
@@ -132,7 +124,7 @@ public sealed class EscalationSweep(
 
         if (overdue.Count == 0)
         {
-            return 0;
+            return null;
         }
 
         int escalated = 0;
@@ -163,6 +155,18 @@ public sealed class EscalationSweep(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return escalated;
+        if (escalated == 0)
+        {
+            return null;
+        }
+
+        // Still logged as a warning as well as recorded. An escalation means an
+        // approval has already missed its service level, which is worth waking
+        // an alert for and not only worth finding later on a page.
+        logger.LogWarning(
+            "Escalated {Count} workflow tasks past their service level.", escalated);
+
+        return FormattableString.Invariant(
+            $"Escalated {escalated} task(s) past their service level.");
     }
 }

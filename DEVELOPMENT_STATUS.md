@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-09-09 |
-| Current phase | **Phase 15 — Administration Portal Completion** |
-| Phase status | 🟢 **Every module with an API now has a screen. The Platform is no longer administered through a terminal.** |
-| Next phase | **Phase 16 — Platform Dashboard** |
+| Last updated | 2026-09-10 |
+| Current phase | **Phase 16 — Platform Dashboard** |
+| Phase status | 🟢 **The background jobs now say what they did, and a page says it back. The instrument Phase 14 declared is finally emitted by something.** |
+| Next phase | **Phase 17 — Database Hardening, Backup & Recovery** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -31,7 +31,7 @@
 | 13 | Configuration & Feature Flags | 🟢 **Complete** | Settings are declared before they are set, in their owner's namespace, with a type and constraints checked at the moment somebody types a value. **A value that looks like a secret is refused outright** — a settings table is stored in plaintext, exported and backed up, and the sensitivity flag stops a value being read back rather than stopping it being there. Three scopes with narrowest winning; a row exists only where somebody overrode something. Every change keeps what it was, what it became, who and why — and for a sensitive setting says that it changed and not what to. Cached on a version stamp held in the database, so a change takes effect on the very next request and on every instance. Feature flags targeted by role or unit and nothing else, off by default, off when undeclared, and off meaning off however they are targeted. 52 unit tests. |
 | 14 | Observability | 🟡 **Partly complete** | OpenTelemetry traces and metrics, exported over OTLP where an endpoint is configured and instrumented unconditionally where one is not — so the code path in production is the one that ran locally. The correlation id is written onto the span by the middleware that decides it, so one identifier retrieves the log line, the trace and the audit record. Credentials are removed from log events **at the sink**, by name and by shape, because discipline does not scale to every log statement anybody will ever write. Five instruments the framework cannot supply, each with an alert defined against it. Readiness now distinguishes unhealthy from degraded: a bucket nobody can reach stops documents, not the Platform. 20 unit tests, a runbook. **No monitoring screen and no stored job history** — those belong with the dashboard. |
 | 15 | Administration Portal Completion | 🟢 **Complete** | The two modules that had a complete API and no screen now have one. Integrations opens on the question an operator asks during an incident — is this provider working — with health first and the configuration below it; `Idle` is grey rather than green, because nothing has been asked of a provider that has not been called and a green light nobody earned is worse than an honest blank. Failures are shown as *3 of 4* rather than 75%, since the percentage hides how small the sample is. The call log shows both payloads in full, which is only safe because they were redacted **before** they were stored — what an administrator reads is what the database holds, and there is no unredacted copy for the next export to find. **No credential value appears on either screen, and not because the screen hides one**: the Platform stores a secret's *name* and has no field that could carry a value. Configuration shows what is in force, how many scopes overrode it, and the change history — what it was, what it became, who and why — and for a sensitive setting says that it changed without saying what to. Pasting a credential into a setting is refused by the Platform, and the screen explains the refusal in full rather than reporting it as a validation quibble. The health stamp records when health was **read**, not when the page last rendered, so the figure goes stale in front of whoever is watching it. Both locales, both directions, in the accessibility, responsive and signed-in sweeps.
-| 16 | Platform Dashboard | ⬜ Not started | |
+| 16 | Platform Dashboard | 🟢 **Complete** | Background jobs keep a history, and it exists because writing the screen found that they kept nothing. Phase 14 declared `ccp.jobs.runs`, wrote an alert against it, and put the meter in a project no module's Infrastructure references — so not one of the five sweeps could call it, and the alert sat permanently green on jobs that might never have run. The meter moved to the application layer; every periodic sweep now runs through one `JobRunner` that times the pass, records the outcome, swallows what it throws so a bad pass cannot retire the timer for the life of the process, and tells a shutdown apart from a failure so a deployment does not read as an outage. Runs are stored in the kernel schema through a neutral seam, in their own transaction — the record of a failed pass must not roll back with the pass — and pruned by the journal itself rather than by a sixth job whose failure nothing would record. Each row carries what the pass **did**, in the job's own words, because "removed 412" and "removed 0" are different facts and a history that cannot tell them apart cannot tell a working sweep from one whose query quietly stopped matching. The screen shows every job plus the outbox, where the figure given the most room is the **age** of the oldest undelivered message rather than the depth. A job that stopped running a week ago still appears and turns red instead of vanishing, which has an integration test on it. 9 unit tests, 8 integration tests.
 | 17 | Database Hardening, Backup & Recovery | ⬜ Not started | |
 | 18 | Developer Experience & Documentation | ⬜ Not started | |
 | 19 | Cloud Deployment | ⬜ Not started | Blocked on provider decision (Q4) |
@@ -945,10 +945,14 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 51 | ~~No configuration administration screens~~ | — | ✅ **Resolved.** Settings with what is in force and their full change history, and flags with their reach. The history was the point: one that only SQL can read gets read once, during an incident. Editing is limited to Platform scope and flag targeting is not editable (#58). |
 | 52 | Nothing has been migrated onto the configuration module yet | Medium | Every retention period, size limit and interval written across Phases 9 to 12 is still an `appsettings` value that needs a deployment to change — which is precisely what this module exists to fix. The module works and nothing uses it, so the phase's benefit is available and unclaimed. |
 | 53 | ~~The tests about secrets put secret-shaped strings in the repository~~ | — | ✅ **Resolved.** The secret scanner failed the phase whose subject is keeping credentials out of places they do not belong, having found convincing tokens in my own fixtures — which is the scanner working, since it cannot tell a test from a leak. The fixtures are assembled at run time; an allow-list entry would have been a permanent hole opened so a test could keep its formatting. |
-| 54 | No stored background job history and no monitoring screen | Medium | Job runs and durations are emitted as metrics and nothing keeps a record of them, so "did last night's purge run?" is a query somebody writes during the incident rather than a page they open. Phase 14 lists both; they belong with the Platform dashboard in Phase 16. |
-| 55 | Alert definitions are written down and not deployed | Medium | The runbook names seven conditions with thresholds and a first action for each. Creating them is an operation in whichever backend the provider offers, and the provider is not chosen (Q4) — so the definitions exist as documentation and nothing is watching. |
+| 54 | ~~No stored background job history and no monitoring screen~~ | — | ✅ **Resolved.** A kernel table, a neutral seam, one runner shared by every periodic sweep, and a screen. Building it uncovered #60: the metric these runs were supposed to feed had never been reachable from the code meant to feed it. |
+| 55 | Alert definitions are written down and not deployed | Medium | The runbook names seven conditions with thresholds and a first action for each. Creating them is an operation in whichever backend the provider offers, and the provider is not chosen (Q4) — so the definitions exist as documentation and nothing is watching. The Operations screen now answers six of the seven on demand, which is a page somebody opens rather than something that wakes them. |
 | 56 | Trace context is not propagated to business applications | Low | The Platform accepts an inbound correlation id and echoes it, and outbound integration calls carry W3C trace headers through the instrumented HTTP client. What is untested is the round trip: a business system's trace joining the Platform's and coming back. It needs a second service to test against. |
 | 48 | ~~The connector is not tested against a real HTTP server~~ | — | ✅ **Resolved.** A stub provider on a real socket, misbehaving on command: a retry works through two failures and the stub counts three arrivals, a 400 is not retried and the stub counts one, a timeout fires inside its budget while the stub sleeps five seconds, the breaker opens and the stub stops receiving anything, and a card number is absent from both halves of the stored log while the caller still gets it. The counts come from the far end of the socket rather than from the Platform's own log, so the log is not being tested against itself. |
+| 60 | ~~The background-job metric was emitted by nothing~~ | — | ✅ **Resolved, and it is the most instructive defect of the project so far.** `PlatformMetrics.BackgroundJobRan` was declared in Phase 14, given an alert in the runbook, and placed in `CCP.Kernel.Api` — which no module's Infrastructure project references. Every one of the five background sweeps lives in a module's Infrastructure. So the method could not be called from the only code that had any reason to call it, nothing failed to compile, nothing was logged, and the alert read green whether the sweeps ran or not. It survived a phase, a review and a green CI run because **nothing anywhere asserts that a declared instrument is emitted**. The meter now lives in the application layer and the sweeps report through `JobRunner`, which has tests. |
+| 61 | The outbox relay and the notification dispatcher keep no run history | Low | Deliberate. Both are continuous pollers — five and fifteen seconds — so journalling each pass would write over twenty thousand rows a day and drown the four rows that answer a question. Their health is visible in their own terms instead: outbox depth and the age of the oldest undelivered message on the same screen, and the notification delivery log. If a poller stops, the age climbs, which is the signal that matters. |
+| 62 | The job summary reports the newest run's instance, not every instance | Medium | Each row is stored with the process that wrote it, and the run history shows it, so "failing on one machine only" is visible if somebody opens the job. The summary line is not grouped by instance, so on a multi-instance deployment a job failing on one of two reads as intermittent rather than as one broken machine. Needs the summary to group by job **and** instance, which is a wider table and a decision about how it reads on a single-instance deployment, where it would be noise. |
+| 63 | Nothing asserts that a declared instrument is ever emitted | Medium | The root cause behind #60, and it is still open. Five instruments are declared and there is no test that fails when one of them has no caller — the defect was found by hand, three phases late. An architecture test could assert that every public method on `PlatformMetrics` is called from somewhere outside its own assembly, which would have caught it on the day it was written. |
 | 57 | A provider can only be turned on and off from the screen | Low | Registering one, and changing its resilience settings, its redacted field list or its credential reference, is still an API call. The BFF routes for both exist and no form calls them. Registration is a rare, careful act performed once per provider, which is why it is the part left for later rather than the part built first. |
 | 58 | Settings can only be changed at Platform scope from the screen | Medium | The API takes a scope and a scope id; the screen sends `Platform` and null. So the count of overrides is visible and a company- or application-scoped override can be neither set nor cleared from the portal — which is the case where narrowest-wins resolution actually earns its complexity. It needs a scope picker that knows which companies and applications exist. |
 | 59 | Flag targeting cannot be edited from the screen | Medium | The toggle sends the flag's existing role and unit ids back unchanged, so a flag can be turned on and off and cannot be aimed. A targeted rollout is still an API call — and #50 means the feature-state endpoint would answer *off* for everybody anyway, so aiming one is not useful until that is fixed. The two are one piece of work. |
@@ -1750,25 +1754,105 @@ two are one piece of work and are named as one.
 
 ---
 
-## 18. Next step
+## 18. Phase 16 report — the alert that was green because nothing emitted it
 
-**Phase 16 — Platform Dashboard**, and the case for it is now stronger than it
-was when the plan was written. Phase 14 emits job runs and durations as metrics
-and stores none of them (#54), so *did last night's purge run* is a query
-somebody writes during the incident. Phase 14's alerts are seven documented
-conditions with nothing watching them (#55), because creating them is an
-operation in a backend nobody has chosen (Q4). The dashboard is where both of
-those stop being paragraphs.
+The phase was meant to build a page. It built a page, and on the way it found
+that the thing the page was supposed to display did not exist, and that the
+alert watching it had been reporting health it had no way of knowing.
 
-Still outstanding across all phases, unchanged by this one:
+**`ccp.jobs.runs` was declared in Phase 14 and called by nothing.** The meter
+class sat in `CCP.Kernel.Api`. Every background sweep sits in a module's
+Infrastructure project, and no module's Infrastructure references the API layer.
+So `BackgroundJobRan` was unreachable from the only five places with any reason
+to reach it. Nothing failed to compile — nothing tried. The runbook's "background
+job failures: any 3 consecutive" watched a counter that was structurally
+incapable of moving, which means it read exactly the same whether the sweeps were
+running perfectly or had stopped in the night.
+
+Three things made it survive a phase, a review and a green build:
+
+- It is a **missing call**, not a wrong one. Every test that existed passed,
+  because there is nothing to fail.
+- The metric had a name, a description, a unit and an alert. Everything about it
+  looked finished except the part nobody can see from reading it.
+- Reading the sweeps did not reveal it either. Each had a sensible
+  `try`/`catch` and a log line; what was absent was absent from all five equally,
+  which is what absence of a shared behaviour looks like when nobody has written
+  the shared thing yet.
+
+That is now #63, still open: **nothing anywhere asserts that a declared
+instrument is emitted.** An architecture test could assert that every public
+method on `PlatformMetrics` has a caller outside its own assembly, and it would
+have failed on the day the method was written. Recording it as debt rather than
+closing the phase quietly, because the specific bug is fixed and the class of bug
+is not.
+
+**The fix moved the meter and centralised the behaviour.** Instruments belong
+where the work they measure can see them, so `PlatformMetrics` is in the
+application layer. The five periodic sweeps now run their pass through one
+`JobRunner`, which times it, records the outcome, and swallows what it throws —
+because a `BackgroundService` whose `ExecuteAsync` throws stops for the life of
+the process, and one bad pass would silently retire a sweep until somebody
+redeployed. Each sweep's own `try`/`catch` was doing part of this, differently.
+
+**A shutdown is not a failure.** A pass cancelled by the host stopping is
+recorded as stopped. Counting it as failed would make every deployment produce
+failures, and an alert that fires on every release is one people learn to close.
+
+**The history says what the pass did, not that it happened.** "Removed 412 call
+log entries" and "removed 0" are different facts. A history that recorded only
+that a job ran would show a green row every hour for a sweep whose query had
+quietly stopped matching anything — which is the exact failure a job history is
+supposed to catch, reproduced inside the tool built to catch it.
+
+**A job that stopped running still appears.** The summary is the newest run of
+every job *plus* the last day's runs. Assembled from the window alone, a job that
+died last week would have nothing in it and its row would vanish rather than turn
+red, and a row that is silently absent is worse than no page at all. That has an
+integration test on it by name.
+
+**The record of a failed pass must not roll back with the pass.** The journal
+writes in its own scope and its own transaction — the same reasoning that keeps a
+refused document access committed on its own. And the history prunes itself on
+write rather than having a sweep of its own, because a job history kept bounded
+by a background job would have exactly one job whose failure nothing records, and
+it would be the one that fills the disk.
+
+**What the outbox panel leads with is the age, not the depth.** Four hundred
+pending messages is either a busy minute or a relay that stopped on Sunday. The
+depth cannot tell those apart and the age of the oldest one can.
+
+**Left out and recorded.** The outbox relay and the notification dispatcher are
+not journalled (#61): both poll continuously, so a row per pass would be twenty
+thousand a day drowning the four that answer a question — their health shows up
+as queue age instead. The summary line is not grouped by instance (#62), so on a
+two-instance deployment a job failing on one machine reads as intermittent rather
+than as one broken machine; the run history does show it. And the seven alerts
+are still documentation (#55), because the backend they would be created in is
+still undecided.
+
+---
+
+## 19. Next step
+
+**Phase 17 — Database Hardening, Backup & Recovery.** It is now the oldest
+untouched risk in the project. The Platform holds an append-only audit trail
+that a company may be asked to produce, documents whose bytes are destroyed
+irreversibly by a sweep that has run unobserved until this week, and eleven
+schemas of live data — and there is no tested restore. A backup nobody has
+restored from is a belief, not a backup.
+
+Still outstanding across all phases:
 
 - **B3 — the requirements document** is still missing. Every decision so far has
   been made from ARCHITECTURE.md and the master prompt.
-- **Q4 — the cloud provider** is undecided, and Phase 19 cannot start without
-  it. It is also what is holding the alert definitions as documentation.
+- **Q4 — the cloud provider** is undecided. It blocks Phase 19, and it is what
+  keeps the alert definitions as prose.
 - **Q10 — the bootstrap administrator procedure** needs approval.
 - **Nothing has been migrated onto the configuration module** (#52). Every
-  retention period and interval written in Phases 9 to 12 is still an
-  `appsettings` value needing a deployment to change, which is the exact problem
-  that module was built to solve. It now has a screen, and still nothing uses
-  it.
+  retention period and interval written in Phases 9 to 12 — including the job
+  history's own thirty days — is still an `appsettings` value needing a
+  deployment to change, which is precisely the problem that module was built to
+  solve.
+- **Nothing asserts that a declared instrument is emitted** (#63). One class of
+  bug was found by hand this phase; the class is still open.

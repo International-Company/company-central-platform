@@ -74,6 +74,10 @@ export type SettingValueDto = Schemas['SettingValueDto'];
 export type SettingChangeDto = Schemas['SettingChangeDto'];
 export type FeatureFlagDto = Schemas['FeatureFlagDto'];
 
+export type JobSummaryDto = Schemas['JobSummaryDto'];
+export type JobRunDto = Schemas['JobRunDto'];
+export type OutboxDepthDto = Schemas['OutboxDepthDto'];
+
 /**
  * The envelope every list endpoint returns (ADR-008).
  *

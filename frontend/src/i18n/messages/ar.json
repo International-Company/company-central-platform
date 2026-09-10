@@ -22,7 +22,8 @@
     "documents": "المستندات",
     "applications": "التطبيقات",
     "integrations": "التكاملات",
-    "configuration": "الإعدادات"
+    "configuration": "الإعدادات",
+    "operations": "التشغيل"
   },
   "common": {
     "search": "بحث",
@@ -646,5 +647,38 @@
     "everybody": "الجميع",
     "targeted": "{roles} أدوار، {units} وحدات",
     "updated": "آخر تغيير"
+  },
+  "operations": {
+    "title": "التشغيل",
+    "description": "ما تفعله آليات المنصة نفسها.",
+    "jobs": "المهام الخلفية",
+    "job": "المهمة",
+    "noJobs": "لم تُنفَّذ أي مهمة بعد",
+    "noJobsDescription": "لم يُسجَّل شيء. تظهر المهمة هنا عند أول تنفيذ لها.",
+    "lastRun": "آخر تنفيذ",
+    "when": "الوقت",
+    "did": "ما الذي فعلته",
+    "nothingToDo": "لا شيء لتنفيذه",
+    "recent": "الإخفاقات / التنفيذات",
+    "duration": "المتوسط",
+    "outcome": "النتيجة",
+    "instance": "النسخة",
+    "history": "سجل التنفيذ",
+    "noRuns": "لا توجد تنفيذات",
+    "noRunsDescription": "لم يُسجَّل شيء لهذه المهمة.",
+    "readAt": "قُرئت في {time}. لا يتحدّث شيء في هذه الصفحة من تلقائه.",
+    "outbox": "تسليم الأحداث",
+    "outboxHint": "تُكتب الأحداث مع التغيير الذي سبّبها وتُسلَّم بعده. تراكمها يعني تأخّر التسليم، لا ضياع شيء.",
+    "pending": "غير مُسلَّمة",
+    "oldestPending": "أقدم غير مُسلَّم",
+    "secondsOld": "{seconds}ث",
+    "behind": "التسليم متأخّر",
+    "deadLettered": "أُوقفت المحاولة",
+    "deadLetteredHint": "توقّفت إعادة محاولتها وتحتاج من ينظر فيها.",
+    "outcomes": {
+      "Succeeded": "نجحت",
+      "Failed": "فشلت",
+      "Cancelled": "أُوقفت"
+    }
   }
 }

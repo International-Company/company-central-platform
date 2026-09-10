@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Documents.Application;
@@ -24,8 +25,12 @@ public sealed class PurgeSweep(
     IDocumentStorageProvider storage,
     DocumentOptions options,
     IClock clock,
+    JobRunner jobs,
     ILogger<PurgeSweep> logger) : BackgroundService
 {
+    /// <summary>The name this sweep is known by in the job history.</summary>
+    public const string JobName = "documents.purge";
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // A first pass immediately on start would run during deployment, when
@@ -33,27 +38,18 @@ public sealed class PurgeSweep(
         // be undone. It can wait an interval.
         using var timer = new PeriodicTimer(options.PurgeSweepInterval);
 
+        // The runner times the pass, records its outcome and swallows whatever
+        // it throws: the next pass finds the same documents and tries again,
+        // which is exactly what should happen. A throw out of here would stop
+        // the timer for the life of the process, and the one job that would
+        // stop is the one that keeps a deletion promise.
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            try
-            {
-                await SweepAsync(stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception exception)
-            {
-                // A sweep that throws must not take the host down or stop the
-                // timer: the next pass will find the same documents and try
-                // again, which is exactly what should happen.
-                logger.LogError(exception, "The document purge sweep failed.");
-            }
+            await jobs.RunAsync(JobName, SweepAsync, stoppingToken);
         }
     }
 
-    private async Task SweepAsync(CancellationToken cancellationToken)
+    private async Task<string?> SweepAsync(CancellationToken cancellationToken)
     {
         using IServiceScope scope = scopeFactory.CreateScope();
 
@@ -70,8 +66,10 @@ public sealed class PurgeSweep(
 
         if (due.Count == 0)
         {
-            return;
+            return null;
         }
+
+        int refused = 0;
 
         foreach (Document document in due)
         {
@@ -93,6 +91,8 @@ public sealed class PurgeSweep(
 
             if (purged.IsFailure)
             {
+                refused++;
+
                 logger.LogWarning(
                     "Document {DocumentId} was due for purge and refused: {Error}",
                     document.Id, purged.Error.Code);
@@ -101,10 +101,14 @@ public sealed class PurgeSweep(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation(
-                "Purged the content of {Count} document(s).", due.Count);
-        }
+        // The refusals are named in the summary rather than only in the log.
+        // This is the one sweep that destroys data, so "purged 40, refused 3" is
+        // the difference between a pass that worked and one that needs looking
+        // at — and a count in the history is seen, where a warning in a log is
+        // read only by whoever went looking.
+        return refused == 0
+            ? FormattableString.Invariant($"Purged the content of {due.Count} document(s).")
+            : FormattableString.Invariant(
+                $"Purged the content of {due.Count - refused} document(s); {refused} refused.");
     }
 }

@@ -36,6 +36,7 @@ const Screens = [
   'applications',
   'integrations',
   'configuration',
+  'operations',
   'audit',
 ] as const;
 

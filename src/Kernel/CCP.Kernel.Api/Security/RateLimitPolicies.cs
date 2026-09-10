@@ -100,7 +100,7 @@ public static class RateLimitPolicies
             // measurement leaves nothing to alert on
             // (docs/deployment/observability.md).
             context.HttpContext.RequestServices
-                .GetService<Observability.PlatformMetrics>()
+                .GetService<Application.Observability.PlatformMetrics>()
                 ?.RateLimitRejected(
                     context.HttpContext.GetEndpoint()?.DisplayName ?? "global");
 

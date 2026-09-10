@@ -1,4 +1,5 @@
 using CCP.Api.Host.Modules.Diagnostics;
+using CCP.Api.Host.Modules.Operations;
 using CCP.Modules.Audit.Api;
 using CCP.Modules.Documents.Api;
 using CCP.Modules.Configuration.Api;
@@ -43,9 +44,11 @@ public static class PlatformModules
         new NotificationsModule(),
         new DocumentsModule(),
         new IntegrationsModule(),
-        new ConfigurationModule()
+        new ConfigurationModule(),
 
-        // Phase 14: new MonitoringModule(),
+        // Last, and not a capability module: it owns no data and reads the
+        // kernel schema to say what the Platform's own machinery is doing.
+        new OperationsModule()
     ];
 
     /// <summary>Registers every module's services.</summary>

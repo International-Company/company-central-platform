@@ -85,7 +85,7 @@ public sealed class AccessDenialRecorder(
     IRequestContext requestContext,
     CCP.Kernel.Application.Auditing.IAuditTrail auditTrail,
     Kernel.Primitives.IClock clock,
-    Kernel.Api.Observability.PlatformMetrics metrics,
+    Kernel.Application.Observability.PlatformMetrics metrics,
     Microsoft.Extensions.Logging.ILogger<AccessDenialRecorder> logger) : IAccessDenialRecorder
 {
     public async Task RecordAsync(Guid userId, ClaimsPrincipal principal, string permission)

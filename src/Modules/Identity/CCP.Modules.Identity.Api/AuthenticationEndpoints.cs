@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
-using CCP.Kernel.Api.Observability;
+using CCP.Kernel.Application.Observability;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Results;
 using CCP.Modules.Identity.Application.Authentication;

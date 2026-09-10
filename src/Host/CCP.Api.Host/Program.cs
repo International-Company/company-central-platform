@@ -10,6 +10,9 @@ using CCP.Kernel.Api.Versioning;
 using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Application.Events;
+using CCP.Kernel.Application.Jobs;
+using CCP.Kernel.Application.Observability;
+using CCP.Kernel.Infrastructure.Jobs;
 using CCP.Kernel.Infrastructure.Outbox;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
@@ -112,6 +115,18 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 // starts. The Audit module replaces it; registration order makes that work,
 // since the last registration of a service type wins.
 builder.Services.AddScoped<IAuditTrail, NullAuditTrail>();
+
+// Background jobs record what they did, so "did last night's purge run?" is a
+// page somebody opens rather than a query somebody writes during the incident.
+// The journal is a singleton with its own scope per write, because the jobs
+// that use it are singletons and because the record of a failed pass must not
+// roll back with the pass.
+builder.Services
+    .AddOptions<JobJournalOptions>()
+    .Bind(builder.Configuration.GetSection(JobJournalOptions.SectionName));
+
+builder.Services.AddSingleton<IJobJournal, JobJournal>();
+builder.Services.AddSingleton<JobRunner>();
 
 builder.Services.AddScoped<IOutbox, OutboxWriter>();
 builder.Services.AddScoped<IIntegrationEventDispatcher, IntegrationEventDispatcher>();

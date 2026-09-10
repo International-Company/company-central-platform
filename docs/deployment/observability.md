@@ -103,6 +103,15 @@ person's identifier into a metrics backend, which is not a place personal data
 belongs — and the permission is what tells you whether a burst is somebody
 probing.
 
+**`ccp.jobs.runs` was declared here and emitted by nothing.** The meter lived in
+the API layer, which no module's Infrastructure project references, so the five
+background sweeps that were supposed to report could not call it — and the alert
+below sat permanently green on jobs that might never have run. The meter now
+lives in the application layer, every periodic sweep reports through one
+`JobRunner`, and there are tests on it. It is recorded here rather than quietly
+corrected because the failure mode is the interesting part: an alert on a metric
+nothing emits is indistinguishable from an alert on a system that is fine.
+
 ---
 
 ## 5. Health
@@ -142,7 +151,7 @@ These are the conditions where a person must act.
 | Authentication failures | >50% of attempts over 10 minutes | Is one account targeted, or many? |
 | Rate-limit rejections | 10× the daily baseline | Which policy — an attack, or a limit set wrongly? |
 | Outbox lag | >1000 undispatched, or oldest >15 minutes | Is the relay running? Is a handler throwing? |
-| Background job failures | Any 3 consecutive | Which sweep; its log line names the exception |
+| Background job failures | Any 3 consecutive | Open **Operations** in the portal; the row names the sweep, the instance and the exception |
 | Integration circuit open | Any provider, >5 minutes | The provider is down, or the credential expired |
 
 ### A request failed and the user has the id
@@ -172,11 +181,45 @@ calls. `Idle` means nothing has been asked of it — not that it is well. Then t
 call log, filtered by outcome, shows whether the Platform was refused, timed out,
 or never called at all because the circuit was open.
 
+### Did last night's sweep run?
+
+Open **Operations** in the portal, or `GET /api/v1/platform/jobs`. Every periodic
+job appears with its last run, what that run did in its own words, how many of
+the last day's runs failed, and which instance ran it. `GET
+/api/v1/platform/jobs/{job}/runs` gives that job's history.
+
+Three things about the page are deliberate:
+
+- **A job that stopped running still appears.** The summary is the newest run of
+  every job plus the last day's runs, not the window alone. Built from the window
+  only, a job that died last week would vanish from the screen instead of turning
+  red — and a row that is silently absent is the failure this page exists to
+  catch. There is an integration test on exactly this.
+- **The summary says what the pass did**, not merely that it happened. "Removed
+  412 entries" and "removed 0" are different facts, and a history that cannot
+  tell them apart cannot tell a working sweep from one whose query quietly
+  stopped matching anything.
+- **A run stopped by shutdown is recorded as stopped, not failed.** Otherwise
+  every deployment produces failures, which teaches people to ignore them.
+
+The history is kept for thirty days and pruned by the journal itself on write.
+It has no sweep of its own on purpose: a job history kept bounded by a background
+job would have exactly one job whose failure nothing records, and it would be the
+one that fills the disk.
+
+### Are events getting out?
+
+The same screen, or `GET /api/v1/platform/outbox`. The figure that matters is the
+**age of the oldest undelivered message**, not the depth: four hundred pending is
+either a busy minute or a relay that stopped on Sunday, and only the age says
+which. Messages that were given up on are counted separately — those stopped
+being retried and need a person.
+
 ---
 
 ## 7. What is measured and not yet watched
 
-Background job runs and durations are recorded as metrics; there is no stored
-history of runs and no screen showing them. That belongs with the Platform
-dashboard, and is recorded as debt rather than implied — a metric with no
-dashboard is a metric somebody has to write a query for during the incident.
+The seven alert conditions above are written down and **not deployed**. Creating
+them is an operation in whichever backend the provider offers, and the provider
+is not chosen yet (Q4). Until then the Operations screen is what somebody opens;
+nothing wakes anybody up.

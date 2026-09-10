@@ -1,9 +1,9 @@
+using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Primitives;
 using CCP.Modules.Integrations.Application;
 using CCP.Modules.Integrations.Application.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace CCP.Modules.Integrations.Infrastructure;
 
@@ -28,8 +28,18 @@ public sealed class RetentionSweep(
     IServiceScopeFactory scopeFactory,
     IntegrationOptions options,
     IClock clock,
-    ILogger<RetentionSweep> logger) : BackgroundService
+    JobRunner jobs) : BackgroundService
 {
+    /// <summary>
+    /// The name this sweep is known by in the job history.
+    /// <para>
+    /// Written down rather than taken from the type name, so renaming the class
+    /// cannot start a fresh history and leave the old one looking as though the
+    /// sweep stopped running.
+    /// </para>
+    /// </summary>
+    public const string JobName = "integrations.retention";
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Nothing on start. The first pass on a long-unpruned table is the
@@ -37,27 +47,16 @@ public sealed class RetentionSweep(
         // warming up is the worst moment available.
         using var timer = new PeriodicTimer(options.RetentionSweepInterval);
 
+        // The runner times the pass, records its outcome and swallows whatever
+        // it throws — a sweep that threw out of here would stop its own timer
+        // for the life of the process.
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            try
-            {
-                await SweepAsync(stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception exception)
-            {
-                // A failed sweep must not take the host down or stop the timer.
-                // The next pass finds the same rows and tries again, which is
-                // exactly what should happen.
-                logger.LogError(exception, "The integration retention sweep failed.");
-            }
+            await jobs.RunAsync(JobName, SweepAsync, stoppingToken);
         }
     }
 
-    private async Task SweepAsync(CancellationToken cancellationToken)
+    private async Task<string?> SweepAsync(CancellationToken cancellationToken)
     {
         using IServiceScope scope = scopeFactory.CreateScope();
 
@@ -75,11 +74,12 @@ public sealed class RetentionSweep(
             options.RetentionBatchSize,
             cancellationToken);
 
-        if ((calls > 0 || receipts > 0) && logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation(
-                "Integration retention removed {Calls} call log entries and {Receipts} webhook receipts.",
-                calls, receipts);
-        }
+        // Null when there was nothing to do, which is the ordinary case. A
+        // history in which every line says "removed 0 rows" is one nobody reads
+        // closely enough to notice the line that says something else.
+        return calls == 0 && receipts == 0
+            ? null
+            : FormattableString.Invariant(
+                $"Removed {calls} call log entries and {receipts} webhook receipts.");
     }
 }

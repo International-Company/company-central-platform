@@ -39,6 +39,7 @@ const Screens = [
   'configuration',
   'roles',
   'security',
+  'operations',
   'audit',
 ] as const;
 

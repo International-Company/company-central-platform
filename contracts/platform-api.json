@@ -4175,6 +4175,100 @@
           }
         }
       }
+    },
+    "/api/v1/platform/jobs": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Every background job, when it last ran and how it went.",
+        "description": "**Requires:** `platform.operations.view`",
+        "operationId": "GetJobSummaries",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobSummaryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platform/jobs/{job}/runs": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "The recent runs of one background job, newest first.",
+        "description": "**Requires:** `platform.operations.view`",
+        "operationId": "GetJobRuns",
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobRunDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platform/outbox": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "How many integration events are undelivered, and how old the oldest is.",
+        "description": "**Requires:** `platform.operations.view`",
+        "operationId": "GetOutboxDepth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboxDepthDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5920,6 +6014,132 @@
           }
         }
       },
+      "JobRunDto": {
+        "required": [
+          "id",
+          "job",
+          "startedAt",
+          "durationMs",
+          "outcome",
+          "summary",
+          "error",
+          "instance"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": "string"
+          }
+        }
+      },
+      "JobSummaryDto": {
+        "required": [
+          "job",
+          "lastStartedAt",
+          "lastOutcome",
+          "lastDurationMs",
+          "lastSummary",
+          "lastError",
+          "lastInstance",
+          "recentRuns",
+          "recentFailures",
+          "averageDurationMs"
+        ],
+        "type": "object",
+        "properties": {
+          "job": {
+            "type": "string"
+          },
+          "lastStartedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastOutcome": {
+            "type": "string"
+          },
+          "lastDurationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "lastSummary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastInstance": {
+            "type": "string"
+          },
+          "recentRuns": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentFailures": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "averageDurationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "LinkUserRequest": {
         "required": [
           "userId"
@@ -6491,6 +6711,49 @@
       },
       "OrganizationUnitType": {
         "type": "integer"
+      },
+      "OutboxDepthDto": {
+        "required": [
+          "pending",
+          "deadLettered",
+          "oldestPendingAt",
+          "oldestPendingAgeSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "pending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "deadLettered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "oldestPendingAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "oldestPendingAgeSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
       },
       "PagedResultOfAuditEventDto": {
         "required": [
@@ -8715,6 +8978,9 @@
     },
     {
       "name": "Notifications"
+    },
+    {
+      "name": "Operations"
     }
   ]
 }

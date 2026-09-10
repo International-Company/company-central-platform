@@ -76,6 +76,7 @@ test.describe('the portal', () => {
     'integrations',
     'configuration',
     'security',
+    'operations',
     'audit',
   ] as const) {
     test(`opens ${screen} and can read it`, async ({ page }, testInfo) => {

@@ -1,3 +1,4 @@
+using CCP.Kernel.Infrastructure.Jobs;
 using CCP.Kernel.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,7 +6,7 @@ namespace CCP.Kernel.Infrastructure.Persistence;
 
 /// <summary>
 /// The <c>kernel</c> schema: cross-cutting infrastructure tables that belong to
-/// no module. At present that is the outbox alone.
+/// no module — the outbox, and the history of what the background jobs did.
 /// <para>
 /// Each module owns its own DbContext and its own schema, with its own
 /// migration history, so modules version independently (ADR-004).
@@ -16,6 +17,8 @@ public sealed class KernelDbContext(DbContextOptions<KernelDbContext> options) :
     public const string SchemaName = "kernel";
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    public DbSet<JobRunRecord> JobRuns => Set<JobRunRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +47,34 @@ public sealed class KernelDbContext(DbContextOptions<KernelDbContext> options) :
             entity.HasIndex(e => e.ProcessedAt)
                   .HasDatabaseName("ix_outbox_messages_processed_at")
                   .HasFilter("processed_at IS NOT NULL");
+        });
+
+        modelBuilder.Entity<JobRunRecord>(entity =>
+        {
+            entity.ToTable("job_runs");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Job).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Instance).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Summary).HasMaxLength(1000);
+            entity.Property(e => e.Error).HasMaxLength(2000);
+
+            // Stored as its integer value. A renamed enum member must not
+            // silently reinterpret rows already written.
+            entity.Property(e => e.Outcome).HasConversion<int>();
+
+            // The screen's only query: the most recent runs, newest first,
+            // optionally for one job. Descending because nobody has ever opened
+            // a job history to read the oldest entry.
+            entity.HasIndex(e => new { e.Job, e.StartedAt })
+                  .HasDatabaseName("ix_job_runs_job_started_at")
+                  .IsDescending(false, true);
+
+            // Supports the prune, which is the only query that reads across
+            // every job at once.
+            entity.HasIndex(e => e.StartedAt)
+                  .HasDatabaseName("ix_job_runs_started_at");
         });
 
         base.OnModelCreating(modelBuilder);

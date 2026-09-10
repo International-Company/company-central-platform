@@ -1,4 +1,5 @@
 using CCP.Kernel.Api.Observability;
+using CCP.Kernel.Application.Observability;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;

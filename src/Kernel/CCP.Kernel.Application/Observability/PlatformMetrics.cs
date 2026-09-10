@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace CCP.Kernel.Api.Observability;
+namespace CCP.Kernel.Application.Observability;
 
 /// <summary>
 /// The Platform's own instruments (ARCHITECTURE.md §22.3).
@@ -16,6 +16,15 @@ namespace CCP.Kernel.Api.Observability;
 /// deep the outbox is, whether a background sweep is still finishing. Each one
 /// answers a question somebody asks during an incident, and each one has an
 /// alert defined against it in <c>docs/deployment/observability.md</c>.
+/// </para>
+/// <para>
+/// <b>It lives in the application layer, and that is not filing.</b> It was in
+/// the API layer, which no module's Infrastructure references — so
+/// <see cref="BackgroundJobRan"/> could not be called by any of the five
+/// background sweeps that were supposed to call it. The instrument existed, the
+/// alert was written against it, and nothing on earth emitted it: a permanently
+/// green alert on a job that might never have run. Instruments belong where the
+/// work they measure can see them.
 /// </para>
 /// </summary>
 public sealed class PlatformMetrics : IDisposable
