@@ -22,8 +22,17 @@ import { expect, test, type Page } from '@playwright/test';
 
 const locale = (project: string) => (project === 'ar' ? 'ar' : 'en');
 
-/** The baseline every screen is held to. */
-const Standard = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+/**
+ * The baseline every screen is held to: WCAG 2.2 AA, including everything 2.1
+ * and 2.0 require.
+ *
+ * The 2.2 tags are what Phase 20 asks for and were not here before. The three
+ * AA success criteria 2.2 adds that a machine can meaningfully check are about
+ * focus being visible and not obscured, and about targets being big enough to
+ * hit -- which is exactly the kind of thing an administrative tool built around
+ * dense tables gets wrong without anybody noticing.
+ */
+const Standard = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 const Screens = [
   'dashboard',

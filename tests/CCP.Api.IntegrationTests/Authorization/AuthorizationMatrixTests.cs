@@ -1,12 +1,22 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using CCP.Kernel.Api.Security;
+using CCP.Modules.Identity.Domain.Credentials;
+using CCP.Modules.Identity.Domain.Users;
+using CCP.Modules.Identity.Infrastructure.Persistence;
+using CCP.Modules.Identity.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace CCP.Api.IntegrationTests.Authorization;
 
@@ -137,6 +147,126 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
             "These endpoints accepted a forged token:"
             + Environment.NewLine
             + string.Join(Environment.NewLine, failures));
+    }
+
+    /// <summary>
+    /// A real, signed-in account that holds nothing is refused by every endpoint
+    /// that demands a permission.
+    /// <para>
+    /// The second column of the matrix, and the one that catches a different
+    /// mistake from the first. Refusing an anonymous caller only proves the
+    /// authentication middleware runs; this proves the <i>permission</i> is
+    /// actually consulted. An endpoint that declared a permission and was mapped
+    /// with a bare <c>RequireAuthorization()</c> would refuse nobody who had
+    /// merely managed to sign in — which is every employee in the company.
+    /// </para>
+    /// <para>
+    /// <b>403 and never 500.</b> A 500 here would mean the handler ran and threw
+    /// before anything checked the caller, which is both a defect and a
+    /// disclosure: the caller learns what the endpoint does with input it should
+    /// never have reached.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task ACallerWithNoPermissionsIsRefusedByEveryPermissionGatedEndpoint()
+    {
+        using HttpClient client = _host.CreateClient();
+
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await SignInWithNothingAsync(client));
+
+        var failures = new List<string>();
+        int checkedEndpoints = 0;
+
+        foreach (RouteEndpoint endpoint in ProtectedEndpoints())
+        {
+            // Only the endpoints that demand a permission. Those marked
+            // authenticated-user-only are supposed to answer this caller --
+            // reading one's own profile is not a privilege — and asserting 403
+            // there would be asserting the opposite of the design.
+            if (endpoint.Metadata.GetMetadata<RequirePermissionAttribute>() is null)
+            {
+                continue;
+            }
+
+            string method = MethodsOf(endpoint).First();
+            checkedEndpoints++;
+
+            using var request = new HttpRequestMessage(
+                new HttpMethod(method),
+                new Uri(Fill(endpoint.RoutePattern.RawText!), UriKind.Relative))
+            {
+                Content = BodyFor(endpoint, method)
+            };
+
+            using HttpResponseMessage response = await client.SendAsync(request);
+
+            if (response.StatusCode != HttpStatusCode.Forbidden)
+            {
+                failures.Add(await DescribeAsync(endpoint, method, response));
+            }
+        }
+
+        Assert.True(
+            checkedEndpoints > 30,
+            $"Only {checkedEndpoints} permission-gated endpoints were checked.");
+
+        Assert.True(
+            failures.Count == 0,
+            "These endpoints did not refuse a signed-in caller holding no permissions. "
+            + "A 2xx is an authorization hole; a 500 means the handler ran before "
+            + "anything checked the caller:"
+            + Environment.NewLine
+            + string.Join(Environment.NewLine, failures));
+    }
+
+    /// <summary>
+    /// Creates an account with no role at all and signs it in.
+    /// <para>
+    /// Deliberately not the seeded administrator, and deliberately not a
+    /// purpose-built narrow role either: the subject here is a caller who holds
+    /// <i>nothing</i>, which is what a new employee is on their first morning.
+    /// </para>
+    /// </summary>
+    private async Task<string> SignInWithNothingAsync(HttpClient client)
+    {
+        const string Password = "correct-horse-battery-staple";
+
+        // Version 4. The leading hex of a v7 is a millisecond timestamp, so
+        // truncating one produces names that collide between tests.
+        string username = $"nul{Guid.NewGuid():N}"[..20];
+
+        await using var identity = new IdentityDbContext(
+            new DbContextOptionsBuilder<IdentityDbContext>()
+                .UseNpgsql(factory.TestConnectionString)
+                .Options);
+
+        User user = User.Create(
+            username, $"{username}@example.invalid", "No Permissions",
+            DateTimeOffset.UtcNow, mustChangePassword: false).Value;
+
+        var hasher = new Argon2PasswordHasher(Options.Create(new Argon2Options
+        {
+            MemoryKib = 8192,
+            Iterations = 1,
+            Parallelism = 1
+        }));
+
+        identity.Users.Add(user);
+        identity.Credentials.Add(UserCredential.Create(
+            user.Id, hasher.Hash(Password), hasher.AlgorithmId, DateTimeOffset.UtcNow));
+
+        await identity.SaveChangesAsync();
+
+        using HttpResponseMessage login = await client.PostAsJsonAsync(
+            new Uri("/api/v1/auth/login", UriKind.Relative),
+            new { username, password = Password });
+
+        Assert.True(login.IsSuccessStatusCode, $"Sign-in failed: {login.StatusCode}.");
+
+        JsonElement body = await login.Content.ReadFromJsonAsync<JsonElement>();
+
+        return body.GetProperty("accessToken").GetString()!;
     }
 
     /// <summary>
