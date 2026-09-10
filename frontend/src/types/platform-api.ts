@@ -224,6 +224,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Chooses the language the Platform writes to the caller in.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        put: operations["SetMyLanguage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/sessions": {
         parameters: {
             query?: never;
@@ -2964,6 +2984,9 @@ export interface components {
             roleIds: null | string[];
             unitIds: null | string[];
         };
+        SetLanguageRequest: {
+            locale: null | string;
+        };
         SetPositionActiveRequest: {
             isActive: boolean;
         };
@@ -3098,6 +3121,7 @@ export interface components {
             lastLoginAt: null | string;
             /** Format: date-time */
             createdAt: string;
+            preferredLocale: null | string;
         };
         UserRoleDto: {
             /** Format: uuid */
@@ -3435,6 +3459,30 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    SetMyLanguage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetLanguageRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

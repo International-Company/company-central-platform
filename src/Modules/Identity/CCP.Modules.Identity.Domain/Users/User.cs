@@ -65,6 +65,18 @@ public sealed class User : AggregateRoot, IAuditableEntity
     /// creates or resets an account, so an administrator-chosen password is
     /// never a lasting credential.
     /// </summary>
+    /// <summary>
+    /// The language this person chose, or null if they never chose one.
+    /// <para>
+    /// <b>Null is a real answer, not a missing one.</b> "I have not chosen"
+    /// means the company default applies and keeps applying if the company later
+    /// changes it; storing the default at sign-up instead would freeze every
+    /// account on whatever the company spoke the day it was created, and nobody
+    /// would ever find out why changing the company language changed nothing.
+    /// </para>
+    /// </summary>
+    public string? PreferredLocale { get; private set; }
+
     public bool MustChangePassword { get; private set; }
 
     /// <summary>
@@ -258,6 +270,52 @@ public sealed class User : AggregateRoot, IAuditableEntity
         }
 
         Raise(new UserUnlockedEvent(Id, Username, now));
+    }
+
+    /// <summary>
+    /// Chooses the language this person is written to in.
+    /// <para>
+    /// <b>Notifications, not the portal.</b> The portal knows which language it
+    /// is showing from the URL it was opened at; an email arrives with nobody
+    /// present to have opened anything, so the only way it can be in the right
+    /// language is for the choice to be stored.
+    /// </para>
+    /// <para>
+    /// Null clears the choice and returns the person to the company default.
+    /// That has to be expressible: somebody who set English by accident needs a
+    /// way back to "whatever everyone else gets".
+    /// </para>
+    /// </summary>
+    public Result ChooseLocale(string? locale, DateTimeOffset now)
+    {
+        if (locale is null)
+        {
+            PreferredLocale = null;
+            UpdatedAt = now;
+
+            return Result.Success();
+        }
+
+        string normalized = locale.Trim().ToLowerInvariant();
+
+        // A closed list rather than a pattern. The Platform has exactly two
+        // catalogues, and accepting a well-formed tag it has no messages for
+        // would store a preference that silently falls back for ever — which
+        // reads to the person as their choice being ignored.
+        if (normalized is not ("ar" or "en"))
+        {
+            return Result.Failure(IdentityErrors.LocaleUnsupported);
+        }
+
+        if (string.Equals(PreferredLocale, normalized, StringComparison.Ordinal))
+        {
+            return Result.Success();
+        }
+
+        PreferredLocale = normalized;
+        UpdatedAt = now;
+
+        return Result.Success();
     }
 
     public Result ChangeEmail(string email, DateTimeOffset now)

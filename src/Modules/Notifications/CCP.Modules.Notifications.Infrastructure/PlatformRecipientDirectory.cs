@@ -30,10 +30,10 @@ public sealed class RecipientOptions
 /// <see cref="IUserDirectory"/> rather than through a schema (§6.2).
 /// </para>
 /// <para>
-/// Per-user language is not stored yet, so everybody gets the company default.
-/// That is a real limitation and it is recorded as such rather than hidden
-/// behind a lookup that always returns the same answer — the seam is here for
-/// when the preference exists.
+/// Language is the person's own choice where they have made one, and the
+/// company's where they have not. For seven phases this returned the company
+/// default to everybody, so an English speaker in an Arabic company received
+/// Arabic — in a Platform whose two languages are meant to be equal.
 /// </para>
 /// </summary>
 public sealed class PlatformRecipientDirectory(
@@ -56,6 +56,15 @@ public sealed class PlatformRecipientDirectory(
             _ => null
         };
 
-    public Task<string> GetLocaleAsync(Guid userId, CancellationToken cancellationToken = default)
-        => Task.FromResult(_options.DefaultLocale);
+    public async Task<string> GetLocaleAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+    {
+        string? chosen = await users.GetPreferredLocaleAsync(userId, cancellationToken);
+
+        // The company default when they have not chosen. Not stored on the
+        // account at sign-up, so somebody who never chose follows the company if
+        // it later changes its language -- which is what "I have no preference"
+        // ought to mean.
+        return string.IsNullOrWhiteSpace(chosen) ? _options.DefaultLocale : chosen;
+    }
 }

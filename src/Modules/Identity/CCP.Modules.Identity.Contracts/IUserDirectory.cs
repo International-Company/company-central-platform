@@ -30,6 +30,17 @@ public interface IUserDirectory
     Task<string?> GetDisplayNameAsync(Guid userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The language this person chose, or null if they never chose one.
+    /// <para>
+    /// <b>Null rather than a default.</b> Identity does not know what the
+    /// company speaks, and inventing an answer here would put that decision in
+    /// the wrong module — the caller knows its own fallback and this one is
+    /// honest about not knowing.
+    /// </para>
+    /// </summary>
+    Task<string?> GetPreferredLocaleAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Whether this account could sign in right now.
     /// <para>
     /// Asked by Authorization before an application is allowed to act on

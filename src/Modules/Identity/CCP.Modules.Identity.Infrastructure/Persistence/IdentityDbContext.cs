@@ -66,6 +66,12 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             entity.Property(e => e.Username).HasMaxLength(64).IsRequired();
             entity.Property(e => e.Email).HasMaxLength(256).IsRequired();
             entity.Property(e => e.DisplayName).HasMaxLength(128).IsRequired();
+
+            // Two characters, and nullable. Null means "never chose", which is
+            // a different fact from "chose the company default" -- the first
+            // follows the company if it changes its language and the second
+            // does not.
+            entity.Property(e => e.PreferredLocale).HasMaxLength(8);
             entity.Property(e => e.Status).HasConversion<int>().IsRequired();
 
             // Username and email are normalised to lower case by the domain on

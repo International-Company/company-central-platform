@@ -210,9 +210,33 @@ function SidebarContent({
  *
  * The same path under the other locale — not a jump to the home page, which is
  * what a naive switcher does and which loses whatever the person was reading.
+ *
+ * **It also remembers.** The portal knows which language to show from the URL;
+ * an email arrives with nobody present to have opened a URL, so a notification
+ * is in the right language only if the choice was written down. Switching here
+ * is the moment somebody expresses that choice, and the only one they would
+ * think to look for.
  */
 function LocaleSwitch({ current, label }: { current: Locale; label: string }) {
   const pathname = usePathname();
+
+  /**
+   * Records the choice without getting in the way of the navigation.
+   *
+   * `keepalive` exists for exactly this: the request outlives the page it was
+   * started from, so the link behaves as a link and the preference still
+   * arrives. Failures are ignored on purpose — being unable to store a
+   * preference must not stop somebody changing the language they are reading
+   * in, which is the thing they actually asked for.
+   */
+  function remember(locale: Locale) {
+    void fetch('/api/me/language', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }
 
   return (
     <nav aria-label={label} className="flex items-center gap-2 text-sm">
@@ -222,6 +246,7 @@ function LocaleSwitch({ current, label }: { current: Locale; label: string }) {
           href={pathname}
           locale={locale}
           hrefLang={locale}
+          onClick={() => remember(locale)}
           aria-current={locale === current ? 'true' : undefined}
           className={
             locale === current

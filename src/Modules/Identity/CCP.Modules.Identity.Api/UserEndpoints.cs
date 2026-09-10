@@ -55,6 +55,32 @@ public static class UserEndpoints
             .WithName("GetCurrentUser")
             .WithSummary("Returns the signed-in user's profile.");
 
+        me.MapPut("/language", async (
+            SetLanguageRequest request,
+            HttpContext context,
+            [FromServices] SetMyLanguageHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (!AuthenticationEndpoints.TryGetIdentity(context.User, out Guid userId, out _))
+            {
+                return Results.Unauthorized();
+            }
+
+            Result<UserDto> result = await handler.HandleAsync(
+                new SetMyLanguageCommand(userId, request.Locale), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new AuthenticatedUserOnlyAttribute(
+                "Choosing the language one is written to in is nobody else's decision. "
+                + "Gating it behind a permission would mean granting that permission to "
+                + "everybody, which makes the permission meaningless."))
+            .Produces<UserDto>(StatusCodes.Status200OK)
+            .WithName("SetMyLanguage")
+            .WithSummary("Chooses the language the Platform writes to the caller in.");
+
         me.MapGet("/sessions", async (
             HttpContext context,
             [FromServices] GetMySessionsHandler handler,
@@ -327,3 +353,13 @@ public sealed record UpdateUserRequest(string Email, string DisplayName)
         return errors.Count == 0 ? Result.Success() : Result.Failure(errors);
     }
 }
+
+/// <summary>
+/// Choosing a language.
+/// </summary>
+/// <param name="Locale">
+/// <c>ar</c> or <c>en</c>, or null to go back to the company default. Null has
+/// to be expressible: somebody who set English by accident needs a way back to
+/// whatever everyone else gets.
+/// </param>
+public sealed record SetLanguageRequest(string? Locale);

@@ -331,6 +331,7 @@ public static class UserMapper
             user.Status.ToString(),
             user.MustChangePassword,
             user.LastLoginAt,
-            user.CreatedAt);
+            user.CreatedAt,
+            user.PreferredLocale);
     }
 }

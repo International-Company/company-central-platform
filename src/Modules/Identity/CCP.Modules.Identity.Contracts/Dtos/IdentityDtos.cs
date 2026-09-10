@@ -9,6 +9,11 @@ namespace CCP.Modules.Identity.Contracts.Dtos;
 /// not.
 /// </para>
 /// </summary>
+/// <param name="PreferredLocale">
+/// The language this person chose, or null if they never chose one. Null is a
+/// real answer: it means the company default applies, and keeps applying if the
+/// company later changes it.
+/// </param>
 public sealed record UserDto(
     Guid Id,
     string Username,
@@ -18,7 +23,8 @@ public sealed record UserDto(
     string Status,
     bool MustChangePassword,
     DateTimeOffset? LastLoginAt,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? PreferredLocale);
 
 /// <summary>The signed-in user's own profile.</summary>
 public sealed record CurrentUserDto(

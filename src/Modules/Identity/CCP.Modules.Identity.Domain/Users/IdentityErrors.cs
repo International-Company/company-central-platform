@@ -109,6 +109,11 @@ public static class IdentityErrors
         "The username may contain only letters, digits, dot, hyphen and underscore.",
         "username");
 
+    public static readonly Error LocaleUnsupported = Error.Validation(
+        "IDENTITY.LOCALE_UNSUPPORTED",
+        "The Platform is written in Arabic and English. Choose one of them, or none.",
+        "preferredLocale");
+
     public static readonly Error EmailRequired = Error.Validation(
         "IDENTITY.EMAIL_REQUIRED", "An email address is required.", "email");
 

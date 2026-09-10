@@ -39,6 +39,7 @@ public sealed class IdentityModule : IPlatformModule, IModuleEndpoints
 
         services.AddScoped<CreateUserHandler>();
         services.AddScoped<UpdateUserHandler>();
+        services.AddScoped<SetMyLanguageHandler>();
         services.AddScoped<ChangeUserStatusHandler>();
         services.AddScoped<SearchUsersHandler>();
         services.AddScoped<GetUserHandler>();

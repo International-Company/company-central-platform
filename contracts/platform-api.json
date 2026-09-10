@@ -285,6 +285,38 @@
         }
       }
     },
+    "/api/v1/me/language": {
+      "put": {
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Chooses the language the Platform writes to the caller in.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "SetMyLanguage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLanguageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/sessions": {
       "get": {
         "tags": [
@@ -7953,6 +7985,20 @@
           }
         }
       },
+      "SetLanguageRequest": {
+        "required": [
+          "locale"
+        ],
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SetPositionActiveRequest": {
         "required": [
           "isActive"
@@ -8468,7 +8514,8 @@
           "status",
           "mustChangePassword",
           "lastLoginAt",
-          "createdAt"
+          "createdAt",
+          "preferredLocale"
         ],
         "type": "object",
         "properties": {
@@ -8504,6 +8551,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "preferredLocale": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

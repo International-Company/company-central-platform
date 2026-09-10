@@ -30,6 +30,14 @@ public sealed class UserDirectory(IdentityDbContext dbContext) : IUserDirectory
             .Select(u => u.DisplayName)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<string?> GetPreferredLocaleAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+        => await dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.PreferredLocale)
+            .FirstOrDefaultAsync(cancellationToken);
+
     /// <summary>
     /// Active only. Locked is deliberately included in the refusal: a lockout is
     /// a live suspicion that the account is under attack, and letting an
