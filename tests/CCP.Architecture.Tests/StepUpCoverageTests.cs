@@ -62,7 +62,15 @@ public sealed class StepUpCoverageTests
         // afterwards is not here: the host is fixed at registration, and
         // everything a configuration edit can change is bounded by the
         // allow-list either way.
-        "POST api/v1/integrations/providers"
+        "POST api/v1/integrations/providers",
+
+        // Clearing somebody else's second factor is the single most dangerous
+        // action the Platform offers: it strips the protection from an account,
+        // which is the first thing an attacker does after taking one. Demanding
+        // recent proof of the administrator's *own* factor means a stolen
+        // session cannot be used to disarm everybody else, and it means the
+        // person removing a factor has one.
+        "POST api/v1/security/users/{userId:guid}/mfa/reset"
     ];
 
     [Fact]
@@ -126,10 +134,17 @@ public sealed class StepUpCoverageTests
     {
         IReadOnlyList<RouteEndpoint> endpoints = await GetApiEndpointsAsync();
 
+        // Endpoints acting on the caller's *own* factor. Matched on `/me/mfa`
+        // rather than on `/mfa` anywhere, and the distinction is the whole rule
+        // rather than a loosening of it: the deadlock is needing elevation to
+        // enrol the factor that grants elevation, and that can only happen when
+        // the endpoint acts on the caller's own enrolment. An administrator
+        // clearing somebody else's factor has their own to prove, so there is
+        // nothing circular about asking them to.
         List<string> circular =
         [
             .. endpoints
-                .Where(e => e.RoutePattern.RawText?.Contains("/mfa", StringComparison.Ordinal) == true
+                .Where(e => e.RoutePattern.RawText?.Contains("/me/mfa", StringComparison.Ordinal) == true
                          && e.Metadata.GetMetadata<RequireStepUpAttribute>() is not null)
                 .Select(Describe)
         ];
@@ -138,9 +153,43 @@ public sealed class StepUpCoverageTests
         // grants elevation. Nobody could ever enrol.
         Assert.True(
             circular.Count == 0,
-            "MFA endpoints must not require step-up — enrolling the factor cannot depend on "
-            + "already holding it:"
+            "Self-service MFA endpoints must not require step-up — enrolling the factor "
+            + "cannot depend on already holding it:"
             + Environment.NewLine + string.Join(Environment.NewLine, circular));
+    }
+
+    /// <summary>
+    /// The converse, so narrowing the rule above strengthens it rather than
+    /// loosening it.
+    /// <para>
+    /// An MFA endpoint that acts on somebody <i>else</i> is the most dangerous
+    /// kind there is: it removes the protection from an account, which is the
+    /// first thing an attacker does after taking one. Those must carry both a
+    /// permission and step-up, and there must be no way to add one that carries
+    /// neither.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task MfaEndpointsActingOnSomebodyElse_RequireBothAPermissionAndStepUp()
+    {
+        IReadOnlyList<RouteEndpoint> endpoints = await GetApiEndpointsAsync();
+
+        List<string> unguarded =
+        [
+            .. endpoints
+                .Where(e => e.RoutePattern.RawText is { } route
+                         && route.Contains("/mfa", StringComparison.Ordinal)
+                         && !route.Contains("/me/mfa", StringComparison.Ordinal))
+                .Where(e => e.Metadata.GetMetadata<RequireStepUpAttribute>() is null
+                         || e.Metadata.GetMetadata<RequirePermissionAttribute>() is null)
+                .Select(Describe)
+        ];
+
+        Assert.True(
+            unguarded.Count == 0,
+            "An MFA endpoint acting on somebody else must require both a permission and "
+            + "step-up. These do not:"
+            + Environment.NewLine + string.Join(Environment.NewLine, unguarded));
     }
 
     /// <summary>

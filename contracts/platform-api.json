@@ -748,6 +748,42 @@
         }
       }
     },
+    "/api/v1/security/users/{userId}/mfa/reset": {
+      "post": {
+        "tags": [
+          "Security"
+        ],
+        "summary": "Clears somebody else's second factor when they have lost it.",
+        "description": "**Requires:** `platform.security.manage`\n\n**Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.",
+        "operationId": "ResetMfa",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMfaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/security/events": {
       "get": {
         "tags": [
@@ -7736,6 +7772,17 @@
             "type": "string"
           },
           "nameEn": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetMfaRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
             "type": "string"
           }
         }

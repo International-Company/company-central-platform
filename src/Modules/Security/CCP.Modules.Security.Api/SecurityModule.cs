@@ -28,6 +28,7 @@ public sealed class SecurityModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<ConfirmMfaEnrolmentHandler>();
         services.AddScoped<VerifyMfaHandler>();
         services.AddScoped<DisableMfaHandler>();
+        services.AddScoped<ResetMfaHandler>();
 
         // Enforces [RequireStepUp] wherever it appears, including on endpoints
         // in other modules. Registered here because the state it reads is this

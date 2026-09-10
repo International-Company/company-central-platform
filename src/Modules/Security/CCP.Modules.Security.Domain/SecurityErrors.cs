@@ -22,6 +22,17 @@ public static class SecurityErrors
     public static readonly Error MfaNotActive = Error.Conflict(
         "SECURITY.MFA_NOT_ACTIVE", "Two-factor authentication is not enabled.");
 
+    public static readonly Error ResetReasonRequired = Error.Validation(
+        "SECURITY.RESET_REASON_REQUIRED",
+        "Say why. This is the only part of the record that distinguishes a recovery "
+        + "from an account takeover.",
+        "reason");
+
+    public static readonly Error CannotResetOwnMfa = Error.Forbidden(
+        "SECURITY.CANNOT_RESET_OWN_MFA",
+        "Use the ordinary path to remove your own factor, which proves it first. "
+        + "Somebody who has lost theirs needs a second person.");
+
     public static readonly Error MfaNotEnrolled = Error.NotFound(
         "SECURITY.MFA_NOT_ENROLLED", "No two-factor enrolment was found.");
 

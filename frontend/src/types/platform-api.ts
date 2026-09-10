@@ -500,6 +500,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/security/users/{userId}/mfa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clears somebody else's second factor when they have lost it.
+         * @description **Requires:** `platform.security.manage`
+         *
+         *     **Second factor required.** The caller must have completed a step-up challenge recently; otherwise this answers 403 with `SECURITY.STEP_UP_REQUIRED`.
+         */
+        post: operations["ResetMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/security/events": {
         parameters: {
             query?: never;
@@ -2939,6 +2961,9 @@ export interface components {
             nameAr: string;
             nameEn: string;
         };
+        ResetMfaRequest: {
+            reason: string;
+        };
         ResetPasswordRequest: {
             token: string;
             newPassword: string;
@@ -3821,6 +3846,30 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PermissionDeclarationResult"];
                 };
+            };
+        };
+    };
+    ResetMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetMfaRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

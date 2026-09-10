@@ -194,6 +194,40 @@ public static class SecurityEndpoints
             .RequireRateLimiting(RateLimitPolicies.Authentication)
             .WithName("DisableMfa")
             .WithSummary("Turns off two-factor authentication, after proving the current factor.");
+
+        versionGroup.MapPost("/security/users/{userId:guid}/mfa/reset", async (
+            Guid userId,
+            ResetMfaRequest request,
+            HttpContext context,
+            [FromServices] ResetMfaHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (!TryGetIdentity(context, out Guid actorUserId, out string actorUsername))
+            {
+                return Results.Unauthorized();
+            }
+
+            Result result = await handler.HandleAsync(
+                new ResetMfaCommand(userId, actorUserId, actorUsername, request.Reason),
+                cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.security.manage"))
+
+            // Step-up as well as the permission, and this is the one endpoint
+            // where that matters most: it strips a second factor from an
+            // account, which is the first thing an attacker does after taking
+            // one. Demanding recent proof of the administrator's own factor
+            // means a stolen session cannot be used to disarm everybody else --
+            // and it means the person removing a factor has one.
+            .WithMetadata(new RequireStepUpAttribute())
+            .RequireRateLimiting(RateLimitPolicies.Authentication)
+            .WithTags("Security")
+            .WithName("ResetMfa")
+            .WithSummary("Clears somebody else's second factor when they have lost it.");
     }
 
     private static void MapSecurityEventEndpoints(IEndpointRouteBuilder versionGroup) =>
@@ -298,3 +332,13 @@ public sealed record MfaVerifyRequest(string Code, bool? IsRecoveryCode)
                     "SECURITY.CODE_TOO_LONG", "That code is not a valid length.", "code"))
                 : Result.Success();
 }
+
+/// <summary>
+/// Clearing somebody else's second factor.
+/// </summary>
+/// <param name="Reason">
+/// Why. Required, because "they lost their phone and I verified them in person"
+/// and "somebody rang up claiming to be them" are the same operation and
+/// opposite acts, and this sentence is the only thing that tells them apart.
+/// </param>
+public sealed record ResetMfaRequest(string Reason);

@@ -134,6 +134,18 @@ public static class SecurityEventTypes
     public const string MfaEnrolmentStarted = "mfa.enrolment_started";
     public const string MfaEnrolled = "mfa.enrolled";
     public const string MfaDisabled = "mfa.disabled";
+
+    /// <summary>
+    /// An administrator removed somebody else's second factor.
+    /// <para>
+    /// Distinct from <see cref="MfaDisabled"/> on purpose. That one is a person
+    /// managing their own account; this is somebody else's factor being taken
+    /// away, which is both a legitimate recovery and the exact shape of an
+    /// insider taking over an account. A single event type could not tell an
+    /// investigation which had happened.
+    /// </para>
+    /// </summary>
+    public const string MfaReset = "mfa.reset_by_administrator";
     public const string MfaChallengeSucceeded = "mfa.challenge_succeeded";
     public const string MfaChallengeFailed = "mfa.challenge_failed";
     public const string MfaLockedOut = "mfa.locked_out";
