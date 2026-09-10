@@ -68,6 +68,20 @@ public sealed class AuthorizationRepository(AuthorizationDbContext dbContext) : 
     /// anti-escalation check, so loading it lazily would mean a query per
     /// permission during a grant.
     /// </summary>
+    /// <summary>
+    /// Reads the tracked entity's shadow row version. No query: the value came
+    /// back with the entity.
+    /// </summary>
+    public long VersionOf(Role role) =>
+        (long)dbContext.Entry(role).Property<uint>("xmin").CurrentValue;
+
+    /// <summary>
+    /// Sets the original value EF puts in the UPDATE's WHERE clause. A row
+    /// somebody else has changed matches nothing, and the save throws.
+    /// </summary>
+    public void ExpectVersion(Role role, long version) =>
+        dbContext.Entry(role).Property<uint>("xmin").OriginalValue = (uint)version;
+
     public Task<Role?> FindRoleAsync(Guid roleId, CancellationToken cancellationToken = default)
         => dbContext.Roles
             .Include(r => r.Permissions)

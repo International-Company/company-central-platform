@@ -110,7 +110,14 @@ export function RolePermissionsDialog({
       const response = await fetch(`/api/roles/${role.id}/permissions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissionIds: [...selected] }),
+        // What the role looked like when this dialog opened it. Without it a
+        // save made against a five-minute-old page silently discards whatever
+        // somebody else changed in between -- in the table that decides what
+        // everyone in the company can do.
+        body: JSON.stringify({
+          permissionIds: [...selected],
+          expectedVersion: role.version,
+        }),
       });
 
       if (!response.ok) {
@@ -118,6 +125,14 @@ export function RolePermissionsDialog({
 
         if (needsStepUp(response.status, body.code)) {
           setPendingAfterStepUp(() => save);
+
+          return;
+        }
+
+        // A conflict is not a mistake the person made, so it is worded as
+        // what happened and what to do rather than as a validation failure.
+        if (body.code === 'AUTHZ.ROLE_CHANGED_ELSEWHERE') {
+          setError(t('changedElsewhere'));
 
           return;
         }

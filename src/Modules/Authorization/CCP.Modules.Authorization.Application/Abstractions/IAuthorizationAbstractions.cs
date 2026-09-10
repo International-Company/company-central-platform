@@ -149,6 +149,26 @@ public interface IAuthorizationRepository
 
     Task<Role?> FindRoleAsync(Guid roleId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// What this role looked like when it was read.
+    /// <para>
+    /// PostgreSQL's own row version, which every table already has, so nothing
+    /// was added to the schema to carry it. Opaque outside a comparison.
+    /// </para>
+    /// </summary>
+    long VersionOf(Role role);
+
+    /// <summary>
+    /// Says which version the caller believed they were changing.
+    /// <para>
+    /// The save then fails rather than succeeding against a row somebody else
+    /// has moved on. Without it the second of two concurrent edits silently
+    /// discards the first, in the table that decides what everyone in the
+    /// company can do.
+    /// </para>
+    /// </summary>
+    void ExpectVersion(Role role, long version);
+
     Task<Role?> FindRoleByCodeAsync(string code, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Role>> GetRolesAsync(bool includeInactive, CancellationToken cancellationToken = default);

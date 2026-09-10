@@ -102,6 +102,11 @@ public static class AuthorizationErrors
     public static readonly Error RoleNotFound = Error.NotFound(
         "AUTHZ.ROLE_NOT_FOUND", "The role does not exist.");
 
+    public static readonly Error RoleChangedElsewhere = Error.Conflict(
+        "AUTHZ.ROLE_CHANGED_ELSEWHERE",
+        "Somebody else changed this role while you were editing it. Reload it and "
+        + "apply your change to what it says now.");
+
     public static readonly Error RoleCodeTaken = Error.Conflict(
         "AUTHZ.ROLE_CODE_TAKEN", "That role code is already in use.");
 

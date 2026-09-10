@@ -277,6 +277,15 @@ public sealed class DelegatedPermissionTests
         public Task<Role?> FindRoleAsync(Guid roleId, CancellationToken cancellationToken = default)
             => Task.FromResult<Role?>(null);
 
+        // Row versions are a persistence concern and this stub has no
+        // persistence. These tests are about permission resolution, which never
+        // reads or checks one.
+        public long VersionOf(Role role) => 0;
+
+        public void ExpectVersion(Role role, long version)
+        {
+        }
+
         public Task<Role?> FindRoleByCodeAsync(
             string code, CancellationToken cancellationToken = default)
             => Task.FromResult<Role?>(null);

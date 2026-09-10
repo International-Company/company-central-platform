@@ -1,4 +1,5 @@
 using CCP.Kernel.Application.Auditing;
+using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Authorization.Application.Abstractions;
@@ -28,7 +29,16 @@ public sealed record UpdateRoleCommand(
 public sealed record SetRolePermissionsCommand(
     Guid RoleId,
     IReadOnlyList<Guid> PermissionIds,
-    Guid ActingUserId);
+    Guid ActingUserId,
+
+    /// <summary>
+    /// What the caller believed they were changing, or 0 to skip the check.
+    /// <para>
+    /// Zero is for callers with no view to be stale -- the seeder, and tests that
+    /// build a role and immediately set its permissions. A screen always has one.
+    /// </para>
+    /// </summary>
+    long ExpectedVersion = 0);
 
 /// <summary>Turning a role off, or back on.</summary>
 public sealed record SetRoleActiveCommand(Guid RoleId, bool IsActive);
@@ -96,9 +106,18 @@ public sealed class CreateRoleHandler(
         return Result.Success(ToDto(role.Value));
     }
 
-    internal static RoleDto ToDto(Role role)
+    /// <summary>
+    /// The public shape, including what the role looked like when it was read.
+    /// <para>
+    /// The version is passed in rather than read here, because it lives in the
+    /// persistence layer and this mapper has no business knowing that. Zero
+    /// means "not read from a tracked entity" and is never sent back as an
+    /// expectation.
+    /// </para>
+    /// </summary>
+    internal static RoleDto ToDto(Role role, long version = 0)
         => new(role.Id, role.Code, role.NameAr, role.NameEn, role.Description,
-            role.IsSystem, role.IsActive, role.Permissions.Count);
+            role.IsSystem, role.IsActive, role.Permissions.Count, version);
 }
 
 /// <summary>Renaming a role.</summary>
@@ -185,6 +204,15 @@ public sealed class SetRolePermissionsHandler(
             return Result.Failure<RoleDto>(AuthorizationErrors.CannotModifySystemRole);
         }
 
+        if (command.ExpectedVersion != 0)
+        {
+            // Told to EF before anything is changed, so the UPDATE carries it in
+            // its WHERE clause. A role somebody else has already moved on
+            // matches nothing and the save throws, rather than quietly
+            // discarding their edit.
+            repository.ExpectVersion(role, command.ExpectedVersion);
+        }
+
         DateTimeOffset now = clock.UtcNow;
 
         var requested = new Dictionary<Guid, Permission>();
@@ -242,7 +270,19 @@ public sealed class SetRolePermissionsHandler(
             role.AddPermission(permissionId, permission.Name, now);
         }
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrentChangeException)
+        {
+            // Somebody changed this role between the caller reading it and
+            // saving. Refused rather than merged: the request is the whole
+            // desired set of permissions, so applying it now would silently
+            // remove whatever the other person just added, and there is no way
+            // to tell from here which of the two was right.
+            return Result.Failure<RoleDto>(AuthorizationErrors.RoleChangedElsewhere);
+        }
 
         // After the commit, for the same reason grants bump afterwards: an
         // invalidation for a change that then rolled back costs the whole

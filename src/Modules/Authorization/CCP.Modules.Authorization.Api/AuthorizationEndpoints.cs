@@ -129,9 +129,13 @@ public static class AuthorizationEndpoints
             IReadOnlyList<Domain.Roles.Role> found =
                 await repository.GetRolesAsync(includeInactive ?? false, cancellationToken);
 
+            // The version comes from the tracked entity, so a caller can read
+            // the list, open one role and send back what it looked like. A list
+            // that omitted it would force a second read before any edit.
             return Results.Ok(found.Select(r => new RoleDto(
                 r.Id, r.Code, r.NameAr, r.NameEn, r.Description,
-                r.IsSystem, r.IsActive, r.Permissions.Count)).ToArray());
+                r.IsSystem, r.IsActive, r.Permissions.Count,
+                repository.VersionOf(r))).ToArray());
         })
             .RequireAuthorization()
             .WithMetadata(new RequirePermissionAttribute("platform.roles.view"))
@@ -276,7 +280,8 @@ public static class AuthorizationEndpoints
             }
 
             Result<RoleDto> result = await handler.HandleAsync(
-                new SetRolePermissionsCommand(id, request.PermissionIds, actingUserId),
+                new SetRolePermissionsCommand(
+                    id, request.PermissionIds, actingUserId, request.ExpectedVersion),
                 cancellationToken);
 
             return result.ToHttpResult(context, requestContext);
@@ -470,7 +475,15 @@ public sealed record UpdateRoleRequest(
 /// whose result nobody can predict from any single request.
 /// </para>
 /// </summary>
-public sealed record SetRolePermissionsRequest(IReadOnlyList<Guid> PermissionIds);
+/// <param name="ExpectedVersion">
+/// What the role looked like when the caller read it. Omit, or send 0, only when
+/// there is no view that could be stale -- a screen always has one, and sending
+/// nothing means a change made against a five-minute-old page silently discards
+/// whatever somebody else did in between.
+/// </param>
+public sealed record SetRolePermissionsRequest(
+    IReadOnlyList<Guid> PermissionIds,
+    long ExpectedVersion = 0);
 
 /// <summary>Whether a role should be active.</summary>
 public sealed record SetRoleActiveRequest(bool IsActive);

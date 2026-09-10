@@ -7858,7 +7858,8 @@
           "description",
           "isSystem",
           "isActive",
-          "permissionCount"
+          "permissionCount",
+          "version"
         ],
         "type": "object",
         "properties": {
@@ -7894,6 +7895,14 @@
               "string"
             ],
             "format": "int32"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -8165,6 +8174,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64",
+            "default": 0
           }
         }
       },

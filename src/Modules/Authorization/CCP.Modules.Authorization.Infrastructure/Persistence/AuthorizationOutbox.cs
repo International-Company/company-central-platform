@@ -43,8 +43,21 @@ public sealed class AuthorizationOutbox(
 /// <summary>Commits the Authorization module's changes.</summary>
 public sealed class AuthorizationUnitOfWork(AuthorizationDbContext dbContext) : IAuthorizationUnitOfWork
 {
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        => dbContext.SaveChangesAsync(cancellationToken);
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            // Translated here so the Application layer can answer "reload and
+            // try again" without referencing EF Core -- which it does not, and
+            // should not. The boundary is the point.
+            throw new ConcurrentChangeException(
+                "The role was changed by somebody else after it was read.", exception);
+        }
+    }
 }
 
 /// <summary>Design-time factory, so migrations generate without a configured environment.</summary>

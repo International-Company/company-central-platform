@@ -137,6 +137,21 @@ public sealed class AuthorizationDbContext(DbContextOptions<AuthorizationDbConte
         modelBuilder.Entity<Role>(entity =>
         {
             entity.ToTable("roles");
+
+            // PostgreSQL's own row version, mapped as a concurrency token.
+            //
+            // `xmin` is a system column every table already has, so this needs
+            // no migration and no column of our own to keep correct. EF sends it
+            // in the WHERE clause of an UPDATE; a row somebody else changed in
+            // the meantime matches nothing, and the save throws instead of
+            // silently winning.
+            //
+            // Without it, two administrators editing one role in the same minute
+            // meant the second save quietly discarded the first -- in the table
+            // that decides what everyone in the company can do.
+            entity.Property<uint>("xmin")
+                  .HasColumnName("xmin")
+                  .IsRowVersion();
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.Id).ValueGeneratedNever();

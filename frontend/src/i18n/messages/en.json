@@ -224,7 +224,8 @@
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "noRoles": "No roles yet",
-    "noRolesDescription": "The Platform has only the administrator role. Create narrower ones so that granting any access is not granting all of it."
+    "noRolesDescription": "The Platform has only the administrator role. Create narrower ones so that granting any access is not granting all of it.",
+    "changedElsewhere": "Somebody else changed this role while you had it open. Reload it and apply your change to what it says now."
   },
   "organization": {
     "title": "Organizational structure",

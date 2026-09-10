@@ -1,6 +1,15 @@
 namespace CCP.Modules.Authorization.Contracts.Dtos;
 
 /// <summary>A role, as callers see it.</summary>
+/// <param name="Version">
+/// What the role looked like when this was read. Sent back when changing its
+/// permissions, so a change made against a stale view is refused rather than
+/// silently overwriting somebody else's.
+/// <para>
+/// Opaque: it is PostgreSQL's own row version and means nothing outside a
+/// comparison.
+/// </para>
+/// </param>
 public sealed record RoleDto(
     Guid Id,
     string Code,
@@ -9,7 +18,8 @@ public sealed record RoleDto(
     string? Description,
     bool IsSystem,
     bool IsActive,
-    int PermissionCount);
+    int PermissionCount,
+    long Version);
 
 /// <summary>
 /// One role with the permissions it actually carries.

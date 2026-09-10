@@ -2990,6 +2990,8 @@ export interface components {
             isActive: boolean;
             /** Format: int32 */
             permissionCount: number | string;
+            /** Format: int64 */
+            version: number | string;
         };
         SaveTemplateRequest: {
             code: string;
@@ -3054,6 +3056,11 @@ export interface components {
         };
         SetRolePermissionsRequest: {
             permissionIds: string[];
+            /**
+             * Format: int64
+             * @default 0
+             */
+            expectedVersion: number | string;
         };
         SetSettingRequest: {
             key: string;
