@@ -82,6 +82,12 @@ jobs:
       - name: Verify formatting
         run: dotnet format --verify-no-changes --no-restore
 
+      # A broken link in a runbook is found by somebody at three in the morning
+      # who needed the page it pointed at. Documentation rots silently: a file is
+      # renamed, a section folded into another, and nothing complains.
+      - name: Documentation links resolve
+        run: python scripts/check-doc-links.py
+
       - name: Unit tests
         run: >-
           dotnet test tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj

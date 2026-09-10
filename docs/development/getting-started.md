@@ -4,8 +4,8 @@ From a clean machine to a running Platform.
 
 | | |
 |---|---|
-| Status | Phase 1 |
-| Applies to | Backend API and kernel. The frontend arrives in Phase 7. |
+| Status | Current as of Phase 17 |
+| Applies to | The whole Platform: eleven modules, the kernel, and the administration portal |
 
 ---
 
@@ -16,7 +16,7 @@ From a clean machine to a running Platform.
 | .NET SDK | **10.0.400** (pinned in `global.json`) | `dotnet --version` |
 | Docker | Any recent, with a working Linux engine | `docker info` |
 | Git | Any recent | `git --version` |
-| Node.js | 22+ (needed from Phase 7 only) | `node -v` |
+| Node.js | 22+ (for the portal) | `node -v` |
 
 PostgreSQL does **not** need installing — Docker Compose provides it.
 
@@ -77,24 +77,62 @@ CCP_Outbox__BatchSize              → Outbox:BatchSize
 
 ## 4. Apply migrations
 
-Install the EF tooling once:
+**There are twelve migration histories, not one.** Each module owns its schema
+and its own history table (ADR-004), so a single `dotnet ef database update` on
+the kernel leaves you with a Platform that starts, reports healthy, and answers
+500 from every module. Locally, let the host apply them all:
+
+```bash
+export CCP_Database__ApplyMigrationsOnStartup=true
+dotnet run --project src/Host/CCP.Api.Host
+```
+
+The migrator takes a PostgreSQL advisory lock, walks every context with the
+kernel first — its `outbox_messages` table is mapped into all the others and
+excluded from their migrations, so it must exist before they run — and clears
+the statement timeout for the duration, because an index build is legitimately
+long.
+
+To apply one module by hand, or to create a new migration:
 
 ```bash
 dotnet tool install --global dotnet-ef --version 10.*
+
+dotnet ef database update \
+  --project src/Modules/Identity/CCP.Modules.Identity.Infrastructure \
+  --context IdentityDbContext
+
+dotnet ef migrations add AddSomething \
+  --project src/Modules/Identity/CCP.Modules.Identity.Infrastructure \
+  --context IdentityDbContext \
+  --output-dir Persistence/Migrations
 ```
 
-Then:
+> **`ApplyMigrationsOnStartup` is off by default and belongs off in production.**
+> A schema change should be a reviewed step, not a side effect of a restart. It
+> is safe with several instances — the advisory lock means one migrates and the
+> rest wait — and it is on in the Railway deployment only because that platform
+> offers nowhere else to run it. An architecture test asserts that both the host
+> and the integration-test factory know about every context, because both lists
+> have already been wrong and the symptom was three tests answering 500 with no
+> clue why.
+
+---
+
+## 4a. Create the first administrator
+
+Bootstrapping refuses to run once any user exists, so this is a one-time step:
 
 ```bash
-dotnet ef database update \
-  --project src/Kernel/CCP.Kernel.Infrastructure/CCP.Kernel.Infrastructure.csproj \
-  --context KernelDbContext
+export CCP_Identity__Bootstrap__Enabled=true
+export CCP_Identity__Bootstrap__Username=admin
+export CCP_Identity__Bootstrap__Email=admin@example.invalid
+export CCP_Identity__Bootstrap__DisplayName=Administrator
+export CCP_Identity__Bootstrap__InitialPassword=a-long-one-time-passphrase
 ```
 
-> Migrations are **never** applied automatically at application start. In a
-> multi-instance deployment that means several instances racing to alter the
-> same schema (ARCHITECTURE.md §21.5). Applying them is an explicit step, here
-> and in production.
+Run once, sign in, then **remove those variables**. See
+[../identity/bootstrap-administrator.md](../identity/bootstrap-administrator.md).
 
 ---
 
@@ -123,6 +161,18 @@ curl http://localhost:5080/api/v1/diagnostics/ping
 {"status":"ok","serverTimeUtc":"2026-09-06T14:15:41Z","correlationId":"01a0771331..."}
 ```
 
+### The portal
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+It serves on <http://localhost:3000> and redirects to `/ar` or `/en`. It talks to
+the API through its own server-side routes — **no access token ever reaches the
+browser**, and a test fails the build if anything touches `localStorage`.
+
 ---
 
 ## 6. Test
@@ -131,11 +181,22 @@ curl http://localhost:5080/api/v1/diagnostics/ping
 # Everything
 dotnet test
 
-# Individually
+# By kind
 dotnet test tests/CCP.Kernel.UnitTests          # no dependencies
 dotnet test tests/CCP.Architecture.Tests        # no dependencies
+dotnet test tests/Modules/CCP.Modules.Identity.UnitTests   # and ten siblings
 dotnet test tests/CCP.Api.IntegrationTests      # requires PostgreSQL
+
+# The portal
+cd frontend
+npm run lint && npm run test && npm run build
+npx playwright test                             # requires the API running
 ```
+
+The architecture tests are the ones worth running before you push. They refuse
+work rather than reporting it: an endpoint that declares no permission and does
+not explicitly allow anonymous fails the build, as does a module context the host
+does not migrate, and a metric declared with no caller.
 
 The integration tests create a uniquely-named database per test class, apply
 migrations to it, and drop it afterwards — so they never collide with your
@@ -149,22 +210,35 @@ export CCP_TEST_POSTGRES="Host=localhost;Port=5432;Database=postgres;Username=po
 
 ---
 
-## 7. What exists after Phase 1
+## 7. What exists
 
-The Platform runs, but has **no capability modules yet** — that is by design.
-Phase 1 delivers the foundation the eleven modules will be built on:
+Eleven capability modules — identity, organization, authorization, security,
+audit, workflow, notifications, documents, integrations, configuration — plus an
+operations surface reporting on the Platform's own machinery. Each has a screen
+in the portal, in both languages.
 
-- The solution structure and layer boundaries (ARCHITECTURE.md §8.2)
-- Kernel primitives: `Result`/`Error`, `Guard`, `IClock`, UUID v7, paging
-- The RFC 9457 error contract, identical for every future endpoint
-- Correlation ids flowing through requests, logs and (from Phase 6) audit
-- Security headers, rate limiting, strict CORS
-- The transactional outbox and its relay (ADR-013)
-- The module registration mechanism, proved by the Diagnostics module
-- Health checks, structured logging, Docker, and CI
+[DEVELOPMENT_STATUS.md](../../DEVELOPMENT_STATUS.md) is the authority on what is
+finished and what is not, and it names every known gap. Read it rather than
+inferring completeness from the fact that a folder exists.
 
-The `diagnostics` endpoints exist to prove the pipeline end to end. They are
-reduced to the ping endpoint alone when Monitoring arrives in Phase 14.
+The `diagnostics` endpoints remain: they prove the pipeline end to end — module
+registration, correlation ids, the error contract, paging validation — and the
+integration tests assert the exact response shapes against them without needing a
+real module.
+
+### Changing an endpoint
+
+The API contract is generated from the endpoints themselves and committed, and
+CI fails if the committed copy has drifted. After changing any endpoint or DTO:
+
+```bash
+bash scripts/regenerate-contract.sh
+cd frontend && npm run generate:types
+```
+
+Both results are committed. Without this the portal would keep generating its
+types from a stale document and still pass — which is the failure the generation
+exists to prevent, wearing a different hat.
 
 ---
 
@@ -184,6 +258,16 @@ been applied. This is the readiness check working correctly, not a bug.
 PostgreSQL is not running, or `CCP_TEST_POSTGRES` points somewhere else. The
 tests need permission to `CREATE DATABASE`.
 
+**Every module endpoint answers 500, but the Platform reports healthy**
+Only the kernel migration was applied. There are twelve. See §4 — this is the
+single most common way to get a Platform that looks fine and works for nothing.
+
+**A query is cancelled after sixty seconds**
+That is `statement_timeout`, and it is doing its job. No request the Platform
+serves is a legitimate minute of database work, so this is a missing index or a
+lock nobody expected. Migrations are exempt; see
+[../deployment/backup-and-recovery.md](../deployment/backup-and-recovery.md) §6.
+
 **`dotnet ef` is not recognised**
 The global tool is not installed, or `~/.dotnet/tools` is not on your `PATH`.
 
@@ -202,4 +286,10 @@ suppressions have.
 - `dotnet test` green, including the architecture tests
 - `dotnet format --verify-no-changes` clean
 - Every new endpoint declares a permission or explicitly allows anonymous
+- `bash scripts/regenerate-contract.sh` and `npm run generate:types` run if any
+  endpoint or DTO changed, and both results committed
 - Documentation updated in the same change, not deferred
+- Anything you knowingly left undone recorded in `DEVELOPMENT_STATUS.md`,
+  including the reason. The debt register is why this project can be trusted: a
+  gap that is written down is a decision, and one that is not is a surprise
+  waiting for somebody else.

@@ -1,8 +1,8 @@
 # Company Central Platform — Documentation
 
-| Status | Phase 0 — structure created; content written phase by phase |
+| Status | Written through Phase 18 |
 |---|---|
-| Last updated | 2026-09-06 |
+| Last updated | 2026-09-10 |
 
 ## Start here
 
@@ -27,19 +27,30 @@
 | [documents/](documents/) | Upload, access control, storage | Phase 10 |
 | [integrations/](integrations/) | Connectors, credentials, webhooks | Phase 12 |
 | [api/](api/) | REST conventions, versioning, errors, OpenAPI | Phases 1, 11 |
-| [development/](development/) | Getting started, standards, integration guides | Phase 1 onward |
-| [deployment/](deployment/) | Environments, CI/CD, observability, backup, recovery | Phases 17, 19 |
+| [development/](development/) | Getting started, configuration, and the integration guide | Phase 1 onward |
+| [deployment/](deployment/) | Observability and the runbook, backup and recovery, the Railway deployment | Phases 14, 17 |
 
 ## For a developer building a business system
 
 The question this documentation must answer is: **"How do I connect my system to the Company Platform?"** — without reading Platform source code.
 
-The path, once written (Phases 11 and 18):
-1. `development/integration-guide.md` — register an application and make a first authenticated call
-2. `authorization/integration.md` — declare permissions and check them
-3. `audit/integration.md` — send audit events
-4. `workflow/integration.md`, `notifications/integration.md`, `documents/integration.md` — use the shared services
-5. `api/` — conventions, errors, versioning
+1. [`development/integration-guide.md`](development/integration-guide.md) — register an application, obtain a token, make a first authenticated call, declare your permissions, and use the shared services
+2. [`../samples/reference-client/`](../samples/reference-client/) — the same thing as working code
+3. [`../contracts/platform-api.json`](../contracts/) — every endpoint, its shapes, and **the permission each one requires**, generated from the endpoints themselves
+4. [`api/versioning.md`](api/versioning.md) — what is promised, what may change, and how a deprecation is announced
+
+The per-service integration documents planned as separate files were written into
+the integration guide instead. Five documents, each with its own preamble about
+authentication, is five places for the same paragraph to go out of date; a
+business system integrates once, in one sitting.
+
+**One honest caveat, recorded rather than glossed:** Phase 11's acceptance
+criterion asks that the guide be validated by an outside developer actually
+following it, and that has not happened (debt #40). Reading it back is precisely
+the self-assessment the criterion rules out — and checking it against the
+generated contract already caught two real errors, an endpoint that did not exist
+and a method that was wrong, which is evidence that reading it back is not
+enough.
 
 ## Writing rules
 

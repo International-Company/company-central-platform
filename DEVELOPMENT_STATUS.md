@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-10 |
-| Current phase | **Phase 17 — Database Hardening, Backup & Recovery** |
-| Phase status | 🟡 **The database can no longer be taken down by one query, and a restore can be verified. Nothing is taking backups yet — that is the provider's job and the provider is undecided.** |
-| Next phase | **Phase 18 — Developer Experience & Documentation** |
+| Current phase | **Phase 18 — Developer Experience & Documentation** |
+| Phase status | 🟢 **The repository has a front door, and the setup guide no longer describes a Platform that stopped existing sixteen phases ago.** |
+| Next phase | **Phase 19 — Cloud Deployment** — ⛔ blocked on Q4 |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -33,7 +33,7 @@
 | 15 | Administration Portal Completion | 🟢 **Complete** | The two modules that had a complete API and no screen now have one. Integrations opens on the question an operator asks during an incident — is this provider working — with health first and the configuration below it; `Idle` is grey rather than green, because nothing has been asked of a provider that has not been called and a green light nobody earned is worse than an honest blank. Failures are shown as *3 of 4* rather than 75%, since the percentage hides how small the sample is. The call log shows both payloads in full, which is only safe because they were redacted **before** they were stored — what an administrator reads is what the database holds, and there is no unredacted copy for the next export to find. **No credential value appears on either screen, and not because the screen hides one**: the Platform stores a secret's *name* and has no field that could carry a value. Configuration shows what is in force, how many scopes overrode it, and the change history — what it was, what it became, who and why — and for a sensitive setting says that it changed without saying what to. Pasting a credential into a setting is refused by the Platform, and the screen explains the refusal in full rather than reporting it as a validation quibble. The health stamp records when health was **read**, not when the page last rendered, so the figure goes stale in front of whoever is watching it. Both locales, both directions, in the accessibility, responsive and signed-in sweeps.
 | 16 | Platform Dashboard | 🟢 **Complete** | Background jobs keep a history, and it exists because writing the screen found that they kept nothing. Phase 14 declared `ccp.jobs.runs`, wrote an alert against it, and put the meter in a project no module's Infrastructure references — so not one of the five sweeps could call it, and the alert sat permanently green on jobs that might never have run. The meter moved to the application layer; every periodic sweep now runs through one `JobRunner` that times the pass, records the outcome, swallows what it throws so a bad pass cannot retire the timer for the life of the process, and tells a shutdown apart from a failure so a deployment does not read as an outage. Runs are stored in the kernel schema through a neutral seam, in their own transaction — the record of a failed pass must not roll back with the pass — and pruned by the journal itself rather than by a sixth job whose failure nothing would record. Each row carries what the pass **did**, in the job's own words, because "removed 412" and "removed 0" are different facts and a history that cannot tell them apart cannot tell a working sweep from one whose query quietly stopped matching. The screen shows every job plus the outbox, where the figure given the most room is the **age** of the oldest undelivered message rather than the depth. A job that stopped running a week ago still appears and turns red instead of vanishing, which has an integration test on it. 9 unit tests, 8 integration tests.
 | 17 | Database Hardening, Backup & Recovery | 🟡 **Core complete** | `statement_timeout` and `idle_in_transaction_session_timeout` are enforced **by PostgreSQL**, not by a client-side command timeout that stops the application waiting while the query carries on burning the server's CPU. They are applied to the connection string in one place, because there are twenty-two `UseNpgsql` call sites and a rule repeated twenty-two times is missing from at least one. The migrator is exempt on purpose — an index build is legitimately long, and the subtler half is that its advisory-lock connection is exempt too, since `pg_advisory_lock` blocks and a statement timeout applies to a blocking statement, so a second instance queuing behind a long migration would be cut off and then serve requests against a half-migrated schema. The outbox finally prunes delivered rows (the oldest open debt, #4), **never dead-lettered ones**, because those are events that will never arrive and a timer must not erase the evidence. `docs/deployment/backup-and-recovery.md` covers what is at stake, what to back up — including the secrets, which are in neither the database nor the bucket and whose absence makes every enrolled second factor undecryptable — how to restore, and a drill. `scripts/verify-restore.sh` answers what a dump file cannot: it restores into a scratch database and asserts the audit trail is still partitioned and that somebody can still sign in. 9 unit tests. **No backup is being taken** — that is a provider feature and the provider is undecided (Q4).
-| 18 | Developer Experience & Documentation | ⬜ Not started | |
+| 18 | Developer Experience & Documentation | 🟢 **Complete** | The repository had **no `README.md`** — seventeen phases, forty-five documents, and nothing at the front door. It has one now, and it points at `DEVELOPMENT_STATUS.md` as the honest account rather than claiming completeness itself. The bigger find was that `getting-started.md` still described Phase 1: it said there were no capability modules yet, that the frontend arrived later, and it applied **one** migration where there are twelve — so a new developer following it word for word would get a Platform that starts, reports healthy, and answers 500 from every module. That failure is now the first entry under common problems. The guide also gained the portal, the module test suites, the contract regeneration step that CI enforces, and the first-administrator bootstrap. Both documentation indexes were rewritten: one listed as *planned* several documents that exist, and stated that the .NET SDK was not installed on this machine. `scripts/check-doc-links.py` now fails the build on a broken relative link, and it was tested against a deliberately broken one before being trusted — a guard that passes on its first run is the exact shape of the two dead instruments found last phase.
 | 19 | Cloud Deployment | ⬜ Not started | Blocked on provider decision (Q4) |
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
@@ -932,7 +932,7 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 37 | A ZIP is accepted on the strength of its extension | Low | The bytes prove it is an archive; which member of the ZIP family it is comes from the file name, because telling a `.docx` from an `.xlsx` means opening the archive. The security question is answered by the content and the cosmetic one by the name, so the worst outcome is a spreadsheet labelled as a document. |
 | 38 | A unit access rule is evaluated against the caller's unit, not the document's | Low | Access is decided by rules alone; a document sitting in a unit grants nobody anything by virtue of sitting there. That is deliberate — the alternative hands a department head every private letter written to anybody who reports to them — but it does mean `organizationUnitId` on a document is a filter and not a permission, which is easy to misread. |
 | 39 | Webhook subscriptions are not built | Medium | Phase 11 lists them and Phase 12 lists `WebhookSubscription` in its own domain. Building them twice would be worse than building them once in the phase that owns outbound calls, their retry policy and the host allow-list that keeps a subscription from being an SSRF primitive. Deferred deliberately, not forgotten. |
-| 40 | The integration guide has not been tested on a real outside developer | Medium | Phase 11's acceptance criterion says explicitly: validated by having someone actually try, not by self-assessment. Writing it and reading it back is exactly the self-assessment the criterion rules out. Two errors were caught by checking the guide against the generated contract — an endpoint that did not exist and a method that was wrong — which is evidence that reading it back is not enough. |
+| 40 | The integration guide has not been tested on a real outside developer | **Medium, and now the oldest open documentation item** | Phase 11's acceptance criterion says explicitly: validated by having someone actually try, not by self-assessment. Writing it and reading it back is exactly the self-assessment the criterion rules out. Two errors were caught by checking the guide against the generated contract — an endpoint that did not exist and a method that was wrong — which is evidence that reading it back is not enough. |
 | 41 | A machine token cannot be revoked before it expires | Low | Revoking a credential stops new tokens instantly, and tokens already issued keep working for the rest of their short lifetime. The alternative is checking a revocation list on every request, which makes the Platform a synchronous dependency of every call in the company — the thing asymmetric signing and the JWKS endpoint exist to avoid. Stated in the documentation rather than implied away. |
 | 42 | An application declares its permissions with no permission of its own | Low | Being an authenticated application declaring **its own** namespace is the authorization, and the namespace comes from the token so it cannot be anything else. Declared permissions grant nobody anything until an administrator puts them in a role, so the blast radius is rows in a table — weighed against two administrator actions to onboard every system. |
 | 43 | ~~The Platform would not start if it could not create a document folder~~ | — | ✅ **Resolved.** The local storage provider created its root directory in its constructor; the container runs as an unprivileged user and the application directory belongs to root, so the call was refused — and because that provider is a singleton resolved while the host is being built, every module failed to start. The constructor now does no I/O, the default root is a writable temporary directory, and three tests pin all of it. |
@@ -957,6 +957,7 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 65 | Nothing is taking a backup | **High** | The runbook is written and the verification script runs, and no backup exists to run it against. Continuous archiving and point-in-time recovery are features of a managed PostgreSQL, and the provider is undecided (Q4) — so this is genuinely blocked rather than deferred. It is recorded as High because every other risk in this register is survivable and this one is not: the audit trail cannot be reconstructed from anywhere. |
 | 66 | The restore verification has never been run against a real dump | Medium | It is a shell script with no test of its own, and the local machine has no PostgreSQL superuser password (#1's original cause), so it has been syntax-checked and read rather than executed. Its assertions were written against the real schema names — which caught one error already, since the authorization schema is `authz` and not `authorization`, and a check naming the wrong schema would have passed by finding nothing. |
 | 67 | No index review has been done | Medium | Phase 17 lists one and it is not done. The indexes that exist were each added for a named query, so this is about finding the ones nobody thought of — which needs `pg_stat_statements` against realistic data rather than reading the model. It belongs with the load testing in Phase 20. |
+| 68 | No `adding-a-module.md` | Low | The pattern is eleven times consistent, so a twelfth module is best begun by copying the smallest existing one — but that is folklore, and folklore is what documentation exists to replace. Recorded in `docs/development/README.md` as not written rather than listed as planned, which is what it had been for seventeen phases. |
 | 57 | A provider can only be turned on and off from the screen | Low | Registering one, and changing its resilience settings, its redacted field list or its credential reference, is still an API call. The BFF routes for both exist and no form calls them. Registration is a rare, careful act performed once per provider, which is why it is the part left for later rather than the part built first. |
 | 58 | Settings can only be changed at Platform scope from the screen | Medium | The API takes a scope and a scope id; the screen sends `Platform` and null. So the count of overrides is visible and a company- or application-scoped override can be neither set nor cleared from the portal — which is the case where narrowest-wins resolution actually earns its complexity. It needs a scope picker that knows which companies and applications exist. |
 | 59 | Flag targeting cannot be edited from the screen | Medium | The toggle sends the flag's existing role and unit ids back unchanged, so a flag can be turned on and off and cannot be aimed. A targeted rollout is still an API call — and #50 means the feature-state endpoint would answer *off* for everybody anyway, so aiming one is not useful until that is fixed. The two are one piece of work. |
@@ -1941,21 +1942,99 @@ so it belongs with the load testing in Phase 20.
 
 ---
 
-## 20. Next step
+## 20. Phase 18 report — the documentation that described a different system
 
-**Phase 18 — Developer Experience & Documentation.** The Platform now has
-eighteen documents, a generated API contract, a reference client and an
-integration guide — and #40 still says the guide has never been read by an
-outside developer, which was Phase 11's explicit acceptance criterion and the one
-thing self-assessment cannot satisfy.
+Two findings, and the second is worse than the first.
+
+**The repository had no `README.md`.** Seventeen phases, forty-five documents, a
+generated API contract and a reference client, and nothing at the front door.
+Anyone opening it on GitHub saw a file listing. It has one now, and what it does
+*not* do is claim the project is finished: it points at `DEVELOPMENT_STATUS.md`
+and says in as many words that this is the honest account and should be read
+before trusting any claim made anywhere else, including in the README itself.
+
+**`getting-started.md` still described Phase 1.** It said the Platform had no
+capability modules yet — "that is by design" — that the frontend would arrive in
+Phase 7, and it applied exactly one migration:
+
+```
+dotnet ef database update --context KernelDbContext
+```
+
+There are twelve. Each module owns its own schema and its own migration history
+(ADR-004), which is a deliberate architectural decision that this document had
+never been updated to reflect. A new developer following it word for word gets a
+Platform that starts cleanly, reports healthy on `/health/ready`, and answers 500
+from every single module — with no indication anywhere that eleven schemas are
+missing.
+
+That is worse than no documentation. Absent instructions send somebody to read
+the code; confidently wrong instructions send them into an afternoon of debugging
+a system that is behaving exactly as it should. It is now the first entry under
+common problems, phrased as the symptom rather than the cause, because the
+symptom is what somebody will search for.
+
+**The same rot in the indexes.** `docs/development/README.md` listed as *planned*
+several documents that exist, and carried a prerequisites table asserting that
+the .NET SDK was **not installed** — true on the day it was written and false
+ever since. It now lists what exists, and, for what does not, says why:
+`coding-standards.md` and `testing.md` are not written because the standards are
+enforced by the compiler, `dotnet format` and the architecture tests, and a prose
+restatement of a mechanised rule is a second copy that drifts. `troubleshooting.md`
+was folded into the two places a problem is actually met. Only
+`adding-a-module.md` is a genuine gap, and it is now recorded as one (#68) rather
+than listed as planned for a seventeenth phase.
+
+**A guard, tested before being trusted.** `scripts/check-doc-links.py` fails the
+build on a broken relative link. It found nothing on its first run — the links
+were all good — which is exactly the shape of the two dead instruments found last
+phase, so it was pointed at a deliberately broken link to confirm it could fail
+at all. It caught the broken one, ignored the valid one, and correctly ignored a
+link inside a fenced code block, where the integration guide shows example URLs a
+caller would request rather than files on disk.
+
+**What is still not done, and cannot be done from here.** Phase 11's acceptance
+criterion asks that the integration guide be validated by an outside developer
+actually following it (#40). That has not happened, and reading it back is
+precisely the self-assessment the criterion rules out — checking it against the
+generated contract already caught two real errors, an endpoint that did not exist
+and a method that was wrong, which is evidence that reading it back is not
+enough. It is now the oldest open documentation item, and it needs a person who
+did not write it.
+
+---
+
+## 21. Next step
+
+**Phase 19 — Cloud Deployment is ⛔ blocked on Q4**, and that decision is now
+blocking more than its own phase. It stands between a written backup procedure
+and an actual backup (#65, the highest-severity item in this register), it holds
+the seven alert definitions as prose (#55), and it is the reason there is no
+point-in-time recovery.
+
+The Platform is live on Railway and has been since Phase 7, which is what makes
+this easy to keep deferring. Railway is an excellent way to have something
+running; it is not a decision about where the company's identity, audit trail and
+documents live.
+
+**The question needing an answer is narrow:** which managed PostgreSQL, with what
+retention window and what recovery point objective. Everything else in Phase 19
+follows from it.
+
+What can be done meanwhile, in order of value:
+
+1. **Phase 20 — Testing & Quality Hardening.** Load testing, the index review
+   (#67), and the module integration suites that were never written (#12, #16).
+   None of it needs a provider.
+2. **Migrate the retention periods and intervals onto the configuration module**
+   (#52). Every one written since Phase 9 — including this phase's own — is still
+   an `appsettings` value needing a deployment to change, which is exactly the
+   problem that module was built to solve, and it still has no users.
+3. **The two-role database split** (#64) and **outbound webhooks** (#46).
 
 Still outstanding across all phases:
 
-- **Q4 — the cloud provider** is undecided, and it now blocks the most serious
-  item in the register. It is what stands between a written backup procedure and
-  an actual backup, it holds the seven alert definitions as prose, and it blocks
-  Phase 19 entirely. **This is the decision worth making next.**
-- **B3 — the requirements document** is still missing.
+- **Q4 — the cloud provider.** Blocks Phase 19 entirely and the most serious item
+  in the register. **This is the decision worth making next.**
+- **B3 — the requirements document** is still missing, eighteen phases in.
 - **Q10 — the bootstrap administrator procedure** needs approval.
-- **Nothing has been migrated onto the configuration module** (#52), including
-  the retention periods this phase introduced.
