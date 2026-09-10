@@ -56,7 +56,11 @@ public sealed class OutboxRetentionSweep(
         }
     }
 
-    private async Task<string?> SweepAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// One pass. Internal so the retention tests can drive it directly rather
+    /// than waiting six hours for a timer.
+    /// </summary>
+    internal async Task<string?> SweepAsync(CancellationToken cancellationToken)
     {
         using IServiceScope scope = scopeFactory.CreateScope();
 
