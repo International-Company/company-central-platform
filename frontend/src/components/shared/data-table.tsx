@@ -62,6 +62,27 @@ export interface DataTableProps<TRow> {
   rowActions?: ((row: TRow) => ReactNode) | undefined;
 }
 
+/**
+ * The row-action container.
+ *
+ * **WCAG 2.2 adds Target Size (Minimum), and a table of text buttons is exactly
+ * what it was written about.** An "Edit" link in a dense row is around twenty
+ * pixels tall, which is comfortable with a mouse and a real problem with a
+ * thumb or a tremor. The criterion asks for 24 by 24.
+ *
+ * Applied here rather than at each call site, because every screen writes its
+ * own buttons and a rule that has to be repeated fourteen times is a rule that
+ * is missing from at least one of them. The child selector reaches whatever a
+ * screen chose to render, including buttons added next year.
+ *
+ * The design does not change: they are still text, still blue, still no icons.
+ * They are simply large enough to hit.
+ */
+const RowActions =
+  'flex flex-wrap items-center justify-end gap-3 ' +
+  '[&_button]:inline-flex [&_button]:min-h-6 [&_button]:min-w-6 [&_button]:items-center ' +
+  '[&_a]:inline-flex [&_a]:min-h-6 [&_a]:min-w-6 [&_a]:items-center';
+
 export function DataTable<TRow>({
   columns,
   rows,
@@ -165,7 +186,9 @@ export function DataTable<TRow>({
                 ))}
 
                 {rowActions ? (
-                  <td className="px-3 py-2.5 text-end">{rowActions(row)}</td>
+                  <td className="px-3 py-2.5">
+                    <div className={RowActions}>{rowActions(row)}</div>
+                  </td>
                 ) : null}
               </tr>
             ))}
@@ -198,7 +221,7 @@ export function DataTable<TRow>({
             </dl>
 
             {rowActions ? (
-              <div className="mt-2 border-t border-border pt-2">
+              <div className={`mt-2 border-t border-border pt-2 ${RowActions}`}>
                 {rowActions(row)}
               </div>
             ) : null}

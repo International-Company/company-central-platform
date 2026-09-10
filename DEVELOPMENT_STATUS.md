@@ -2099,11 +2099,25 @@ into one increment and leave a stamp some cache still matches.
 `PermissionSeedingTests`, which covers it better. A second, weaker copy of an
 existing test is worse than none.
 
-**WCAG 2.2 AA passes with no violations.** The phase asks for 2.2 and the suite
-was running 2.1. The criteria 2.2 adds that a machine can check are about focus
+**WCAG 2.2 AA, and a correction.** The phase asks for 2.2 and the suite was
+running 2.1. The criteria 2.2 adds that a machine can check are about focus
 being visible and unobscured and targets being large enough to hit — precisely
-what a dense administrative table gets wrong. It passed unchanged, which is the
-plain design earning something it was not aimed at.
+what a dense administrative table gets wrong. It passed unchanged, and this
+report said so.
+
+**That was true of what was tested and not of the product.** Every table in the
+end-to-end environment was empty, so `target-size` had no row actions to
+measure. The moment the settings seeder gave the Configuration screen four real
+rows, it failed in both locales: the *Edit* and *History* buttons are around
+twenty pixels tall, which is comfortable with a mouse and a genuine problem with
+a thumb or a tremor. Fixed in `DataTable` rather than at each call site — every
+screen writes its own buttons, and a rule repeated fourteen times is missing
+from at least one of them. The design is unchanged: still text, still blue,
+still no icons, simply large enough to hit.
+
+The lesson is not about accessibility. **An empty table passes almost
+everything.** Any check that only ever ran against a Platform with no data in it
+has been asking a much easier question than the one it appears to ask.
 
 **What is not done, and why it is not laziness.** The load profile exists as
 executable thresholds — ARCHITECTURE.md §24's four budgets, prose for twenty
