@@ -646,7 +646,17 @@
     "reach": "Reaches",
     "everybody": "Everybody",
     "targeted": "{roles} roles, {units} units",
-    "updated": "Changed"
+    "updated": "Changed",
+    "target": "Aim",
+    "targetTitle": "Who this reaches",
+    "targetRoles": "Roles",
+    "targetUnits": "Units",
+    "targetNoRoles": "No roles have been defined.",
+    "targetNoUnits": "No organizational units have been created.",
+    "targetNoneHint": "Nothing selected: this flag reaches everybody when it is on.",
+    "targetSomeHint": "Only the roles and units selected below.",
+    "targetUnitHint": "A unit reaches everybody in it and in every unit below it.",
+    "targetSaved": "{key} was aimed."
   },
   "operations": {
     "title": "Operations",

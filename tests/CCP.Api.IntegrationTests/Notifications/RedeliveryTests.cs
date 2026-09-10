@@ -141,7 +141,12 @@ public sealed class RedeliveryTests(PlatformApiFactory factory)
                 [NotificationChannel.InApp],
                 causedBy));
 
-        Assert.True(result.IsSuccess, $"The send failed: {result.Errors[0].Code}");
+        // The guarded form, which NotificationFlowTests in this same folder was
+        // already using. An interpolated message is evaluated before the
+        // assertion decides anything, so reading Errors[0] unguarded threw on
+        // every *successful* send -- four tests red, none of them about the
+        // behaviour they were written for.
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Errors[0].Code : null);
 
         return result.Value;
     }

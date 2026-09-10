@@ -646,7 +646,17 @@
     "reach": "يصل إلى",
     "everybody": "الجميع",
     "targeted": "{roles} أدوار، {units} وحدات",
-    "updated": "آخر تغيير"
+    "updated": "آخر تغيير",
+    "target": "الاستهداف",
+    "targetTitle": "من يصل إليه هذا",
+    "targetRoles": "الأدوار",
+    "targetUnits": "الوحدات",
+    "targetNoRoles": "لم تُعرَّف أي أدوار.",
+    "targetNoUnits": "لم تُنشَأ أي وحدات تنظيمية.",
+    "targetNoneHint": "لا شيء مُحدَّد: يصل هذا العَلَم إلى الجميع عند تشغيله.",
+    "targetSomeHint": "الأدوار والوحدات المُحدَّدة أدناه فقط.",
+    "targetUnitHint": "الوحدة تصل إلى كل من فيها وفي كل وحدة تحتها.",
+    "targetSaved": "تم توجيه {key}."
   },
   "operations": {
     "title": "التشغيل",

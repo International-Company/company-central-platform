@@ -7,6 +7,7 @@ import { DataTable, type Column } from '@/components/shared/data-table';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { FlagTargeting } from './flag-targeting';
 import { SettingHistory } from './setting-history';
 import type { FeatureFlagDto, SettingDto } from '@/types/platform';
 
@@ -30,6 +31,7 @@ export function ConfigurationScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [history, setHistory] = useState<string | null>(null);
+  const [targeting, setTargeting] = useState<FeatureFlagDto | null>(null);
 
   const [editing, setEditing] = useState<SettingDto | null>(null);
   const [value, setValue] = useState('');
@@ -321,22 +323,44 @@ export function ConfigurationScreen() {
               caption={t('flags')}
               labels={{ ...tableLabels, noResults: t('noFlags') }}
               rowActions={(flag) => (
-                <button
-                  type="button"
-                  className={
-                    flag.isEnabled
-                      ? 'text-sm font-medium text-danger hover:underline'
-                      : 'text-sm font-medium text-primary-700 hover:underline'
-                  }
-                  onClick={() => void toggleFlag(flag)}
-                >
-                  {flag.isEnabled ? t('turnOff') : t('turnOn')}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-primary-700 hover:underline"
+                    onClick={() => setTargeting(flag)}
+                  >
+                    {t('target')}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={
+                      flag.isEnabled
+                        ? 'text-sm font-medium text-danger hover:underline'
+                        : 'text-sm font-medium text-primary-700 hover:underline'
+                    }
+                    onClick={() => void toggleFlag(flag)}
+                  >
+                    {flag.isEnabled ? t('turnOff') : t('turnOn')}
+                  </button>
+                </>
               )}
             />
           </section>
         </>
       )}
+
+      {targeting ? (
+        <FlagTargeting
+          flag={targeting}
+          onSaved={() => {
+            setTargeting(null);
+            setNotice(t('targetSaved', { key: targeting.key }));
+            void load();
+          }}
+          onCancel={() => setTargeting(null)}
+        />
+      ) : null}
 
       <FormDialog
         open={editing !== null}
