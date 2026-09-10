@@ -30,6 +30,11 @@ public static class ConfigurationInfrastructureRegistration
         // the version stamp is what keeps it honest.
         services.AddSingleton<IConfigurationCache, ConfigurationCache>();
 
+        // Who is asking, in the terms a flag can be aimed at. Registered here
+        // rather than in the Application layer because answering it means asking
+        // Authorization and Organization, which only this layer may do.
+        services.AddScoped<IFeatureSubjectResolver, PlatformFeatureSubjectResolver>();
+
         services.AddScoped<IConfigurationReader, ConfigurationReader>();
 
         return services;

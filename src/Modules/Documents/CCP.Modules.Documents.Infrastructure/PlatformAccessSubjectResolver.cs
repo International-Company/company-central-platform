@@ -32,49 +32,21 @@ public sealed class PlatformAccessSubjectResolver(
 
         string? unitPath = await organization.GetUnitPathForUserAsync(userId, cancellationToken);
 
+        // Parsed by Organization's own helper rather than here. The format is
+        // Organization's, and a copy of it in this file is a copy that keeps
+        // compiling after Organization changes the separator -- visible only as
+        // unit rules quietly reaching nobody.
+        //
         // No employee record is normal, not exceptional: service accounts and
-        // contractors sign in and have no place in the organization. They get
-        // their roles and no unit, which means unit rules do not reach them —
-        // the safe reading, and the correct one.
-        if (string.IsNullOrEmpty(unitPath))
-        {
-            return new AccessSubject(userId, roleIds, null, []);
-        }
-
-        // The materialized path is built from unit ids, so the caller's whole
-        // ancestry is already in the string and costs nothing to read. Asking
-        // Organization to walk the tree would be a query per level, on every
-        // request, for something the path was designed to make free.
-        List<Guid> chain = ParseChain(unitPath);
+        // contractors sign in and have no place in the organization. The chain
+        // comes back empty, so unit rules do not reach them, which is the safe
+        // reading and the correct one.
+        IReadOnlyList<Guid> chain = UnitPath.ParseChain(unitPath);
 
         return new AccessSubject(
             userId,
             roleIds,
             chain.Count > 0 ? chain[^1] : null,
             chain);
-    }
-
-    /// <summary>
-    /// <c>/{id}/{id}/…</c> into ids, nearest last.
-    /// <para>
-    /// A segment that will not parse is skipped rather than thrown over. A
-    /// corrupted path should cost somebody a unit rule, not the ability to open
-    /// any document at all.
-    /// </para>
-    /// </summary>
-    private static List<Guid> ParseChain(string unitPath)
-    {
-        string[] segments = unitPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        List<Guid> chain = new(segments.Length);
-
-        foreach (string segment in segments)
-        {
-            if (Guid.TryParse(segment, out Guid id))
-            {
-                chain.Add(id);
-            }
-        }
-
-        return chain;
     }
 }

@@ -225,18 +225,27 @@ public static class ConfigurationEndpoints
             string key,
             HttpContext context,
             [FromServices] IConfigurationReader reader,
+            [FromServices] IFeatureSubjectResolver subjects,
             CancellationToken cancellationToken) =>
         {
             // What a screen asks before deciding whether to render something.
             // Needs no permission: it answers a question about the caller, and
             // gating it would mean granting that permission to everybody.
-            //
-            // Roles and units are not resolved here — an undeclared or
-            // untargeted flag answers without them, and a targeted one is
-            // answered by the Platform's own code where the caller is already
-            // known. Reported honestly rather than half-answered: see the
-            // recorded debt.
-            bool isOn = await reader.IsFeatureOnAsync(key, [], [], cancellationToken);
+            if (!CallerIdentity.TryGetUserId(context.User, out Guid userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            // The caller's roles and unit ancestry, resolved rather than
+            // assumed empty. This endpoint shipped passing two empty lists to an
+            // evaluator that reads them, so every *targeted* flag answered "off"
+            // to everybody who asked through the API — a rollout aimed at one
+            // department never arrived, nothing failed, and the screen asking
+            // had no way to tell that from a flag which was genuinely off.
+            FeatureSubject subject = await subjects.ResolveAsync(userId, cancellationToken);
+
+            bool isOn = await reader.IsFeatureOnAsync(
+                key, subject.RoleIds, subject.UnitChainIds, cancellationToken);
 
             return Results.Ok(new FeatureStateDto(key, isOn));
         })

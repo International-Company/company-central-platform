@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
@@ -7,6 +7,8 @@
     <ProjectReference Include="..\CCP.Modules.Configuration.Domain\CCP.Modules.Configuration.Domain.csproj" />
     <ProjectReference Include="..\CCP.Modules.Configuration.Application\CCP.Modules.Configuration.Application.csproj" />
     <ProjectReference Include="..\CCP.Modules.Configuration.Contracts\CCP.Modules.Configuration.Contracts.csproj" />
+    <ProjectReference Include="..\..\Authorization\CCP.Modules.Authorization.Contracts\CCP.Modules.Authorization.Contracts.csproj" />
+    <ProjectReference Include="..\..\Organization\CCP.Modules.Organization.Contracts\CCP.Modules.Organization.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
