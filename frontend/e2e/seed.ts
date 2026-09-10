@@ -21,7 +21,10 @@ import { request as playwrightRequest, type APIRequestContext } from '@playwrigh
  * Everything created is obviously fake and lives only in the test database.
  */
 
-/** Two of each, not one: one row proves a table renders, two prove it renders a list. */
+/**
+ * Two of each where it can, not one: one row proves a table renders, two prove
+ * it renders a list.
+ */
 export async function seed(apiBaseUrl: string, token: string): Promise<void> {
   const api = await playwrightRequest.newContext({
     baseURL: apiBaseUrl,
@@ -80,14 +83,16 @@ export async function seed(apiBaseUrl: string, token: string): Promise<void> {
       }
     }
 
-    for (const n of [1, 2]) {
-      await post(api, '/api/v1/users', {
-        username: `seeded${n}`,
-        email: `seeded${n}@example.invalid`,
-        displayName: `Seeded User ${n}`,
-        initialPassword: 'seeded-not-a-real-secret-2026',
-      });
-    }
+    // No user accounts. Creating one is a step-up endpoint -- it needs a second
+    // factor confirmed in the last few minutes -- and the seed holds a bearer
+    // token and nothing else. That is the Platform being right, for the second
+    // time in two days: the first attempt at this seed was refused because it
+    // ran before the mandatory password change.
+    //
+    // The Users screen therefore shows the one bootstrap account, which is
+    // enough for what this seed is for. A single row has row actions to
+    // measure, an empty table does not, and that gap is the whole reason any of
+    // this exists.
 
     for (const role of [
       { code: 'e2e-reader', nameAr: 'قارئ', nameEn: 'Reader' },
