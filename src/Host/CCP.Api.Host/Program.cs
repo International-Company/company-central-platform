@@ -9,6 +9,7 @@ using CCP.Kernel.Api.Security;
 using CCP.Kernel.Api.Versioning;
 using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Application.Auditing;
+using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Application.Events;
 using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Application.Observability;
@@ -24,9 +25,11 @@ using CCP.Modules.Identity.Infrastructure.Persistence;
 using CCP.Modules.Identity.Infrastructure.Security;
 using CCP.Modules.Audit.Infrastructure;
 using CCP.Modules.Workflow.Infrastructure;
+using CCP.Modules.Documents.Application;
 using CCP.Modules.Documents.Infrastructure;
 using CCP.Modules.Configuration.Infrastructure;
 using CCP.Modules.Configuration.Infrastructure.Persistence;
+using CCP.Modules.Integrations.Application;
 using CCP.Modules.Integrations.Infrastructure;
 using CCP.Modules.Integrations.Infrastructure.Persistence;
 using CCP.Modules.Documents.Infrastructure.Persistence;
@@ -115,6 +118,12 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 // starts. The Audit module replaces it; registration order makes that work,
 // since the last registration of a service type wins.
 builder.Services.AddScoped<IAuditTrail, NullAuditTrail>();
+
+// Settings a module may read without knowing the Configuration module exists.
+// The default answers every caller with the value it shipped with, so a host
+// without Configuration behaves exactly as the Platform did before settings
+// were changeable. Configuration replaces it; the last registration wins.
+builder.Services.AddSingleton<IPlatformSettings, DefaultPlatformSettings>();
 
 // Background jobs record what they did, so "did last night's purge run?" is a
 // page somebody opens rather than a query somebody writes during the incident.
@@ -547,6 +556,51 @@ catch (Exception exception)
     app.Logger.LogError(
         exception,
         "Authorization seeding failed. Permissions may be missing until this is resolved.");
+}
+
+// ---------------------------------------------------------------------------
+// The Platform's own settings
+// ---------------------------------------------------------------------------
+// A setting must be declared before it can be set, which is what gives it a
+// type and a place on the Configuration screen. Without this an administrator
+// wanting to change the document deletion grace period would have to declare it
+// through the API first, guessing the key the Platform reads -- a worse
+// experience than the deployment it replaces.
+//
+// The defaults are read from the options the Platform actually runs on, so the
+// number on the screen and the number in the code are the same by construction
+// rather than by two people remembering.
+//
+// Failure is logged, not fatal: every caller falls back to its compiled-in
+// value, which is exactly how the Platform behaved before settings were
+// changeable.
+try
+{
+    using IServiceScope settingScope = app.Services.CreateScope();
+
+    OutboxOptions outboxDefaults =
+        settingScope.ServiceProvider.GetRequiredService<IOptions<OutboxOptions>>().Value;
+
+    JobJournalOptions journalDefaults =
+        settingScope.ServiceProvider.GetRequiredService<IOptions<JobJournalOptions>>().Value;
+
+    await settingScope.ServiceProvider
+        .GetRequiredService<PlatformSettingSeeder>()
+        .SeedAsync(new PlatformSettingDefaults(
+            OutboxProcessedRetention: outboxDefaults.ProcessedRetention,
+            JobHistoryRetention: journalDefaults.Retention,
+            IntegrationCallLogRetention: settingScope.ServiceProvider
+                .GetRequiredService<IntegrationOptions>().CallLogRetention,
+            DocumentDeletionGrace: settingScope.ServiceProvider
+                .GetRequiredService<DocumentOptions>().DeletionGracePeriod));
+}
+catch (Exception exception)
+{
+    app.Logger.LogError(
+        exception,
+        "The Platform settings could not be declared. Every value falls back to "
+        + "the one it shipped with, and none of them can be changed without a "
+        + "deployment until this is resolved.");
 }
 
 await app.RunAsync();

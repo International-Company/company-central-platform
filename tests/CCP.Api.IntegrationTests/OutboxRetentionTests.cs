@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Infrastructure.Outbox;
 using CCP.Kernel.Infrastructure.Persistence;
@@ -170,6 +171,14 @@ public sealed class OutboxRetentionTests(PlatformApiFactory factory)
                 RetentionBatchSize = batchSize,
                 RetentionMaxRowsPerPass = 50_000
             }),
+
+            // The real settings reader, resolved from the host. The Platform
+            // declares this retention on startup with the value it ships with,
+            // which is the same seven days passed above -- so the sweep behaves
+            // identically whether the setting is read or the fallback is used.
+            // That equality is the seeder's contract, and this is one place it
+            // would show if it ever stopped holding.
+            factory.Services.GetRequiredService<IPlatformSettings>(),
             new FixedClock(Now),
             factory.Services.GetRequiredService<JobRunner>());
 

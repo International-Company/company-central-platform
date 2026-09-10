@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Primitives;
 using CCP.Modules.Integrations.Application;
@@ -27,6 +28,7 @@ namespace CCP.Modules.Integrations.Infrastructure;
 public sealed class RetentionSweep(
     IServiceScopeFactory scopeFactory,
     IntegrationOptions options,
+    IPlatformSettings settings,
     IClock clock,
     JobRunner jobs) : BackgroundService
 {
@@ -64,12 +66,21 @@ public sealed class RetentionSweep(
 
         DateTimeOffset now = clock.UtcNow;
 
+        // Read on every pass, so changing how long the call log is kept takes
+        // effect on the next sweep rather than on the next deployment. The
+        // configured value is the fallback: a retention of zero would empty the
+        // log, so an unreadable setting must never produce one.
+        TimeSpan callLogRetention = await settings.GetDurationAsync(
+            PlatformSettingKeys.IntegrationCallLogRetention,
+            options.CallLogRetention,
+            cancellationToken);
+
         // Twice the tolerance window, so a receipt is never dropped while the
         // request it remembers could still arrive again.
         DateTimeOffset receiptsBefore = now - (options.WebhookTolerance * 2);
 
         (int calls, int receipts) = await repository.PurgeExpiredAsync(
-            now - options.CallLogRetention,
+            now - callLogRetention,
             receiptsBefore,
             options.RetentionBatchSize,
             cancellationToken);

@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
@@ -35,6 +36,7 @@ namespace CCP.Kernel.Infrastructure.Outbox;
 public sealed class OutboxRetentionSweep(
     IServiceScopeFactory scopeFactory,
     IOptions<OutboxOptions> options,
+    IPlatformSettings settings,
     IClock clock,
     JobRunner jobs) : BackgroundService
 {
@@ -66,7 +68,16 @@ public sealed class OutboxRetentionSweep(
 
         var context = scope.ServiceProvider.GetRequiredService<KernelDbContext>();
 
-        DateTimeOffset cutoff = clock.UtcNow - _options.ProcessedRetention;
+        // Read on every pass rather than captured at startup, which is the
+        // whole point: changing it takes effect on the next sweep instead of on
+        // the next deployment. The configured value is the fallback, so an
+        // unreadable setting leaves the sweep behaving exactly as it shipped.
+        TimeSpan retention = await settings.GetDurationAsync(
+            PlatformSettingKeys.OutboxProcessedRetention,
+            _options.ProcessedRetention,
+            cancellationToken);
+
+        DateTimeOffset cutoff = clock.UtcNow - retention;
 
         int removed = 0;
 

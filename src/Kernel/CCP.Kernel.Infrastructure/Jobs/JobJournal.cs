@@ -1,3 +1,4 @@
+using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Application.Jobs;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
@@ -21,6 +22,7 @@ namespace CCP.Kernel.Infrastructure.Jobs;
 public sealed class JobJournal(
     IServiceScopeFactory scopeFactory,
     IOptions<JobJournalOptions> options,
+    IPlatformSettings settings,
     IClock clock) : IJobJournal, IDisposable
 {
     /// <summary>
@@ -101,7 +103,16 @@ public sealed class JobJournal(
 
             _lastPruned = now;
 
-            DateTimeOffset cutoff = now - _options.Retention;
+            // Read here rather than at startup, so changing how long the job
+            // history is kept takes effect on the next prune. The configured
+            // value is the fallback: a retention of zero would delete the whole
+            // history, so an unreadable setting must never produce one.
+            TimeSpan retention = await settings.GetDurationAsync(
+                PlatformSettingKeys.JobHistoryRetention,
+                _options.Retention,
+                cancellationToken);
+
+            DateTimeOffset cutoff = now - retention;
 
             await context.JobRuns
                 .Where(record => record.StartedAt < cutoff)

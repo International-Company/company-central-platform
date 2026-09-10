@@ -1,4 +1,5 @@
 using CCP.Kernel.Application.Abstractions;
+using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Paging;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
@@ -278,6 +279,7 @@ public sealed class UpdateDocumentHandler(
 public sealed class DeleteDocumentHandler(
     DocumentAccessGuard guard,
     DocumentOptions options,
+    IPlatformSettings settings,
     ICurrentUser currentUser,
     IDocumentUnitOfWork unitOfWork,
     IClock clock)
@@ -294,8 +296,17 @@ public sealed class DeleteDocumentHandler(
             return Result.Failure(authorized.Error);
         }
 
+        // Read here, at the moment of deletion, and stamped onto the document as
+        // an absolute instant. Shortening the grace period must not retroactively
+        // destroy something already inside the one it was promised -- which is
+        // exactly what reading it in the purge sweep instead would do.
+        TimeSpan grace = await settings.GetDurationAsync(
+            PlatformSettingKeys.DocumentDeletionGrace,
+            options.DeletionGracePeriod,
+            cancellationToken);
+
         Result marked = authorized.Value.Document.MarkForDeletion(
-            currentUser.UserId ?? Guid.Empty, options.DeletionGracePeriod, clock.UtcNow);
+            currentUser.UserId ?? Guid.Empty, grace, clock.UtcNow);
 
         if (marked.IsFailure)
         {
