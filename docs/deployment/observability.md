@@ -142,6 +142,14 @@ Readiness checks dependencies:
 | Database | **Unhealthy** — the Platform cannot serve anything |
 | Document storage | **Degraded** — documents stop; identity, authorization and workflow do not |
 
+For three phases that table was aspirational. The check caught its own exception
+and returned `Unhealthy`, which silently overrides the `failureStatus: Degraded`
+the registration asks for — that setting applies only when a check *throws*. So
+readiness answered 503 to an unreachable bucket and would have emptied every
+instance out of the load balancer over object storage. Found by injecting the
+failure rather than by reading either half, both of which are correct on their
+own. The check now returns `context.Registration.FailureStatus`.
+
 That distinction is deliberate. Taking the whole Platform out of rotation because
 a bucket is unreachable would be the same mistake that once stopped it starting
 over a folder it could not create.
