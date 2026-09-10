@@ -396,13 +396,20 @@ app.UseMiddleware<AuthenticationTargetMiddleware>();
 app.UseRateLimiter();
 app.UseCors();
 app.UseAuthentication();
-app.UseAuthorization();
-
-// After authorization, so the claim has been read and the endpoint is known;
-// before any handler, so a caller who owes a password change reaches none of
-// them. The portal enforced this by redirecting, which covered everybody with a
-// browser and nobody calling the API directly.
+// Between authentication and authorization, and the order is the point.
+//
+// The obligation is a property of the credential, not of the resource. Placed
+// after authorization, the permission check refuses first -- so somebody holding
+// a temporary password and no roles is told they lack a permission, which is
+// true, useless, and hides the one thing they can actually do about it. Placed
+// here, they are told to change their password, which is both the actionable
+// answer and the more important one.
+//
+// Routing has already run, so the endpoint and its metadata are known; only the
+// permission decision has not been made yet, and it does not need to be.
 app.UseMiddleware<PasswordChangePendingMiddleware>();
+
+app.UseAuthorization();
 
 // After routing has chosen an endpoint, because the deprecation lives on the
 // endpoint's metadata, and before anything writes a body. Nothing is deprecated

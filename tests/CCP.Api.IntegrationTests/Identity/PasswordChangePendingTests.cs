@@ -49,6 +49,12 @@ public sealed class PasswordChangePendingTests(PlatformApiFactory factory)
         // the person to the change-password flow rather than to re-authenticate
         // or to ask somebody for a permission — which are the two things the
         // other 403s in the Platform mean.
+        //
+        // This account holds no roles, so the permission check would also refuse
+        // it. That is exactly why the middleware runs *before* authorization:
+        // "you lack a permission" is true, useless, and hides the one thing the
+        // person can actually do about their situation. The first version of
+        // this test failed with PLATFORM.FORBIDDEN and was right to.
         Assert.Equal(
             "IDENTITY.PASSWORD_CHANGE_REQUIRED",
             body.GetProperty("code").GetString());
