@@ -62,6 +62,9 @@ public static class PasswordEndpoints
             .WithMetadata(new AuthenticatedUserOnlyAttribute(
                 "Changing one's own password requires proving the current one, not a permission."))
             .RequireRateLimiting(RateLimitPolicies.Authentication)
+            .WithMetadata(new AllowWhilePasswordChangePendingAttribute(
+                "It is the obligation itself. Refusing this one would leave somebody "
+                + "holding a temporary password with no way to stop holding it."))
             .WithName("ChangePassword")
             .WithSummary("Changes the caller's password and ends their other sessions.");
 

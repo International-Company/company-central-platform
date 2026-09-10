@@ -125,6 +125,10 @@ public static class AuthenticationEndpoints
             .WithMetadata(new AuthenticatedUserOnlyAttribute(
                 "Any signed-in user may end their own session; a permission granted to everyone "
                 + "would make the authorization model less readable, not more secure."))
+            .WithMetadata(new AllowWhilePasswordChangePendingAttribute(
+                "Somebody who does not want to change their password now must still "
+                + "be able to leave. A session nobody can end is worse than one that "
+                + "can do nothing."))
             .WithName("SignOut")
             .WithSummary("Ends the current session, revoking its tokens server-side.");
     }

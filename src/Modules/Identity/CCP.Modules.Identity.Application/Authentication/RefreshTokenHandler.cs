@@ -111,7 +111,8 @@ public sealed class RefreshTokenHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        string accessToken = tokenService.CreateAccessToken(user.Id, user.Username, session.Id, now);
+        string accessToken = tokenService.CreateAccessToken(
+            user.Id, user.Username, session.Id, now, user.MustChangePassword);
 
         return Result.Success(new AuthenticationResultDto(
             AccessToken: accessToken,

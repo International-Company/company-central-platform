@@ -398,6 +398,12 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// After authorization, so the claim has been read and the endpoint is known;
+// before any handler, so a caller who owes a password change reaches none of
+// them. The portal enforced this by redirecting, which covered everybody with a
+// browser and nobody calling the API directly.
+app.UseMiddleware<PasswordChangePendingMiddleware>();
+
 // After routing has chosen an endpoint, because the deprecation lives on the
 // endpoint's metadata, and before anything writes a body. Nothing is deprecated
 // today; the machinery exists so that the first one is a two-line change rather

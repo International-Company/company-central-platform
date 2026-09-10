@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CCP.Kernel.Application.Security;
 using System.Security.Cryptography;
 using CCP.Modules.Identity.Application;
 using CCP.Modules.Identity.Application.Abstractions;
@@ -46,7 +47,12 @@ public sealed class JwtTokenService : ITokenService, IPlatformTokenMinter, IDisp
 
     public TimeSpan AccessTokenLifetime => _options.AccessTokenLifetime;
 
-    public string CreateAccessToken(Guid userId, string username, Guid sessionId, DateTimeOffset now)
+    public string CreateAccessToken(
+        Guid userId,
+        string username,
+        Guid sessionId,
+        DateTimeOffset now,
+        bool mustChangePassword = false)
     {
         var descriptor = new SecurityTokenDescriptor
         {
@@ -67,6 +73,14 @@ public sealed class JwtTokenService : ITokenService, IPlatformTokenMinter, IDisp
                 ["sid"] = sessionId.ToString()
             }
         };
+
+        if (mustChangePassword)
+        {
+            // Present only when true. An absent claim means no obligation, which
+            // is what every token minted before this existed says -- so shipping
+            // the check does not lock out everybody holding an older token.
+            descriptor.Claims[PlatformClaims.MustChangePassword] = "true";
+        }
 
         return _handler.CreateToken(descriptor);
     }

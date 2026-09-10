@@ -52,6 +52,10 @@ public static class UserEndpoints
             .RequireAuthorization()
             .WithMetadata(new AuthenticatedUserOnlyAttribute("Reading one's own profile needs no permission."))
             .Produces<UserDto>(StatusCodes.Status200OK)
+            .WithMetadata(new AllowWhilePasswordChangePendingAttribute(
+                "It is how a client discovers the obligation exists. Refusing it "
+                + "would leave the portal unable to explain why everything else is "
+                + "being refused."))
             .WithName("GetCurrentUser")
             .WithSummary("Returns the signed-in user's profile.");
 

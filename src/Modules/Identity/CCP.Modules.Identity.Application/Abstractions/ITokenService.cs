@@ -13,7 +13,17 @@ public interface ITokenService
     /// they travel (ADR-007 §14.4).
     /// </para>
     /// </summary>
-    string CreateAccessToken(Guid userId, string username, Guid sessionId, DateTimeOffset now);
+    /// <param name="mustChangePassword">
+    /// Whether this person owes a password change. It travels in the token so
+    /// the check costs no query on every request -- and so the flag is as old as
+    /// the token, which is minutes, and refreshes from current state.
+    /// </param>
+    string CreateAccessToken(
+        Guid userId,
+        string username,
+        Guid sessionId,
+        DateTimeOffset now,
+        bool mustChangePassword = false);
 
     /// <summary>Lifetime of an issued access token, for the response body.</summary>
     TimeSpan AccessTokenLifetime { get; }
