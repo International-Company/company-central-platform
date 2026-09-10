@@ -126,6 +126,15 @@ public sealed class NotificationRepository(NotificationDbContext dbContext) : IN
             .Take(limit)
             .ToListAsync(cancellationToken);
 
+    public Task<bool> HasProcessedAsync(
+        Guid eventId, string reason, CancellationToken cancellationToken = default)
+        => dbContext.ProcessedEvents
+            .AsNoTracking()
+            .AnyAsync(e => e.EventId == eventId && e.Reason == reason, cancellationToken);
+
+    public void MarkProcessed(ProcessedEvent processed) =>
+        dbContext.ProcessedEvents.Add(processed);
+
     public void AddNotification(Notification notification)
         => dbContext.Notifications.Add(notification);
 

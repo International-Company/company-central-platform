@@ -317,18 +317,6 @@ jobs:
           cat api.log >&2
           exit 1
 
-      # An empty table passes almost everything. The accessibility sweep went
-      # green on WCAG 2.2 against a Platform with no data, and failed the moment
-      # one screen had four real rows -- on target-size, which cannot fire when
-      # there are no row actions to measure. Every other assertion in the suite
-      # was asking the same easier question.
-      #
-      # Before the browsers open, and with the bootstrap password: Playwright's
-      # global setup performs the mandatory first password change, so this is
-      # the only window in which that password still works.
-      - name: Seed data for the sweeps
-        run: bash scripts/seed-e2e-data.sh
-
       - name: Install frontend
         working-directory: frontend
         run: npm ci

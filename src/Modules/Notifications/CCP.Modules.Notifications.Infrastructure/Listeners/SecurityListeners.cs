@@ -54,7 +54,8 @@ public sealed class PasswordResetRequestedListener(
                     ["token"] = integrationEvent.Token,
                     ["validForMinutes"] = minutes.ToString(CultureInfo.InvariantCulture)
                 },
-                [NotificationChannel.Email]),
+                [NotificationChannel.Email],
+                CausedBy: integrationEvent.EventId),
             cancellationToken);
 
         if (result.IsFailure)
@@ -99,7 +100,9 @@ public sealed class PasswordChangedListener(
                 {
                     ["occurredAt"] = integrationEvent.At.ToString(
                         "d MMMM yyyy HH:mm", CultureInfo.InvariantCulture)
-                }),
+                },
+                    Channels: null,
+                    CausedBy: integrationEvent.EventId),
             cancellationToken);
 
         if (result.IsFailure)

@@ -1,5 +1,6 @@
-import { chromium, type FullConfig, type Page } from '@playwright/test';
+import { chromium, request, type FullConfig, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+import { seed } from './seed';
 
 /**
  * Signs in once, for every test that follows.
@@ -80,8 +81,48 @@ export default async function globalSetup(config: FullConfig) {
     }
 
     await page.context().storageState({ path: AdminStatePath });
+
+    // Seeded here, and after the change, because a temporary password now buys
+    // exactly one thing: the chance to replace it. The first attempt seeded from
+    // a CI step before the browsers opened and the Platform refused it --
+    // correctly, which is the gate working. The alternative was to weaken the
+    // sign-in path above so the seed could go first, and that path is the real
+    // first-administrator coverage.
+    await seedThePlatform(username);
   } finally {
     await browser.close();
+  }
+}
+
+/**
+ * Signs in against the API and fills a few tables.
+ *
+ * A separate sign-in from the browser one above: the seed talks to the Platform
+ * directly rather than through the portal, so it needs a bearer token rather
+ * than a cookie. One extra sign-in is well inside the budget, and it keeps the
+ * seeding independent of whatever the portal happens to render.
+ */
+async function seedThePlatform(username: string): Promise<void> {
+  const apiBaseUrl = process.env.PLATFORM_API_URL ?? 'http://localhost:5080';
+
+  const api = await request.newContext({ baseURL: apiBaseUrl });
+
+  try {
+    const login = await api.post('/api/v1/auth/login', {
+      data: { username, password: AdminPassword },
+    });
+
+    if (!login.ok()) {
+      throw new Error(
+        `The seed could not sign in: ${login.status()} ${(await login.text()).slice(0, 300)}`,
+      );
+    }
+
+    const { accessToken } = (await login.json()) as { accessToken: string };
+
+    await seed(apiBaseUrl, accessToken);
+  } finally {
+    await api.dispose();
   }
 }
 

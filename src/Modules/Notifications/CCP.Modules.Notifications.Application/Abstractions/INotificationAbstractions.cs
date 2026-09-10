@@ -148,6 +148,26 @@ public interface INotificationRepository
 
     void AddNotification(Notification notification);
 
+    // --- Idempotency ---------------------------------------------------------
+
+    /// <summary>
+    /// Whether this event has already produced this notification.
+    /// <para>
+    /// Outbox delivery is at-least-once, so a listener can be handed the same
+    /// event twice. Asked before anything is created, and answered from a row
+    /// written in the same transaction as the notification it describes.
+    /// </para>
+    /// </summary>
+    Task<bool> HasProcessedAsync(
+        Guid eventId, string reason, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Notes that it has. Committed with the notification, never separately —
+    /// a marker written in its own transaction leaves a window in which the
+    /// notification exists and the marker does not.
+    /// </summary>
+    void MarkProcessed(ProcessedEvent processed);
+
     // --- Preferences --------------------------------------------------------
 
     Task<IReadOnlyList<NotificationPreference>> GetPreferencesAsync(

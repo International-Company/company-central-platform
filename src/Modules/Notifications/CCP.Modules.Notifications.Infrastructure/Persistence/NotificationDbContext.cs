@@ -28,6 +28,8 @@ public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext
 
     public DbSet<NotificationPreference> Preferences => Set<NotificationPreference>();
 
+    public DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(SchemaName);
@@ -36,6 +38,7 @@ public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext
         ConfigureNotifications(modelBuilder);
         ConfigureDeliveries(modelBuilder);
         ConfigurePreferences(modelBuilder);
+        ConfigureProcessedEvents(modelBuilder);
 
         modelBuilder.ConfigureOutbox();
 
@@ -135,5 +138,30 @@ public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext
                 .IsUnique();
 
             entity.Ignore(e => e.DomainEvents);
+        });
+
+    /// <summary>
+    /// The note that an event has already produced its notification.
+    /// <para>
+    /// Outbox delivery is at-least-once by design, so a listener can be handed
+    /// the same event twice. This is how the second time is recognised.
+    /// </para>
+    /// </summary>
+    private static void ConfigureProcessedEvents(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<ProcessedEvent>(entity =>
+        {
+            entity.ToTable("processed_events");
+
+            // The event and the reason together. Two listeners may legitimately
+            // react to one event, and a key on the event alone would let
+            // whichever ran first silence the other for ever.
+            entity.HasKey(e => new { e.EventId, e.Reason });
+
+            entity.Property(e => e.Reason).HasMaxLength(100).IsRequired();
+
+            // Supports the retention sweep, which is the only query that reads
+            // across every row rather than looking one up.
+            entity.HasIndex(e => e.ProcessedAt)
+                  .HasDatabaseName("ix_processed_events_processed_at");
         });
 }

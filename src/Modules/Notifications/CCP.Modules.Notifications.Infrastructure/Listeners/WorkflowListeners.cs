@@ -49,7 +49,9 @@ public sealed class TaskAssignedListener(
                     ["step"] = integrationEvent.StepKey,
                     ["dueAt"] = integrationEvent.DueAt?.ToString("d MMMM yyyy", CultureInfo.InvariantCulture)
                                 ?? string.Empty
-                }),
+                },
+                    Channels: null,
+                    CausedBy: integrationEvent.EventId),
             cancellationToken);
 
         if (result.IsFailure)
@@ -96,7 +98,9 @@ public sealed class TaskEscalatedListener(
                 {
                     ["step"] = integrationEvent.StepKey,
                     ["dueAt"] = integrationEvent.DueAt.ToString("d MMMM yyyy", CultureInfo.InvariantCulture)
-                }),
+                },
+                    Channels: null,
+                    CausedBy: integrationEvent.EventId),
             cancellationToken);
 
         if (result.IsFailure)
@@ -142,7 +146,9 @@ public sealed class InstanceCompletedListener(
                     ["resourceType"] = integrationEvent.ResourceType,
                     ["resourceId"] = integrationEvent.ResourceId,
                     ["outcome"] = integrationEvent.Outcome
-                }),
+                },
+                    Channels: null,
+                    CausedBy: integrationEvent.EventId),
             cancellationToken);
 
         if (result.IsFailure)

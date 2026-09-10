@@ -9,12 +9,26 @@ using CCP.Modules.Notifications.Domain.Templates;
 namespace CCP.Modules.Notifications.Application.Sending;
 
 /// <summary>What one caller wants said to one person.</summary>
+/// <param name="CausedBy">
+/// The integration event that prompted this, when there was one.
+/// <para>
+/// Outbox delivery is at-least-once by design -- a crash between dispatching a
+/// message and marking it processed causes a redelivery, which is the right
+/// trade because the alternative loses events. Supplying the event id here is
+/// what stops the second delivery producing a second copy in somebody's inbox.
+/// </para>
+/// <para>
+/// Null for a send that no event caused, which is every send made directly by a
+/// handler. Those are not redelivered and have nothing to deduplicate against.
+/// </para>
+/// </param>
 public sealed record SendRequest(
     Guid RecipientUserId,
     string TemplateCode,
     string Category,
     IReadOnlyDictionary<string, string> Variables,
-    IReadOnlyList<NotificationChannel>? Channels = null);
+    IReadOnlyList<NotificationChannel>? Channels = null,
+    Guid? CausedBy = null);
 
 /// <summary>
 /// Turning "tell this person that" into notifications.
@@ -56,6 +70,20 @@ public sealed class NotificationSender(
         ArgumentNullException.ThrowIfNull(request);
 
         DateTimeOffset now = clock.UtcNow;
+
+        // Asked first, and cheaply. A redelivered event has already produced
+        // everything it was going to; going further would re-read the template,
+        // re-resolve preferences and write a second copy of a message the
+        // person has already read.
+        //
+        // Success rather than a failure: the caller asked for somebody to be
+        // told, and somebody has been told. Reporting an error would make every
+        // listener handle a case that is not a problem.
+        if (request.CausedBy is { } eventId
+            && await repository.HasProcessedAsync(eventId, request.TemplateCode, cancellationToken))
+        {
+            return Result.Success<IReadOnlyList<Guid>>([]);
+        }
 
         string locale = await recipients.GetLocaleAsync(request.RecipientUserId, cancellationToken);
 
@@ -125,6 +153,17 @@ public sealed class NotificationSender(
 
             repository.AddNotification(notification.Value);
             created.Add(notification.Value.Id);
+        }
+
+        if (request.CausedBy is { } processedEventId)
+        {
+            // In this SaveChanges, not a separate one. A marker committed apart
+            // from the notification leaves a window in which the notification
+            // exists and the marker does not -- so a crash there still
+            // duplicates, and the whole mechanism would be reassurance rather
+            // than a guarantee.
+            repository.MarkProcessed(
+                ProcessedEvent.Record(processedEventId, request.TemplateCode, now));
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
