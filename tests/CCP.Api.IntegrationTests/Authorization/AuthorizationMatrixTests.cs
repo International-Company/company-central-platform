@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,20 +61,16 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
 
                 using var request = new HttpRequestMessage(
                     new HttpMethod(method),
-                    new Uri(Fill(endpoint.RoutePattern.RawText!), UriKind.Relative));
-
-                if (method is "POST" or "PUT" or "PATCH")
+                    new Uri(Fill(endpoint.RoutePattern.RawText!), UriKind.Relative))
                 {
-                    request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
-                }
+                    Content = BodyFor(endpoint, method)
+                };
 
                 using HttpResponseMessage response = await client.SendAsync(request);
 
                 if (response.StatusCode != HttpStatusCode.Unauthorized)
                 {
-                    failures.Add(
-                        FormattableString.Invariant(
-                            $"{method} {endpoint.RoutePattern.RawText} answered {(int)response.StatusCode}"));
+                    failures.Add(await DescribeAsync(endpoint, method, response));
                 }
             }
         }
@@ -122,20 +119,16 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
 
             using var request = new HttpRequestMessage(
                 new HttpMethod(method),
-                new Uri(Fill(endpoint.RoutePattern.RawText!), UriKind.Relative));
-
-            if (method is "POST" or "PUT" or "PATCH")
+                new Uri(Fill(endpoint.RoutePattern.RawText!), UriKind.Relative))
             {
-                request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
-            }
+                Content = BodyFor(endpoint, method)
+            };
 
             using HttpResponseMessage response = await client.SendAsync(request);
 
             if (response.StatusCode != HttpStatusCode.Unauthorized)
             {
-                failures.Add(
-                    FormattableString.Invariant(
-                        $"{method} {endpoint.RoutePattern.RawText} answered {(int)response.StatusCode}"));
+                failures.Add(await DescribeAsync(endpoint, method, response));
             }
         }
 
@@ -166,7 +159,77 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
             // Health probes are not part of the API surface and answer before
             // authentication by design.
             .Where(endpoint => !endpoint.RoutePattern.RawText!.StartsWith("/health", StringComparison.Ordinal))
+
+            // The OpenAPI document is mapped by the framework and only in
+            // Development, which the test host is and production is not. It is
+            // excluded because it is not part of the Platform's surface, not
+            // because it is uninteresting -- if it were ever mapped outside
+            // Development it would publish the contract to anybody, and the
+            // guard against that is the `if (app.Environment.IsDevelopment())`
+            // around it rather than anything here.
+            .Where(endpoint => !endpoint.RoutePattern.RawText!.StartsWith("/openapi", StringComparison.Ordinal))
             .OrderBy(endpoint => endpoint.RoutePattern.RawText, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// A body of the kind the endpoint says it accepts.
+    /// <para>
+    /// <b>This started as a way to stop a false failure and turned into the
+    /// experiment that settles a real question.</b> The upload endpoints
+    /// answered 415 to a JSON body, and where that 415 is produced decides
+    /// whether the Platform has a hole: parameter binding and the handler run
+    /// <i>after</i> the authorization middleware, so a 415 from there would mean
+    /// authorization had already let an anonymous caller through. Sending a body
+    /// the endpoint accepts removes that explanation — if the answer becomes 401
+    /// the refusal was always ordered correctly, and if it stays 415 the
+    /// authorization middleware is not protecting these endpoints at all.
+    /// </para>
+    /// </summary>
+    private static HttpContent? BodyFor(RouteEndpoint endpoint, string method)
+    {
+        if (method is not ("POST" or "PUT" or "PATCH"))
+        {
+            return null;
+        }
+
+        IReadOnlyList<string> accepted =
+            endpoint.Metadata.GetMetadata<IAcceptsMetadata>()?.ContentTypes ?? [];
+
+        if (accepted.Any(type => type.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)))
+        {
+            return new MultipartFormDataContent();
+        }
+
+        if (accepted.Any(type =>
+                type.Contains("x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)))
+        {
+            return new FormUrlEncodedContent(Array.Empty<KeyValuePair<string, string>>());
+        }
+
+        return new StringContent("{}", Encoding.UTF8, "application/json");
+    }
+
+    /// <summary>
+    /// A failure line carrying the response body.
+    /// <para>
+    /// The Platform answers refusals as RFC 9457 problem details with a machine
+    /// code, so the body says which check refused. A bare status number would
+    /// leave the next person guessing exactly the way this test's first run left
+    /// its author guessing.
+    /// </para>
+    /// </summary>
+    private static async Task<string> DescribeAsync(
+        RouteEndpoint endpoint, string method, HttpResponseMessage response)
+    {
+        string body = await response.Content.ReadAsStringAsync();
+
+        if (body.Length > 300)
+        {
+            body = body[..300];
+        }
+
+        return FormattableString.Invariant(
+            $"{method} {endpoint.RoutePattern.RawText} answered {(int)response.StatusCode}: {body}");
     }
 
     private static IEnumerable<string> MethodsOf(RouteEndpoint endpoint)

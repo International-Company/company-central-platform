@@ -164,7 +164,15 @@ public sealed class PermissionResolutionTests(PlatformApiFactory factory)
             .UseNpgsql(factory.TestConnectionString)
             .Options);
 
-    private static string ARoleCode() => $"r{Guid.CreateVersion7():N}"[..16];
+    /// <summary>
+    /// A unique role code.
+    /// <para>
+    /// Version 4, not 7. The leading hex of a UUIDv7 is a millisecond timestamp,
+    /// so a truncated one is mostly clock and collides between tests running in
+    /// the same instant.
+    /// </para>
+    /// </summary>
+    private static string ARoleCode() => $"r{Guid.NewGuid():N}"[..16];
 
     private async Task<string> AnyPermissionAsync()
     {

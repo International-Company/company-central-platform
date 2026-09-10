@@ -252,7 +252,11 @@ public sealed class HierarchyPersistenceTests(PlatformApiFactory factory)
     {
         await using OrganizationDbContext context = Organization();
 
-        string code = $"C{Guid.CreateVersion7():N}"[..12].ToUpperInvariant();
+        // Version 4, not 7. The first twelve hex characters of a UUIDv7 are a
+        // millisecond timestamp, so truncating one produces codes that collide
+        // for everything created in the same few milliseconds -- which is
+        // precisely what a test method does. That is how this first failed.
+        string code = $"C{Guid.NewGuid():N}"[..12].ToUpperInvariant();
 
         Company company = Company.Create(
             code, Named(code), "ar", DateTimeOffset.UtcNow).Value;
