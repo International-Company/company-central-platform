@@ -1460,6 +1460,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/tasks/{id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Moves a pending task to somebody else, over the assignee's head.
+         * @description **Requires:** `platform.workflow.manage`
+         */
+        post: operations["ReassignTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notifications": {
         parameters: {
             query?: never;
@@ -2857,6 +2877,11 @@ export interface components {
             /** Format: int32 */
             level: null | number | string;
             isActive: boolean;
+        };
+        ReassignTaskRequest: {
+            /** Format: uuid */
+            assigneeUserId: string;
+            reason: string;
         };
         RecoveryCodesDto: {
             codes: string[];
@@ -5131,6 +5156,30 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WorkflowInstanceDto"];
                 };
+            };
+        };
+    };
+    ReassignTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassignTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

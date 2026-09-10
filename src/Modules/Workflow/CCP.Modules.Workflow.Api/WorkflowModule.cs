@@ -33,6 +33,7 @@ public sealed class WorkflowModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<StartInstanceHandler>();
         services.AddScoped<ActOnTaskHandler>();
         services.AddScoped<CancelInstanceHandler>();
+        services.AddScoped<ReassignTaskHandler>();
 
         services.AddScoped<GetMyTasksHandler>();
         services.AddScoped<GetInstanceHandler>();

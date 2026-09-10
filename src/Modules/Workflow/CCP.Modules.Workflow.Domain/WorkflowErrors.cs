@@ -147,6 +147,11 @@ public static class WorkflowErrors
     public static readonly Error TaskNotFound = Error.NotFound(
         "WORKFLOW.TASK_NOT_FOUND", "The task does not exist.");
 
+    public static readonly Error ReasonRequired = Error.Validation(
+        "WORKFLOW.REASON_REQUIRED",
+        "Say why. Six months later this is the only part of the record that explains itself.",
+        "reason");
+
     public static readonly Error TaskNotPending = Error.Rule(
         "WORKFLOW.TASK_NOT_PENDING", "This task has already been settled.");
 
@@ -157,6 +162,11 @@ public static class WorkflowErrors
         "WORKFLOW.INVALID_DELEGATE",
         "A task must be delegated to somebody else.",
         "delegateToUserId");
+
+    public static readonly Error InvalidReassignment = Error.Validation(
+        "WORKFLOW.INVALID_REASSIGNMENT",
+        "Reassign the task to somebody other than the person who already holds it.",
+        "assigneeUserId");
 
     public static readonly Error TaskAlreadyEscalated = Error.Rule(
         "WORKFLOW.TASK_ALREADY_ESCALATED", "This task has already been escalated.");

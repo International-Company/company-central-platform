@@ -168,6 +168,50 @@ public sealed class WorkflowTask : AggregateRoot, IAuditableEntity
     }
 
     /// <summary>
+    /// Moves the task to somebody else over the assignee's head.
+    /// <para>
+    /// <b>Deliberately not delegation, and the difference is who acts.</b>
+    /// Delegation requires the assignee: they decide to hand it on, and the
+    /// record says they did. That is the right rule and it has one hole — the
+    /// assignee who has left the company, or is in hospital, or whose account
+    /// was disabled. Their task sits pending for ever, escalation deliberately
+    /// does not reassign, and the approval behind it cannot finish. Until this
+    /// existed there was no way out of that at all.
+    /// </para>
+    /// <para>
+    /// <b>It does not set <c>DelegatedFromUserId</c>.</b> That field means "this
+    /// person chose to pass it on", and writing it here would put words in the
+    /// mouth of somebody who may have had no idea. The audit trail records the
+    /// administrator who did this instead, which is the true account of what
+    /// happened.
+    /// </para>
+    /// <para>
+    /// The step does not move and the instance does not advance: like
+    /// delegation, this changes who is being waited for and not what is being
+    /// waited for.
+    /// </para>
+    /// </summary>
+    public Result ReassignTo(Guid newAssigneeUserId, DateTimeOffset now)
+    {
+        if (Status != WorkflowTaskStatus.Pending)
+        {
+            // A settled task is history. Moving one would rewrite who was asked
+            // to approve something that has already been approved.
+            return Result.Failure(WorkflowErrors.TaskNotPending);
+        }
+
+        if (newAssigneeUserId == Guid.Empty || newAssigneeUserId == AssignedToUserId)
+        {
+            return Result.Failure(WorkflowErrors.InvalidReassignment);
+        }
+
+        AssignedToUserId = newAssigneeUserId;
+        UpdatedAt = now;
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Withdraws a task nobody needs to do any more.
     /// <para>
     /// Used when a colleague settled the step first, or the instance was

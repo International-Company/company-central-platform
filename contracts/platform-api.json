@@ -2912,6 +2912,42 @@
         }
       }
     },
+    "/api/v1/me/tasks/{id}/reassign": {
+      "post": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Moves a pending task to somebody else, over the assignee's head.",
+        "description": "**Requires:** `platform.workflow.manage`",
+        "operationId": "ReassignTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReassignTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/me/notifications": {
       "get": {
         "tags": [
@@ -7456,6 +7492,22 @@
           },
           "isActive": {
             "type": "boolean"
+          }
+        }
+      },
+      "ReassignTaskRequest": {
+        "required": [
+          "assigneeUserId",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
           }
         }
       },

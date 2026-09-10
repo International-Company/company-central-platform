@@ -314,6 +314,39 @@ public static class WorkflowEndpoints
             .Produces<WorkflowInstanceDto>(StatusCodes.Status200OK)
             .WithName("ActOnTask")
             .WithSummary("Approves, rejects, returns, delegates or comments on a task.");
+
+        tasks.MapPost("/{id:guid}/reassign", async (
+            Guid id,
+            ReassignTaskRequest request,
+            HttpContext context,
+            [FromServices] ReassignTaskHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            // The actor comes from the token, like every other action here. It
+            // is recorded as the person who took somebody else's approval away
+            // from them, so it must not be something a caller can choose.
+            if (!CallerIdentity.TryGetUserId(context.User, out Guid actorUserId))
+            {
+                return Results.Unauthorized();
+            }
+
+            Result result = await handler.HandleAsync(
+                new ReassignTaskCommand(id, request.AssigneeUserId, actorUserId, request.Reason),
+                cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+
+            // `manage`, not `start`. Moving somebody else's approval is an
+            // administrative act on the engine, not the ordinary business of
+            // raising a request -- and somebody who can start an approval should
+            // not thereby be able to choose who approves it, which is what an
+            // assignee rule exists to decide.
+            .WithMetadata(new RequirePermissionAttribute("platform.workflow.manage"))
+            .WithName("ReassignTask")
+            .WithSummary("Moves a pending task to somebody else, over the assignee's head.");
     }
 }
 
@@ -491,3 +524,13 @@ public sealed record TaskActionRequest(
 
 /// <summary>Cancel-instance request body.</summary>
 public sealed record CancelInstanceRequest(string? Reason = null);
+
+/// <summary>
+/// Moving a task to somebody else.
+/// </summary>
+/// <param name="Reason">
+/// Why. Required, because "they left the company" and "I wanted it approved
+/// faster" are the same operation and very different acts, and six months later
+/// this sentence is the only thing that tells them apart.
+/// </param>
+public sealed record ReassignTaskRequest(Guid AssigneeUserId, string Reason);
