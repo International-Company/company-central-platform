@@ -132,12 +132,31 @@ builder.Services.AddScoped<IOutbox, OutboxWriter>();
 builder.Services.AddScoped<IIntegrationEventDispatcher, IntegrationEventDispatcher>();
 builder.Services.AddHostedService<OutboxRelay>();
 
+// Delivered rows do not accumulate for ever. Dead-lettered ones are never
+// swept: those are events that will never arrive, and a timer must not erase
+// the evidence of the failure this mechanism exists to make visible.
+builder.Services.AddHostedService<OutboxRetentionSweep>();
+
 // Accepts either the Platform's own setting or the DATABASE_URL that managed
 // platforms publish, which Npgsql cannot parse on its own.
-string connectionString = ConnectionStringResolver.Resolve(builder.Configuration)
+string resolvedConnectionString = ConnectionStringResolver.Resolve(builder.Configuration)
     ?? throw new InvalidOperationException(
         "No database connection is configured. Set CCP_ConnectionStrings__Platform, or "
         + "DATABASE_URL if your platform publishes one. See .env.example.");
+
+// Every context, factory and raw connection inherits the Platform's limits from
+// the string itself, because a rule that has to be repeated at twenty-two
+// UseNpgsql call sites is a rule that is missing from at least one of them.
+// Anything the deployment already specified is left alone.
+string connectionString = ConnectionHardening.Apply(resolvedConnectionString);
+
+// The migrator's lock connection keeps the unhardened string. pg_advisory_lock
+// blocks until it is granted, and a statement timeout applies to a blocking
+// statement — so a second instance waiting behind a long migration would have
+// its wait cancelled and would go on to serve requests against a half-migrated
+// schema.
+string migrationConnectionString =
+    ConnectionHardening.Apply(resolvedConnectionString, serverSideTimeouts: false);
 
 builder.Services
     .AddOptions<DatabaseOptions>()
@@ -434,7 +453,7 @@ if (databaseOptions.ApplyMigrationsOnStartup)
     using IServiceScope migrationScope = app.Services.CreateScope();
 
     await app.Services.GetRequiredService<DatabaseMigrator>().MigrateAsync(
-        connectionString,
+        migrationConnectionString,
         [
             migrationScope.ServiceProvider.GetRequiredService<KernelDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>(),

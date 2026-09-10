@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Last updated | 2026-09-10 |
-| Current phase | **Phase 16 — Platform Dashboard** |
-| Phase status | 🟢 **The background jobs now say what they did, and a page says it back. The instrument Phase 14 declared is finally emitted by something.** |
-| Next phase | **Phase 17 — Database Hardening, Backup & Recovery** |
+| Current phase | **Phase 17 — Database Hardening, Backup & Recovery** |
+| Phase status | 🟡 **The database can no longer be taken down by one query, and a restore can be verified. Nothing is taking backups yet — that is the provider's job and the provider is undecided.** |
+| Next phase | **Phase 18 — Developer Experience & Documentation** |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -32,7 +32,7 @@
 | 14 | Observability | 🟡 **Partly complete** | OpenTelemetry traces and metrics, exported over OTLP where an endpoint is configured and instrumented unconditionally where one is not — so the code path in production is the one that ran locally. The correlation id is written onto the span by the middleware that decides it, so one identifier retrieves the log line, the trace and the audit record. Credentials are removed from log events **at the sink**, by name and by shape, because discipline does not scale to every log statement anybody will ever write. Five instruments the framework cannot supply, each with an alert defined against it. Readiness now distinguishes unhealthy from degraded: a bucket nobody can reach stops documents, not the Platform. 20 unit tests, a runbook. **No monitoring screen and no stored job history** — those belong with the dashboard. |
 | 15 | Administration Portal Completion | 🟢 **Complete** | The two modules that had a complete API and no screen now have one. Integrations opens on the question an operator asks during an incident — is this provider working — with health first and the configuration below it; `Idle` is grey rather than green, because nothing has been asked of a provider that has not been called and a green light nobody earned is worse than an honest blank. Failures are shown as *3 of 4* rather than 75%, since the percentage hides how small the sample is. The call log shows both payloads in full, which is only safe because they were redacted **before** they were stored — what an administrator reads is what the database holds, and there is no unredacted copy for the next export to find. **No credential value appears on either screen, and not because the screen hides one**: the Platform stores a secret's *name* and has no field that could carry a value. Configuration shows what is in force, how many scopes overrode it, and the change history — what it was, what it became, who and why — and for a sensitive setting says that it changed without saying what to. Pasting a credential into a setting is refused by the Platform, and the screen explains the refusal in full rather than reporting it as a validation quibble. The health stamp records when health was **read**, not when the page last rendered, so the figure goes stale in front of whoever is watching it. Both locales, both directions, in the accessibility, responsive and signed-in sweeps.
 | 16 | Platform Dashboard | 🟢 **Complete** | Background jobs keep a history, and it exists because writing the screen found that they kept nothing. Phase 14 declared `ccp.jobs.runs`, wrote an alert against it, and put the meter in a project no module's Infrastructure references — so not one of the five sweeps could call it, and the alert sat permanently green on jobs that might never have run. The meter moved to the application layer; every periodic sweep now runs through one `JobRunner` that times the pass, records the outcome, swallows what it throws so a bad pass cannot retire the timer for the life of the process, and tells a shutdown apart from a failure so a deployment does not read as an outage. Runs are stored in the kernel schema through a neutral seam, in their own transaction — the record of a failed pass must not roll back with the pass — and pruned by the journal itself rather than by a sixth job whose failure nothing would record. Each row carries what the pass **did**, in the job's own words, because "removed 412" and "removed 0" are different facts and a history that cannot tell them apart cannot tell a working sweep from one whose query quietly stopped matching. The screen shows every job plus the outbox, where the figure given the most room is the **age** of the oldest undelivered message rather than the depth. A job that stopped running a week ago still appears and turns red instead of vanishing, which has an integration test on it. 9 unit tests, 8 integration tests.
-| 17 | Database Hardening, Backup & Recovery | ⬜ Not started | |
+| 17 | Database Hardening, Backup & Recovery | 🟡 **Core complete** | `statement_timeout` and `idle_in_transaction_session_timeout` are enforced **by PostgreSQL**, not by a client-side command timeout that stops the application waiting while the query carries on burning the server's CPU. They are applied to the connection string in one place, because there are twenty-two `UseNpgsql` call sites and a rule repeated twenty-two times is missing from at least one. The migrator is exempt on purpose — an index build is legitimately long, and the subtler half is that its advisory-lock connection is exempt too, since `pg_advisory_lock` blocks and a statement timeout applies to a blocking statement, so a second instance queuing behind a long migration would be cut off and then serve requests against a half-migrated schema. The outbox finally prunes delivered rows (the oldest open debt, #4), **never dead-lettered ones**, because those are events that will never arrive and a timer must not erase the evidence. `docs/deployment/backup-and-recovery.md` covers what is at stake, what to back up — including the secrets, which are in neither the database nor the bucket and whose absence makes every enrolled second factor undecryptable — how to restore, and a drill. `scripts/verify-restore.sh` answers what a dump file cannot: it restores into a scratch database and asserts the audit trail is still partitioned and that somebody can still sign in. 9 unit tests. **No backup is being taken** — that is a provider feature and the provider is undecided (Q4).
 | 18 | Developer Experience & Documentation | ⬜ Not started | |
 | 19 | Cloud Deployment | ⬜ Not started | Blocked on provider decision (Q4) |
 | 20 | Testing & Quality Hardening | ⬜ Not started | |
@@ -897,7 +897,7 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 1b | (was) 52 integration tests never executed | — | Was Medium. Raised because Phase 5 found a latent defect (the test factory migrated only the kernel schema) that had been invisible for three phases — the blocker is not only delaying verification, it is hiding defects. |
 | 2 | `build/api.Dockerfile` never built | Low | Docker unavailable locally; CI builds and scans it on the first push |
 | 3 | `RequirePermissionAttribute` declares intent but does not enforce | Low | By design — the handler arrives with Authorization in Phase 4. No endpoint needing enforcement exists yet. |
-| 4 | Outbox cleanup job for old processed rows not written | Low | Phase 17 (database hardening), or sooner if volume warrants |
+| 4 | ~~Outbox cleanup job for old processed rows not written~~ | — | ✅ **Resolved**, and it was the oldest open item in the register. Delivered rows are kept seven days and removed in bounded batches, so the first pass on a table nobody has ever pruned drains over hours rather than in one long transaction on the busiest table in the database. Dead-lettered rows are never touched. The sweep reports to the job history like every other. |
 | 5 | Identity integration tests written but **never run** | **Medium** | 37 tests cover sign-in, enumeration uniformity, lockout, rotation, reuse detection, outbox atomicity and server-side sign-out. They compile and run in CI; they have never executed anywhere. |
 | 6 | Breach screening implemented but **disabled by default** | Medium | The k-anonymity checker is written and registered. Turning it on is the owner's call, since it makes an outbound third-party call. While off, no screening happens. |
 | 7 | ~~No JWKS endpoint~~ | — | ✅ **Resolved** — `/api/v1/.well-known/jwks.json` publishes public parameters only, with a test asserting no private component can appear. |
@@ -953,6 +953,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 61 | The outbox relay and the notification dispatcher keep no run history | Low | Deliberate. Both are continuous pollers — five and fifteen seconds — so journalling each pass would write over twenty thousand rows a day and drown the four rows that answer a question. Their health is visible in their own terms instead: outbox depth and the age of the oldest undelivered message on the same screen, and the notification delivery log. If a poller stops, the age climbs, which is the signal that matters. |
 | 62 | The job summary reports the newest run's instance, not every instance | Medium | Each row is stored with the process that wrote it, and the run history shows it, so "failing on one machine only" is visible if somebody opens the job. The summary line is not grouped by instance, so on a multi-instance deployment a job failing on one of two reads as intermittent rather than as one broken machine. Needs the summary to group by job **and** instance, which is a wider table and a decision about how it reads on a single-instance deployment, where it would be noise. |
 | 63 | ~~Nothing asserts that a declared instrument is ever emitted~~ | — | ✅ **Resolved, and it found a second one within a minute.** `InstrumentCoverageTests` reflects the recording methods off `PlatformMetrics` and fails the build if any has no caller in `src/`. On its first run it named `ccp.outbox.dispatches` — declared in Phase 14, never wired to the relay it describes, and answering "are events getting out?" with silence. So the class of bug that produced #60 had already produced a second instance nobody had noticed. It cannot prove a call is on a path that runs; it catches the failure that actually happened, twice. |
+| 64 | The application connects with one database role for both DDL and DML | Medium | Migrations need schema-modification rights; serving requests does not. One role for both means a SQL-injection defect anywhere could become a schema change. The audit table is already granted INSERT and SELECT only, enforced by PostgreSQL and tested — so the pattern exists and has not been extended. Splitting the roles needs the deployment to supply two connection strings, which is a change to how every environment is configured rather than a change to code. |
+| 65 | Nothing is taking a backup | **High** | The runbook is written and the verification script runs, and no backup exists to run it against. Continuous archiving and point-in-time recovery are features of a managed PostgreSQL, and the provider is undecided (Q4) — so this is genuinely blocked rather than deferred. It is recorded as High because every other risk in this register is survivable and this one is not: the audit trail cannot be reconstructed from anywhere. |
+| 66 | The restore verification has never been run against a real dump | Medium | It is a shell script with no test of its own, and the local machine has no PostgreSQL superuser password (#1's original cause), so it has been syntax-checked and read rather than executed. Its assertions were written against the real schema names — which caught one error already, since the authorization schema is `authz` and not `authorization`, and a check naming the wrong schema would have passed by finding nothing. |
+| 67 | No index review has been done | Medium | Phase 17 lists one and it is not done. The indexes that exist were each added for a named query, so this is about finding the ones nobody thought of — which needs `pg_stat_statements` against realistic data rather than reading the model. It belongs with the load testing in Phase 20. |
 | 57 | A provider can only be turned on and off from the screen | Low | Registering one, and changing its resilience settings, its redacted field list or its credential reference, is still an API call. The BFF routes for both exist and no form calls them. Registration is a rare, careful act performed once per provider, which is why it is the part left for later rather than the part built first. |
 | 58 | Settings can only be changed at Platform scope from the screen | Medium | The API takes a scope and a scope id; the screen sends `Platform` and null. So the count of overrides is visible and a company- or application-scoped override can be neither set nor cleared from the portal — which is the case where narrowest-wins resolution actually earns its complexity. It needs a scope picker that knows which companies and applications exist. |
 | 59 | Flag targeting cannot be edited from the screen | Medium | The toggle sends the flag's existing role and unit ids back unchanged, so a flag can be turned on and off and cannot be aimed. A targeted rollout is still an API call — and #50 means the feature-state endpoint would answer *off* for everybody anyway, so aiming one is not useful until that is fixed. The two are one piece of work. |
@@ -1845,28 +1849,113 @@ writing the guard rather than only fixing the bug.
 
 ---
 
-## 19. Next step
+## 19. Phase 17 report — the limits, and the backup that does not exist
 
-**Phase 17 — Database Hardening, Backup & Recovery.** It is now the oldest
-untouched risk in the project. The Platform holds an append-only audit trail
-that a company may be asked to produce, documents whose bytes are destroyed
-irreversibly by a sweep that has run unobserved until this week, and eleven
-schemas of live data — and there is no tested restore. A backup nobody has
-restored from is a belief, not a backup.
+Three things came out of this phase: the database can no longer be taken down by
+one query, the oldest debt in the register is closed, and a restore can be
+checked rather than believed. One thing did not: **nothing is taking a backup**,
+and that is now the highest-severity item in the project.
+
+**The timeouts are enforced by PostgreSQL, and that distinction is the whole
+point.** A client-side command timeout stops the *application* waiting. It does
+nothing at all to the statement, which carries on burning the server's CPU and
+holding its locks on a connection nobody is listening to any more. Only the
+server can actually stop it, so `statement_timeout` and
+`idle_in_transaction_session_timeout` are sent as connection options.
+
+The second of those is the one that causes outages. An abandoned open
+transaction holds its locks *and* stops `VACUUM` reclaiming any row version
+newer than itself, so tables bloat, the planner's estimates rot, and at the
+extreme transaction id wraparound protection begins refusing writes across the
+whole database. Nothing on the client side can clean it up — by definition, the
+client is the thing that went away.
+
+**They live in the connection string, not in each `DbContext`.** There are
+twenty-two `UseNpgsql` call sites in the Platform. A rule that has to be
+repeated twenty-two times is a rule that is missing from at least one of them,
+and this project has already produced that exact defect twice this week in a
+different form. Putting it in the string the composition root resolves means
+every context, every design-time factory and every raw connection inherits it
+without knowing it exists.
+
+**The migrator is exempt, and the interesting half is not the obvious half.**
+Obviously an index build on a large table is legitimately minutes of work, and a
+schema change killed halfway through by a limit meant for web requests is worse
+than what the limit prevents. Less obviously: the migrator takes a PostgreSQL
+advisory lock, `pg_advisory_lock` **blocks** until it is granted, and a statement
+timeout applies to a blocking statement. So a second instance queuing behind a
+long migration would have its wait cancelled after sixty seconds and would then
+go on to serve requests against a half-migrated schema. That is a worse outcome
+than anything the timeout was protecting against, and it was found by reasoning
+about the lock rather than by a test — there is no test that can produce it
+without two instances and a slow migration.
+
+**A guard that looked right and did nothing.** The first version skipped any
+setting the deployment had already made, using `builder.ContainsKey`. A
+strongly-typed `DbConnectionStringBuilder` answers true from `ContainsKey` for
+every keyword it knows about, set or not — so the guard short-circuited every
+time and applied none of the limits, while reading exactly like a guard that
+works. Nothing failed; the connection string simply came back unchanged. It was
+caught by tests asserting the resulting values rather than by review, which is
+the argument for writing them that way round. `ShouldSerialize` is the API that
+reports what the caller actually set.
+
+**The oldest debt in the register is closed.** #4 — outbox cleanup — had been
+open since Phase 1. Every state change in every module writes a row there, so
+the table grows with the company's activity and never with its size. Delivered
+rows are now kept a week and removed in bounded batches, so the first pass on a
+table nobody has ever pruned drains over hours instead of holding one enormous
+transaction on the busiest table in the database.
+
+**Dead-lettered rows are never swept, and that is not an oversight.** A dead
+letter is an event that will never be delivered — an audit entry or a
+notification permanently missing. A timer that quietly erased those would erase
+the evidence of the one failure the whole outbox mechanism exists to make
+visible. They stay until a person deals with them, and the Operations screen
+counts them.
+
+**The restore is the thing worth practising.** `scripts/verify-restore.sh`
+answers what a dump file cannot: is this usable? It restores into a scratch
+database and asserts that the audit trail is still range-partitioned — a
+property of the table, not of the rows, so a restore that flattened it would
+work perfectly and quietly break retention for years — that its partitions came
+back, that every module schema is present, and that at least one user, role and
+assignment survived. That last group is the one that separates *the file
+restored* from *the company can come back*: an empty `identity` schema restores
+cleanly and locks everybody out for ever.
+
+Writing those checks caught an error in themselves. The authorization schema is
+`authz`, not `authorization`, and a check naming the wrong schema would have
+passed by successfully finding nothing.
+
+**What is not done, and one of it is serious.** No backup is being taken (#65).
+Continuous archiving and point-in-time recovery are features of a managed
+PostgreSQL and the provider is undecided, so this is blocked rather than
+deferred — but it is recorded as **High**, above everything else in the register,
+because every other risk there is survivable and this one is not. The
+verification script has never been run against a real dump (#66), since the local
+machine still has no PostgreSQL access. The application still connects with one
+role for both DDL and DML (#64). And no index review has been done (#67); that
+needs `pg_stat_statements` against realistic data rather than reading the model,
+so it belongs with the load testing in Phase 20.
+
+---
+
+## 20. Next step
+
+**Phase 18 — Developer Experience & Documentation.** The Platform now has
+eighteen documents, a generated API contract, a reference client and an
+integration guide — and #40 still says the guide has never been read by an
+outside developer, which was Phase 11's explicit acceptance criterion and the one
+thing self-assessment cannot satisfy.
 
 Still outstanding across all phases:
 
-- **B3 — the requirements document** is still missing. Every decision so far has
-  been made from ARCHITECTURE.md and the master prompt.
-- **Q4 — the cloud provider** is undecided. It blocks Phase 19, and it is what
-  keeps the alert definitions as prose.
+- **Q4 — the cloud provider** is undecided, and it now blocks the most serious
+  item in the register. It is what stands between a written backup procedure and
+  an actual backup, it holds the seven alert definitions as prose, and it blocks
+  Phase 19 entirely. **This is the decision worth making next.**
+- **B3 — the requirements document** is still missing.
 - **Q10 — the bootstrap administrator procedure** needs approval.
-- **Nothing has been migrated onto the configuration module** (#52). Every
-  retention period and interval written in Phases 9 to 12 — including the job
-  history's own thirty days — is still an `appsettings` value needing a
-  deployment to change, which is precisely the problem that module was built to
-  solve.
-- ~~Nothing asserts that a declared instrument is emitted~~ — closed within the
-  phase, and the guard immediately found a second dead instrument
-  (`ccp.outbox.dispatches`) that had been silent since Phase 14. Two of the five
-  declared instruments were reporting nothing, and both alerts read as healthy.
+- **Nothing has been migrated onto the configuration module** (#52), including
+  the retention periods this phase introduced.

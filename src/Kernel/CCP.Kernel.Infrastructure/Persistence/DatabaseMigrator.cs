@@ -51,7 +51,13 @@ public sealed class DatabaseMigrator(ILogger<DatabaseMigrator> logger)
     /// Migrates each context in order, holding an advisory lock for the whole
     /// run.
     /// </summary>
-    /// <param name="connectionString">Where the lock is taken.</param>
+    /// <param name="connectionString">
+    /// Where the lock is taken. This must be the <b>unhardened</b> string:
+    /// <c>pg_advisory_lock</c> blocks until it is granted, and a statement
+    /// timeout applies to a blocking statement, so a second instance waiting
+    /// behind a long migration would have its wait cancelled and would then try
+    /// to serve requests against a half-migrated schema.
+    /// </param>
     /// <param name="contexts">
     /// The contexts to migrate, kernel first. Order matters only for the kernel;
     /// no foreign key crosses a schema boundary, so the modules are independent
@@ -107,7 +113,32 @@ public sealed class DatabaseMigrator(ILogger<DatabaseMigrator> logger)
                         string.Join(", ", toApply));
                 }
 
-                await context.Database.MigrateAsync(cancellationToken);
+                // The connection is opened here and held for the whole
+                // migration, so the settings below apply to it and EF reuses it
+                // rather than taking a fresh one from the pool.
+                await context.Database.OpenConnectionAsync(cancellationToken);
+
+                try
+                {
+                    // A schema change is legitimately slow. Creating an index on
+                    // a large table is minutes of honest work, and the timeouts
+                    // that protect the Platform from a runaway web query would
+                    // cancel it half-way through — which is a far worse outcome
+                    // than the one they exist to prevent.
+                    //
+                    // Session-scoped, and Npgsql issues DISCARD ALL when the
+                    // connection returns to the pool, so nothing leaks back into
+                    // the requests that follow.
+                    await context.Database.ExecuteSqlRawAsync(
+                        "SET statement_timeout = 0; SET idle_in_transaction_session_timeout = 0;",
+                        cancellationToken);
+
+                    await context.Database.MigrateAsync(cancellationToken);
+                }
+                finally
+                {
+                    await context.Database.CloseConnectionAsync();
+                }
             }
 
             logger.LogInformation("The database schema is up to date.");
