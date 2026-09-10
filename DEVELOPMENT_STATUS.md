@@ -4,7 +4,7 @@
 |---|---|
 | Last updated | 2026-09-10 |
 | Current phase | **Phase 20 — Testing & Quality Hardening** |
-| Phase status | 🟡 **In progress.** Every endpoint is now asked to refuse rather than trusted to declare; the two missing module suites exist; the sweep that deletes is tested on what it refuses to delete; and a bucket being gone is proved to degrade rather than stop the Platform. Load testing, the index review and an external penetration test remain. |
+| Phase status | 🟡 **Substantially complete.** Every endpoint is asked to refuse rather than trusted to declare — twice, once anonymous and once signed in holding nothing. It found a live defect. What remains needs an environment or a person this project does not have: a realistic data volume, and an external penetration test. |
 | Next phase | **Phase 19 — Cloud Deployment** — ⛔ still blocked on Q4 |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
@@ -35,7 +35,7 @@
 | 17 | Database Hardening, Backup & Recovery | 🟡 **Core complete** | `statement_timeout` and `idle_in_transaction_session_timeout` are enforced **by PostgreSQL**, not by a client-side command timeout that stops the application waiting while the query carries on burning the server's CPU. They are applied to the connection string in one place, because there are twenty-two `UseNpgsql` call sites and a rule repeated twenty-two times is missing from at least one. The migrator is exempt on purpose — an index build is legitimately long, and the subtler half is that its advisory-lock connection is exempt too, since `pg_advisory_lock` blocks and a statement timeout applies to a blocking statement, so a second instance queuing behind a long migration would be cut off and then serve requests against a half-migrated schema. The outbox finally prunes delivered rows (the oldest open debt, #4), **never dead-lettered ones**, because those are events that will never arrive and a timer must not erase the evidence. `docs/deployment/backup-and-recovery.md` covers what is at stake, what to back up — including the secrets, which are in neither the database nor the bucket and whose absence makes every enrolled second factor undecryptable — how to restore, and a drill. `scripts/verify-restore.sh` answers what a dump file cannot: it restores into a scratch database and asserts the audit trail is still partitioned and that somebody can still sign in. 9 unit tests. **No backup is being taken** — that is a provider feature and the provider is undecided (Q4).
 | 18 | Developer Experience & Documentation | 🟢 **Complete** | The repository had **no `README.md`** — seventeen phases, forty-five documents, and nothing at the front door. It has one now, and it points at `DEVELOPMENT_STATUS.md` as the honest account rather than claiming completeness itself. The bigger find was that `getting-started.md` still described Phase 1: it said there were no capability modules yet, that the frontend arrived later, and it applied **one** migration where there are twelve — so a new developer following it word for word would get a Platform that starts, reports healthy, and answers 500 from every module. That failure is now the first entry under common problems. The guide also gained the portal, the module test suites, the contract regeneration step that CI enforces, and the first-administrator bootstrap. Both documentation indexes were rewritten: one listed as *planned* several documents that exist, and stated that the .NET SDK was not installed on this machine. `scripts/check-doc-links.py` now fails the build on a broken relative link, and it was tested against a deliberately broken one before being trusted — a guard that passes on its first run is the exact shape of the two dead instruments found last phase.
 | 19 | Cloud Deployment | ⬜ Not started | Blocked on provider decision (Q4) |
-| 20 | Testing & Quality Hardening | 🟡 **In progress** | Taken out of order because it is the only remaining phase that needs no provider decision. Three suites: the organization hierarchy against a real database (#12), permission resolution against a real database (#16), and **the exhaustive authorization matrix** — every endpoint in the route table called with no credentials and then with a forged token, asserting 401 from each. That last one closes a gap nobody had named: an architecture test proves every endpoint *declares* a permission, which is a statement of intent that a misordered middleware or a group missing `RequireAuthorization` would leave entirely unhonoured, with both tests still green. The list comes from the running server's own route table, so an endpoint added next year is covered the day it is mapped. Then two more, added after the first CI run came back: the **outbox retention sweep**, whose four most important assertions are about rows it must *not* delete — a dead letter is an event that will never arrive, and a timer that quietly removed those would erase the evidence of the one failure the outbox exists to make visible — and **failure injection on readiness**, which proves that an unreachable document store degrades the Platform rather than stopping it. That last reproduces, deliberately, the shape of the Phase 10 outage: a storage check reporting *unhealthy* would take every instance out of rotation over a bucket. **The failure injection immediately found a live defect** (#73): readiness had been answering 503 to an unreachable bucket for three phases, because `failureStatus: Degraded` on the registration is ignored when a check catches its own exception and returns a result — so the Platform would have emptied itself out of the load balancer over object storage, exactly the outage Phase 10 taught it not to have. Load testing, the index review (#67) and an external penetration test remain, and the accessibility audit is against WCAG 2.1 where the phase asks for 2.2.
+| 20 | Testing & Quality Hardening | 🟡 **In progress** | Taken out of order because it is the only remaining phase that needs no provider decision. Three suites: the organization hierarchy against a real database (#12), permission resolution against a real database (#16), and **the exhaustive authorization matrix** — every endpoint in the route table called with no credentials and then with a forged token, asserting 401 from each. That last one closes a gap nobody had named: an architecture test proves every endpoint *declares* a permission, which is a statement of intent that a misordered middleware or a group missing `RequireAuthorization` would leave entirely unhonoured, with both tests still green. The list comes from the running server's own route table, so an endpoint added next year is covered the day it is mapped. Then two more, added after the first CI run came back: the **outbox retention sweep**, whose four most important assertions are about rows it must *not* delete — a dead letter is an event that will never arrive, and a timer that quietly removed those would erase the evidence of the one failure the outbox exists to make visible — and **failure injection on readiness**, which proves that an unreachable document store degrades the Platform rather than stopping it. That last reproduces, deliberately, the shape of the Phase 10 outage: a storage check reporting *unhealthy* would take every instance out of rotation over a bucket. **The failure injection immediately found a live defect** (#73): readiness had been answering 503 to an unreachable bucket for three phases, because `failureStatus: Degraded` on the registration is ignored when a check catches its own exception and returns a result — so the Platform would have emptied itself out of the load balancer over object storage, exactly the outage Phase 10 taught it not to have. The matrix has a second column too: a signed-in account holding **nothing**, refused with 403 by every permission-gated endpoint — which catches a different mistake, since refusing an anonymous caller only proves the authentication middleware runs, and an endpoint mapped with a bare `RequireAuthorization()` would admit every employee in the company. The accessibility baseline moved to **WCAG 2.2 AA**, which is what the phase asks for. Load testing exists as an executable budget and has never been run against realistic data (#74); the index review (#67) and an external penetration test (#75) need the same environment or a person this project does not have.
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
 **Completed: 1 of 22 phases. Phases 1–15 in progress.**
@@ -959,6 +959,8 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 67 | No index review has been done | Medium | Phase 17 lists one and it is not done. The indexes that exist were each added for a named query, so this is about finding the ones nobody thought of — which needs `pg_stat_statements` against realistic data rather than reading the model. It belongs with the load testing in Phase 20. |
 | 68 | No `adding-a-module.md` | Low | The pattern is eleven times consistent, so a twelfth module is best begun by copying the smallest existing one — but that is folklore, and folklore is what documentation exists to replace. Recorded in `docs/development/README.md` as not written rather than listed as planned, which is what it had been for seventeen phases. |
 | 73 | ~~Readiness answered 503 when the document bucket was unreachable~~ | — | ✅ **Resolved, and it was live for three phases.** The composition root registered the storage check with `failureStatus: Degraded` and the runbook described it that way — but `failureStatus` applies **only when a check throws**, and this check caught its own exception and returned `HealthCheckResult.Unhealthy`. A returned result overrides the registration silently. So readiness answered 503 whenever object storage was unreachable, which empties every instance out of the load balancer over a bucket: the Phase 10 outage in different clothes, where a folder only Documents needed stopped every module from starting. Nothing could have found this by reading — both halves are individually correct and they disagree only at runtime. The check now returns `context.Registration.FailureStatus`, so the decision exists in exactly one place; a second copy of it is what caused this. The guard is the test that found it, which asserts 200 and the word *Degraded* with storage injected broken. |
+| 74 | The load test has never been run against realistic data | Medium | `tests/load/platform-load.js` turns ARCHITECTURE.md §24's four budgets into k6 thresholds, so a regression is a failed run rather than an opinion — which is what that section says budgets are for, and it had been prose for twenty phases. It has not been executed: numbers from an empty database measure the framework, not the Platform. It needs a seeded environment of plausible size, which is a Phase 19 environment, which waits on Q4. Every endpoint it names was checked against the generated contract rather than remembered, because a script nobody runs is a script whose errors nobody finds. |
+| 75 | No external penetration test | **Medium** | Phase 20 asks for one and it is an engagement to book, not code to write. The Platform has automated dependency and container scanning on every push, a secret scanner over full history, and an exhaustive authorization matrix — none of which is a person trying to get in. It needs scheduling well before go-live. |
 | 71 | ~~Nothing exercised the readiness degradation path~~ | — | ✅ **Resolved.** Phase 14 chose `Degraded` for document storage and `Unhealthy` for the database, and the difference had never been executed — a load balancer reads the status code, and a storage check reporting unhealthy would empty every instance out of rotation over a bucket, which is the Phase 10 outage through a different door. Four tests: readiness answers 200 and the word *Degraded*, the rest of the API still answers, liveness is untouched, and readiness is *Healthy* when nothing is broken — that last so the others are showing an injected failure rather than a Platform that is degraded all the time. |
 | 72 | ~~The outbox retention sweep shipped untested~~ | — | ✅ **Resolved.** Seven tests, four of them about rows that must survive. It also answered a question unreadable from the code: `ExecuteDelete` with a bound `Take` does translate on Npgsql. Had it not, the sweep would have thrown once every six hours, the job journal would have recorded a failure nobody is watching yet, and the table would have grown for ever while the code looked correct. |
 | 69 | Test rate limits are raised through a process-global environment variable | Low | `PlatformApiFactory` publishes `CCP_RateLimits__Authentication` into the process environment, so a host built later in the same process inherits whatever the last factory set. `RateLimitTests` deliberately drives that number down to three; a suite that raised it afterwards would make that test fail, and test classes run in parallel with no defined order. The new authorization matrix needs its limits lifted and therefore uses `UseSetting`, which is per-host, rather than joining the problem. The existing mechanism is untouched and still fragile. |
@@ -2009,37 +2011,137 @@ did not write it.
 
 ---
 
-## 21. Next step
+## 21. Phase 20 report — the tests that asked instead of assuming
 
-**Phase 19 — Cloud Deployment is ⛔ blocked on Q4**, and that decision is now
-blocking more than its own phase. It stands between a written backup procedure
-and an actual backup (#65, the highest-severity item in this register), it holds
-the seven alert definitions as prose (#55), and it is the reason there is no
-point-in-time recovery.
+Taken out of order, because it is the only remaining phase that needs nothing
+from the provider decision. Six suites, one live defect, and two lessons that
+cost three CI runs to learn.
 
-The Platform is live on Railway and has been since Phase 7, which is what makes
-this easy to keep deferring. Railway is an excellent way to have something
-running; it is not a decision about where the company's identity, audit trail and
+**The defect first, because it was live.** Readiness had been answering **503**
+whenever the document bucket was unreachable, for three phases. The composition
+root registers that check with `failureStatus: Degraded`; the runbook says
+Degraded; the check caught its own exception and returned
+`HealthCheckResult.Unhealthy` — and a returned result overrides the registration
+silently, because `failureStatus` applies only when a check *throws*. So the
+Platform would have emptied every instance out of the load balancer over object
+storage: the Phase 10 outage in different clothes, where a folder only Documents
+needed stopped every module from starting. The lesson written down after that
+outage was encoded in Phase 14 and had not been true since.
+
+Nothing could have found it by reading. Both halves are individually correct and
+they disagree only at runtime. It was found by injecting the failure, on the
+first run of the test written to inject it. The check now returns
+`context.Registration.FailureStatus`, so the decision exists in exactly one
+place — naming a status in the check at all was a second copy, and the second
+copy is what caused it.
+
+**Declaration is not enforcement.** An architecture test has asserted since
+Phase 1 that every endpoint declares a permission or explicitly allows
+anonymous. That reads metadata. A middleware ordered wrongly, or a route group
+mapped without `RequireAuthorization`, would leave every one of those
+declarations unhonoured and the test would stay green. So the matrix now calls
+**every endpoint in the running server's route table** — with no credentials,
+with a structurally valid forged token, and signed in as an account that holds
+nothing — and asserts 401, 401 and 403. The list comes from the route table, so
+an endpoint added next year is covered the day it is mapped.
+
+The three columns catch different mistakes. Anonymous proves authentication
+runs. A forged token proves the signature is actually checked, which a pipeline
+that validates nothing would also pass. A signed-in caller holding nothing
+proves the *permission* is consulted — and that is the one an endpoint mapped
+with a bare `RequireAuthorization()` would fail, admitting every employee in the
+company.
+
+**Two lessons about UUIDv7, learned twice.** The first forty-eight bits are a
+millisecond timestamp, so the first twelve hex characters are the clock.
+Truncating one to make a unique test code produces values that collide for
+everything created in the same instant — which is exactly what a test method
+does. That failed the company fixtures; one commit later the same mistake
+appeared in an *assertion*, where `DoesNotContain` on the first eight characters
+of an id matches every row in the table and therefore fails against perfectly
+correct behaviour. v7 is excellent for index locality and useless truncated.
+
+**A 415 that had to be explained rather than suppressed.** The upload endpoints
+answered 415 to a JSON body, and where that 415 is produced decides whether
+there is a hole: binding and the handler run *after* the authorization
+middleware, so a 415 from there would mean an anonymous caller was already
+through. Sending a body of the kind each endpoint declares it accepts removed
+that explanation and the answer became 401 — the ordering was right all along.
+The reasoning is kept in the test because it is the reusable part: a non-401
+here is not automatically a false alarm.
+
+**The sweep that deletes is now tested on what it refuses to delete.** Four of
+the retention suite's seven assertions are about rows that must survive. A dead
+letter is an event that will never arrive — an audit entry or a notification
+permanently missing, waiting for a person — and a timer that quietly removed
+those would erase the evidence of the one failure the outbox exists to make
+visible. It also answered something unreadable from the code: `ExecuteDelete`
+with a bound `Take` does translate on Npgsql. Had it not, the sweep would have
+thrown once every six hours, the journal would have recorded a failure nobody is
+watching yet, and the table would have grown for ever while the code looked
+correct.
+
+**The two module suites that were never written now exist.** Organization
+(#12): a subtree move rebasing a grandchild never named in the command, a
+refused cycle leaving the tree exactly as it was, the unique constraint enforced
+by PostgreSQL rather than by the handler that checks first, the same code
+allowed in another company — which a unique index on `code` alone would break
+while passing the previous test — and the `text_pattern_ops` index actually
+serving the prefix query, which is not a correctness question until the company
+has four thousand units and every scope resolution starts scanning. Authorization
+(#16): the join, a subject with no grants resolving to nothing rather than to
+everything, a revocation taking effect on the *very next* resolution, and twelve
+concurrent version bumps all counting — the last being the one only a database
+can answer, since read-modify-write would collapse two simultaneous revocations
+into one increment and leave a stamp some cache still matches.
+
+**A test was written and then deleted.** A seeder assertion duplicated
+`PermissionSeedingTests`, which covers it better. A second, weaker copy of an
+existing test is worse than none.
+
+**WCAG 2.2 AA passes with no violations.** The phase asks for 2.2 and the suite
+was running 2.1. The criteria 2.2 adds that a machine can check are about focus
+being visible and unobscured and targets being large enough to hit — precisely
+what a dense administrative table gets wrong. It passed unchanged, which is the
+plain design earning something it was not aimed at.
+
+**What is not done, and why it is not laziness.** The load profile exists as
+executable thresholds — ARCHITECTURE.md §24's four budgets, prose for twenty
+phases, now the thing k6 exits non-zero on — and it has never been run (#74),
+because numbers from an empty database measure the framework rather than the
+Platform. The index review (#67) needs the same realistic volume. An external
+penetration test (#75) is an engagement to book, not code to write. All three
+want a Phase 19 environment, and Phase 19 waits on Q4.
+
+---
+
+## 22. Next step
+
+**The decision, not the code.** Everything buildable without knowing where this
+runs has now been built. Q4 — which managed PostgreSQL, with what retention
+window and what recovery point objective — blocks:
+
+- **#65, nothing is taking a backup**, which is the highest-severity item in the
+  register because every other risk there is survivable and this one is not. The
+  audit trail cannot be reconstructed from anywhere.
+- **#55, seven alert conditions** that exist as prose because there is no
+  backend to create them in.
+- **#74, #67, the load test and the index review**, both of which need a seeded
+  environment of plausible size.
+- **Phase 19 entirely.**
+
+The Platform has been live on Railway since Phase 7, which is what makes this
+easy to keep deferring. Railway is an excellent way to have something running.
+It is not a decision about where the company's identity, audit trail and
 documents live.
 
-**The question needing an answer is narrow:** which managed PostgreSQL, with what
-retention window and what recovery point objective. Everything else in Phase 19
-follows from it.
+Also still outstanding:
 
-What can be done meanwhile, in order of value:
-
-1. **Phase 20 — Testing & Quality Hardening.** Load testing, the index review
-   (#67), and the module integration suites that were never written (#12, #16).
-   None of it needs a provider.
-2. **Migrate the retention periods and intervals onto the configuration module**
-   (#52). Every one written since Phase 9 — including this phase's own — is still
-   an `appsettings` value needing a deployment to change, which is exactly the
-   problem that module was built to solve, and it still has no users.
-3. **The two-role database split** (#64) and **outbound webhooks** (#46).
-
-Still outstanding across all phases:
-
-- **Q4 — the cloud provider.** Blocks Phase 19 entirely and the most serious item
-  in the register. **This is the decision worth making next.**
-- **B3 — the requirements document** is still missing, eighteen phases in.
+- **B3 — the requirements document**, absent for twenty phases. Every decision
+  so far has been made from ARCHITECTURE.md and the master prompt.
 - **Q10 — the bootstrap administrator procedure** needs approval.
+- **#40 — the integration guide has never been followed by an outside
+  developer**, which was Phase 11's explicit acceptance criterion and the one
+  thing self-assessment cannot satisfy.
+- **#52 — nothing uses the configuration module**, including every retention
+  period and interval added since Phase 9.
