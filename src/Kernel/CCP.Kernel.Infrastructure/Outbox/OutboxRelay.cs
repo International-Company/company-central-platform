@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CCP.Kernel.Application.Events;
+using CCP.Kernel.Application.Observability;
 using CCP.Kernel.Domain;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
@@ -29,6 +30,7 @@ public sealed class OutboxRelay(
     IServiceScopeFactory scopeFactory,
     IOptions<OutboxOptions> options,
     IClock clock,
+    PlatformMetrics metrics,
     ILogger<OutboxRelay> logger) : BackgroundService
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
@@ -137,6 +139,8 @@ public sealed class OutboxRelay(
             message.ProcessedAt = now;
             message.LastError = null;
 
+            metrics.OutboxDispatched(succeeded: true);
+
             // Guarded: this runs once per delivered message, and Debug is off
             // in production, so the argument evaluation should not be paid for.
             if (logger.IsEnabled(LogLevel.Debug))
@@ -151,6 +155,11 @@ public sealed class OutboxRelay(
         catch (Exception exception)
         {
             message.LastError = Truncate(exception.ToString(), 4000);
+
+            // Counted on every failed attempt, not only on the final one. The
+            // instrument answers "are events getting out?", and a message being
+            // retried for the sixth time is not getting out.
+            metrics.OutboxDispatched(succeeded: false);
 
             if (message.AttemptCount >= _options.MaxAttempts)
             {

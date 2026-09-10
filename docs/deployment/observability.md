@@ -103,14 +103,25 @@ person's identifier into a metrics backend, which is not a place personal data
 belongs — and the permission is what tells you whether a burst is somebody
 probing.
 
-**`ccp.jobs.runs` was declared here and emitted by nothing.** The meter lived in
-the API layer, which no module's Infrastructure project references, so the five
-background sweeps that were supposed to report could not call it — and the alert
-below sat permanently green on jobs that might never have run. The meter now
-lives in the application layer, every periodic sweep reports through one
-`JobRunner`, and there are tests on it. It is recorded here rather than quietly
-corrected because the failure mode is the interesting part: an alert on a metric
-nothing emits is indistinguishable from an alert on a system that is fine.
+**Two of these five were declared here and emitted by nothing.** The meter lived
+in the API layer, which no module's Infrastructure project references, so the
+five background sweeps that were supposed to report could not call it — and the
+alert below sat permanently green on jobs that might never have run.
+`ccp.outbox.dispatches` was in the same state for a different reason: nobody had
+ever wired it, and the relay it belonged to was written three phases before the
+instrument existed.
+
+The second one was **found by the guard written after the first**, within a
+minute of it running. Both are now emitted, and
+`InstrumentCoverageTests.EveryDeclaredInstrumentIsEmittedBySomething` fails the
+build if a recording method on `PlatformMetrics` has no caller anywhere in
+`src/`. It cannot prove the call is on a path that ever runs — nothing static
+can — but it catches the failure that actually happened, twice.
+
+This is recorded rather than quietly corrected because the failure mode is the
+interesting part: **an alert on a metric nothing emits looks exactly like an
+alert on a system that is fine.** There is no error, no exception and no failing
+test, because there is nothing to fail.
 
 ---
 

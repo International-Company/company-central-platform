@@ -1,4 +1,5 @@
 using CCP.Kernel.Application.Events;
+using CCP.Kernel.Application.Observability;
 using CCP.Kernel.Infrastructure.Outbox;
 using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Kernel.Primitives;
@@ -34,12 +35,20 @@ internal sealed class OutboxTestHarness
 
         services.AddSingleton(dispatcher ?? new NoOpDispatcher());
 
+        // The relay reports whether events are getting out. Nothing here reads
+        // the measurements; what matters is that recording one is on the path
+        // these tests drive, so the instrument cannot go dead again without
+        // this failing to compile.
+        services.AddMetrics();
+        services.AddSingleton<PlatformMetrics>();
+
         _serviceProvider = services.BuildServiceProvider();
 
         Relay = new OutboxRelay(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(options ?? new OutboxOptions()),
             new SystemClock(),
+            _serviceProvider.GetRequiredService<PlatformMetrics>(),
             NullLogger<OutboxRelay>.Instance);
     }
 

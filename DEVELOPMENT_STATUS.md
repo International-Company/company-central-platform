@@ -949,10 +949,10 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 | 55 | Alert definitions are written down and not deployed | Medium | The runbook names seven conditions with thresholds and a first action for each. Creating them is an operation in whichever backend the provider offers, and the provider is not chosen (Q4) — so the definitions exist as documentation and nothing is watching. The Operations screen now answers six of the seven on demand, which is a page somebody opens rather than something that wakes them. |
 | 56 | Trace context is not propagated to business applications | Low | The Platform accepts an inbound correlation id and echoes it, and outbound integration calls carry W3C trace headers through the instrumented HTTP client. What is untested is the round trip: a business system's trace joining the Platform's and coming back. It needs a second service to test against. |
 | 48 | ~~The connector is not tested against a real HTTP server~~ | — | ✅ **Resolved.** A stub provider on a real socket, misbehaving on command: a retry works through two failures and the stub counts three arrivals, a 400 is not retried and the stub counts one, a timeout fires inside its budget while the stub sleeps five seconds, the breaker opens and the stub stops receiving anything, and a card number is absent from both halves of the stored log while the caller still gets it. The counts come from the far end of the socket rather than from the Platform's own log, so the log is not being tested against itself. |
-| 60 | ~~The background-job metric was emitted by nothing~~ | — | ✅ **Resolved, and it is the most instructive defect of the project so far.** `PlatformMetrics.BackgroundJobRan` was declared in Phase 14, given an alert in the runbook, and placed in `CCP.Kernel.Api` — which no module's Infrastructure project references. Every one of the five background sweeps lives in a module's Infrastructure. So the method could not be called from the only code that had any reason to call it, nothing failed to compile, nothing was logged, and the alert read green whether the sweeps ran or not. It survived a phase, a review and a green CI run because **nothing anywhere asserts that a declared instrument is emitted**. The meter now lives in the application layer and the sweeps report through `JobRunner`, which has tests. |
+| 60 | ~~The background-job metric was emitted by nothing~~ | — | ✅ **Resolved, and it is the most instructive defect of the project so far — it was not even the only one.** `PlatformMetrics.BackgroundJobRan` was declared in Phase 14, given an alert in the runbook, and placed in `CCP.Kernel.Api` — which no module's Infrastructure project references. Every one of the five background sweeps lives in a module's Infrastructure. So the method could not be called from the only code that had any reason to call it, nothing failed to compile, nothing was logged, and the alert read green whether the sweeps ran or not. It survived a phase, a review and a green CI run because **nothing anywhere asserts that a declared instrument is emitted**. The meter now lives in the application layer and the sweeps report through `JobRunner`, which has tests. |
 | 61 | The outbox relay and the notification dispatcher keep no run history | Low | Deliberate. Both are continuous pollers — five and fifteen seconds — so journalling each pass would write over twenty thousand rows a day and drown the four rows that answer a question. Their health is visible in their own terms instead: outbox depth and the age of the oldest undelivered message on the same screen, and the notification delivery log. If a poller stops, the age climbs, which is the signal that matters. |
 | 62 | The job summary reports the newest run's instance, not every instance | Medium | Each row is stored with the process that wrote it, and the run history shows it, so "failing on one machine only" is visible if somebody opens the job. The summary line is not grouped by instance, so on a multi-instance deployment a job failing on one of two reads as intermittent rather than as one broken machine. Needs the summary to group by job **and** instance, which is a wider table and a decision about how it reads on a single-instance deployment, where it would be noise. |
-| 63 | Nothing asserts that a declared instrument is ever emitted | Medium | The root cause behind #60, and it is still open. Five instruments are declared and there is no test that fails when one of them has no caller — the defect was found by hand, three phases late. An architecture test could assert that every public method on `PlatformMetrics` is called from somewhere outside its own assembly, which would have caught it on the day it was written. |
+| 63 | ~~Nothing asserts that a declared instrument is ever emitted~~ | — | ✅ **Resolved, and it found a second one within a minute.** `InstrumentCoverageTests` reflects the recording methods off `PlatformMetrics` and fails the build if any has no caller in `src/`. On its first run it named `ccp.outbox.dispatches` — declared in Phase 14, never wired to the relay it describes, and answering "are events getting out?" with silence. So the class of bug that produced #60 had already produced a second instance nobody had noticed. It cannot prove a call is on a path that runs; it catches the failure that actually happened, twice. |
 | 57 | A provider can only be turned on and off from the screen | Low | Registering one, and changing its resilience settings, its redacted field list or its credential reference, is still an API call. The BFF routes for both exist and no form calls them. Registration is a rare, careful act performed once per provider, which is why it is the part left for later rather than the part built first. |
 | 58 | Settings can only be changed at Platform scope from the screen | Medium | The API takes a scope and a scope id; the screen sends `Platform` and null. So the count of overrides is visible and a company- or application-scoped override can be neither set nor cleared from the portal — which is the case where narrowest-wins resolution actually earns its complexity. It needs a scope picker that knows which companies and applications exist. |
 | 59 | Flag targeting cannot be edited from the screen | Medium | The toggle sends the flag's existing role and unit ids back unchanged, so a flag can be turned on and off and cannot be aimed. A targeted rollout is still an API call — and #50 means the feature-state endpoint would answer *off* for everybody anyway, so aiming one is not useful until that is fixed. The two are one piece of work. |
@@ -1831,6 +1831,18 @@ than as one broken machine; the run history does show it. And the seven alerts
 are still documentation (#55), because the backend they would be created in is
 still undecided.
 
+**A postscript, written after the phase was otherwise finished.** The guard for
+#63 — an architecture test asserting that every recording method on
+`PlatformMetrics` has a caller — was added last, as a way of closing the class of
+bug rather than only the instance. It failed on its first run, on a second
+instrument: `ccp.outbox.dispatches`, declared in Phase 14, never wired to the
+relay it describes, answering "are events getting out?" with silence for three
+phases. So **two of the five instruments the Platform declares were emitted by
+nothing**, both had prose written about them, and both read as healthy. The one
+found by hand took three phases and a phase dedicated to the subject. The one
+found by the guard took under a minute. That difference is the whole argument for
+writing the guard rather than only fixing the bug.
+
 ---
 
 ## 19. Next step
@@ -1854,5 +1866,7 @@ Still outstanding across all phases:
   history's own thirty days — is still an `appsettings` value needing a
   deployment to change, which is precisely the problem that module was built to
   solve.
-- **Nothing asserts that a declared instrument is emitted** (#63). One class of
-  bug was found by hand this phase; the class is still open.
+- ~~Nothing asserts that a declared instrument is emitted~~ — closed within the
+  phase, and the guard immediately found a second dead instrument
+  (`ccp.outbox.dispatches`) that had been silent since Phase 14. Two of the five
+  declared instruments were reporting nothing, and both alerts read as healthy.
