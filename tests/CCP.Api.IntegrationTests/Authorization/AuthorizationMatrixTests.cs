@@ -174,15 +174,23 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
     /// <summary>
     /// A body of the kind the endpoint says it accepts.
     /// <para>
-    /// <b>This started as a way to stop a false failure and turned into the
-    /// experiment that settles a real question.</b> The upload endpoints
-    /// answered 415 to a JSON body, and where that 415 is produced decides
-    /// whether the Platform has a hole: parameter binding and the handler run
-    /// <i>after</i> the authorization middleware, so a 415 from there would mean
-    /// authorization had already let an anonymous caller through. Sending a body
-    /// the endpoint accepts removes that explanation — if the answer becomes 401
-    /// the refusal was always ordered correctly, and if it stays 415 the
-    /// authorization middleware is not protecting these endpoints at all.
+    /// <b>This began as a way to stop a false failure and became the experiment
+    /// that settled a real question.</b> On the first run the two upload
+    /// endpoints answered 415 to a JSON body, and where that 415 comes from
+    /// decides whether the Platform has a hole: binding and the handler run
+    /// <i>after</i> the authorization middleware, so a 415 produced there would
+    /// mean an anonymous caller had already been let through. Sending a body of
+    /// the declared kind removes that explanation and leaves only one reading of
+    /// the result.
+    /// </para>
+    /// <para>
+    /// <b>The answer became 401.</b> The refusal was correctly ordered all along
+    /// and the 415 was the test's own doing — the framework rejects a
+    /// mismatched content type on a form endpoint before the pipeline reaches
+    /// authorization. Recorded here rather than quietly deleted, because the
+    /// reasoning is the reusable part: a status other than 401 from this test is
+    /// not automatically a false alarm, and which one it is depends on where in
+    /// the pipeline it was produced.
     /// </para>
     /// </summary>
     private static HttpContent? BodyFor(RouteEndpoint endpoint, string method)

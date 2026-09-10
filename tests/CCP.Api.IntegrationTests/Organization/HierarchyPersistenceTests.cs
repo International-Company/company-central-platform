@@ -46,8 +46,8 @@ public sealed class HierarchyPersistenceTests(PlatformApiFactory factory)
 
         // root ── engineering ── backend ── platform
         //     └── operations
-        (Guid rootId, string rootPath) = await AUnitAsync(companyId, null, "ROOT");
-        (Guid engineeringId, _) = await AUnitAsync(companyId, rootId, "ENG");
+        (Guid rootId, _) = await AUnitAsync(companyId, null, "ROOT");
+        (Guid engineeringId, string engineeringPath) = await AUnitAsync(companyId, rootId, "ENG");
         (Guid backendId, _) = await AUnitAsync(companyId, engineeringId, "BACKEND");
         (Guid platformId, _) = await AUnitAsync(companyId, backendId, "PLATFORM");
         (Guid operationsId, string operationsPath) = await AUnitAsync(companyId, rootId, "OPS");
@@ -67,10 +67,15 @@ public sealed class HierarchyPersistenceTests(PlatformApiFactory factory)
         Assert.StartsWith(backend.Path, platform.Path, StringComparison.Ordinal);
         Assert.Equal(backend.Depth + 1, platform.Depth);
 
-        // And it must no longer be under where it came from.
-        Assert.DoesNotContain(engineeringId.ToString("N")[..8], platform.Path, StringComparison.Ordinal);
-
-        _ = rootPath;
+        // And it must no longer be under where it came from. Compared against
+        // the whole of the old parent path rather than a truncated id: the ids
+        // are UUIDv7, whose leading hex is a millisecond timestamp, so every
+        // unit created in the same instant shares its first several characters
+        // and a substring check on eight of them matches everything. That is
+        // how this assertion first failed -- against correct behaviour.
+        Assert.False(
+            platform.Path.StartsWith(engineeringPath, StringComparison.Ordinal),
+            "The grandchild is still under the branch its parent was moved out of.");
     }
 
     /// <summary>
