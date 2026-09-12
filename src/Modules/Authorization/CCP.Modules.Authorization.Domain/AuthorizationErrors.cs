@@ -126,6 +126,28 @@ public static class AuthorizationErrors
     // --- Grants ------------------------------------------------------------
 
     /// <summary>
+    /// The operation would leave nobody able to grant a role to anybody.
+    /// <para>
+    /// <b>There is no way back from this.</b> Bootstrapping refuses to run once
+    /// any user exists — correctly, because an endpoint that creates an
+    /// administrator on an empty database is a back door on a full one — so a
+    /// Platform with no granting account cannot be recovered through any
+    /// interface it offers. Somebody has to write the row by hand, in the
+    /// database, in production.
+    /// </para>
+    /// <para>
+    /// Refused rather than answered with a recovery path, because a recovery
+    /// path is a way in and a way in is a way in for whoever finds it. Grant
+    /// somebody else first; then this operation is permitted.
+    /// </para>
+    /// </summary>
+    public static readonly Error WouldStrandThePlatform = Error.Rule(
+        "AUTHZ.WOULD_STRAND_THE_PLATFORM",
+        "This is the last way anybody has of granting a role, and removing it cannot be "
+        + "undone from anywhere in the Platform. Give somebody else the ability to grant "
+        + "roles first.");
+
+    /// <summary>
     /// Nobody grants themselves a role. Without this, anyone who reaches the
     /// grant endpoint at all can escalate to anything.
     /// </summary>

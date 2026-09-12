@@ -9,6 +9,7 @@ using CCP.Kernel.Api.Security;
 using CCP.Kernel.Api.Versioning;
 using CCP.Kernel.Application.Abstractions;
 using CCP.Kernel.Application.Auditing;
+using CCP.Kernel.Application.Security;
 using CCP.Kernel.Application.Configuration;
 using CCP.Kernel.Application.Events;
 using CCP.Kernel.Application.Jobs;
@@ -118,6 +119,12 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 // starts. The Audit module replaces it; registration order makes that work,
 // since the last registration of a service type wins.
 builder.Services.AddScoped<IAuditTrail, NullAuditTrail>();
+
+// Whether disabling an account would leave nobody able to grant a role.
+// Identity asks; Authorization answers; neither references the other. The
+// default here says no, because a host without Authorization has no grants to
+// be the last of.
+builder.Services.AddScoped<IAdministratorSafety, NoGrantsToStrand>();
 
 // Settings a module may read without knowing the Configuration module exists.
 // The default answers every caller with the value it shipped with, so a host

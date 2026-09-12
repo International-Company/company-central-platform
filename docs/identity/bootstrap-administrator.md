@@ -108,19 +108,42 @@ a hole to be convenient.
 
 ---
 
-## 7. Recovery
+## 7. There is still no recovery path, and now you cannot get there
 
-If the last administrator account is lost, there is currently **no recovery
-path**: bootstrapping refuses to run once users exist. This is intentional but
-it is also a real operational risk.
+If the last account able to grant a role is lost, there is **no way back**.
+Bootstrapping refuses to run once users exist — correctly, because an endpoint
+that creates an administrator on an empty database is a back door on a full one.
+Somebody with database access has to write the row by hand, in production.
 
-The mitigations are procedural rather than technical, and belong to Phase 4 when
-roles exist:
+**So the answer is a guard, not a recovery path.** A recovery path is a way in,
+and a way in is a way in for whoever finds it. Four operations are refused when
+they would be the one that strands the Platform:
 
-- More than one person holds the administrator role.
-- The break-glass procedure is documented in `docs/deployment/`.
+| Operation | Refused when |
+|---|---|
+| Disabling an account (`IDENTITY.WOULD_STRAND_THE_PLATFORM`) | It is the last account holding `platform.roles.assign` |
+| Revoking a role grant (`AUTHZ.WOULD_STRAND_THE_PLATFORM`) | It is the last live grant carrying that permission |
+| Emptying a role of permissions | That role is the only one whose holders carry it |
+| Switching a role off | The same — a permission carried by an inactive role is not carried |
+
+The question is asked of the **grants**, not of the people. One person can hold
+the permission through two roles, so revoking one of their assignments is safe
+while revoking the other is not, and a count of administrators cannot tell those
+apart.
+
+Identity does not learn what a role is in order to do this. It asks the kernel
+(`IAdministratorSafety`), and Authorization answers — the same seam shape as the
+audit trail and the job journal.
+
+**If nobody can grant anything already, nothing is refused.** The Platform is
+already stranded, and a guard that fires after the damage would only add a
+confusing error to an unrelated action.
+
+The procedural mitigations still matter, because a guard stops an accident and
+not a lost password:
+
+- More than one person holds a role carrying `platform.roles.assign`. The
+  Platform now makes it awkward to end up otherwise; it cannot make it
+  impossible, because the second person can simply never be given the role.
 - The database backup can be restored, but that loses everything since the last
   one.
-
-**This should be revisited in Phase 4**, when the authorization model can express
-"more than one administrator" properly.

@@ -228,6 +228,22 @@ public sealed class RevokeRoleHandler(
 
         Role? role = await repository.FindRoleAsync(assignment.RoleId, cancellationToken);
 
+        // The last way anybody has of granting anything.
+        //
+        // Asked of the grants rather than of the people, because one person can
+        // hold the permission through two roles -- revoking one of their
+        // assignments is safe and revoking the other is not, and a count of
+        // administrators cannot tell those apart.
+        IReadOnlyList<GrantingAssignment> granting =
+            await repository.GetGrantingAssignmentsAsync(
+                AdministratorSafety.GrantPermission, now, cancellationToken);
+
+        if (granting.Count > 0
+            && granting.All(candidate => candidate.AssignmentId == assignment.Id))
+        {
+            return Result.Failure(AuthorizationErrors.WouldStrandThePlatform);
+        }
+
         assignment.Revoke(command.ActingUserId, now);
 
         await outbox.EnqueueAsync(

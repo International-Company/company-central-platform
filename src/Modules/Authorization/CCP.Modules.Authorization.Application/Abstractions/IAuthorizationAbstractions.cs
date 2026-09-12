@@ -103,6 +103,15 @@ public interface IOrganizationScopeReader
     Task<string?> GetUnitPathForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// One live grant that carries a permission: which grant, to whom, through which
+/// role.
+/// </summary>
+/// <param name="AssignmentId">The grant itself, so revoking it can be reasoned about.</param>
+/// <param name="UserId">Who holds it.</param>
+/// <param name="RoleId">Through which role, so emptying or disabling that role can be too.</param>
+public sealed record GrantingAssignment(Guid AssignmentId, Guid UserId, Guid RoleId);
+
 /// <summary>Persistence for the Authorization module.</summary>
 public interface IAuthorizationRepository
 {
@@ -188,6 +197,23 @@ public interface IAuthorizationRepository
     Task<bool> AssignmentExistsAsync(
         Guid userId, Guid roleId, Domain.Scopes.ScopeType scopeType, Guid? scopeUnitId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every live grant that currently carries a named permission.
+    /// <para>
+    /// <b>The question behind the last-administrator guard.</b> It has to be
+    /// asked of the grants rather than of the users, because the same person can
+    /// hold the permission twice through two roles — so revoking one of their
+    /// assignments is safe while revoking the other is not, and a count of
+    /// people cannot tell those apart.
+    /// </para>
+    /// <para>
+    /// Live means the assignment is neither revoked nor expired and its role is
+    /// active. A permission carried by a switched-off role is not carried.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<GrantingAssignment>> GetGrantingAssignmentsAsync(
+        string permissionName, DateTimeOffset asOf, CancellationToken cancellationToken = default);
 
     void AddAssignment(UserRoleAssignment assignment);
 

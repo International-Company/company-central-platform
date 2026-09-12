@@ -252,6 +252,20 @@ public sealed class SetRolePermissionsHandler(
             }
         }
 
+        // Emptying the last role that can grant anything.
+        //
+        // The administrator role is a system role and is already refused above,
+        // so this is about an ordinary role somebody built and everybody
+        // depends on without realising. Checked against the grants rather than
+        // the roles, because a role nobody holds carries nothing.
+        if (!requested.Values.Any(
+                permission => string.Equals(
+                    permission.Name, AdministratorSafety.GrantPermission, StringComparison.Ordinal))
+            && await GrantingRoleGuard.WouldStrandAsync(repository, role.Id, now, cancellationToken))
+        {
+            return Result.Failure<RoleDto>(AuthorizationErrors.WouldStrandThePlatform);
+        }
+
         // Removed first, so a permission that is both removed and re-added
         // cannot end up counted twice.
         foreach (RolePermission existing in role.Permissions.ToList())
@@ -313,6 +327,33 @@ public sealed class SetRolePermissionsHandler(
 /// everyone holding it, without erasing that they did.
 /// </para>
 /// </summary>
+/// <summary>
+/// Whether every remaining way of granting a role runs through one role.
+/// <para>
+/// Shared by the two handlers that can take a role out of service — emptying it
+/// of permissions, and switching it off — because both leave the Platform in the
+/// same unrecoverable state and the reasoning is identical.
+/// </para>
+/// </summary>
+internal static class GrantingRoleGuard
+{
+    public static async Task<bool> WouldStrandAsync(
+        IAuthorizationRepository repository,
+        Guid roleId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<GrantingAssignment> granting =
+            await repository.GetGrantingAssignmentsAsync(
+                AdministratorSafety.GrantPermission, now, cancellationToken);
+
+        // Nobody can grant anything already. Refusing here would add a
+        // confusing error to an unrelated action without unstranding anybody.
+        return granting.Count > 0
+            && granting.All(assignment => assignment.RoleId == roleId);
+    }
+}
+
 public sealed class SetRoleActiveHandler(
     IAuthorizationRepository repository,
     IPermissionVersionStore versionStore,
@@ -336,6 +377,16 @@ public sealed class SetRoleActiveHandler(
         }
 
         DateTimeOffset now = clock.UtcNow;
+
+        // Switching off the last role that can grant anything. A permission
+        // carried by an inactive role is not carried, so this strands the
+        // Platform exactly as emptying the role would.
+        if (!command.IsActive
+            && await GrantingRoleGuard.WouldStrandAsync(
+                repository, role.Id, now, cancellationToken))
+        {
+            return Result.Failure(AuthorizationErrors.WouldStrandThePlatform);
+        }
 
         Result changed = command.IsActive ? role.Reactivate(now) : role.Deactivate(now);
 

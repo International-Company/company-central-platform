@@ -1,4 +1,5 @@
 using CCP.Kernel.Application.Auditing;
+using CCP.Kernel.Application.Security;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Identity.Application.Abstractions;
@@ -188,6 +189,7 @@ public sealed class ChangeUserStatusHandler(
     IIdentityOutbox outbox,
     IIdentityUnitOfWork unitOfWork,
     IAuditTrail auditTrail,
+    IAdministratorSafety administrators,
     IClock clock)
 {
     public async Task<Result> HandleAsync(
@@ -217,6 +219,30 @@ public sealed class ChangeUserStatusHandler(
         {
             case UserStatusAction.Disable:
                 {
+                    // The last account that can grant a role to anybody.
+                    //
+                    // Identity does not know what a role is, and must not. It
+                    // asks the kernel, which Authorization answers -- the same
+                    // seam shape as the audit trail. Without this, disabling one
+                    // account can leave a Platform that nobody can ever be given
+                    // access to again, recoverable only by writing a row into
+                    // the production database by hand.
+                    if (await administrators.IsTheLastGrantingUserAsync(
+                            user.Id, cancellationToken))
+                    {
+                        await auditTrail.RecordAsync(
+                            new AuditEntry(
+                                "identity",
+                                "user.disabled",
+                                AuditOutcome.Denied,
+                                "user",
+                                user.Id.ToString(),
+                                Metadata: """{"reason":"last granting account"}"""),
+                            cancellationToken);
+
+                        return Result.Failure(IdentityErrors.WouldStrandThePlatform);
+                    }
+
                     Result result = user.Disable(now);
 
                     if (result.IsFailure)

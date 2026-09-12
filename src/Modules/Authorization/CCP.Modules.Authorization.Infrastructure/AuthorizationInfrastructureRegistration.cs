@@ -54,6 +54,12 @@ public static class AuthorizationInfrastructureRegistration
         services.AddScoped<IOrganizationScopeReader, OrganizationScopeReader>();
         services.AddScoped<IAccessDenialRecorder, AccessDenialRecorder>();
 
+        // The kernel's question about the last administrator, answered here
+        // because this is the module that knows what a grant is. Registered
+        // after the kernel's default, which it replaces.
+        services.AddScoped<CCP.Kernel.Application.Security.IAdministratorSafety,
+            PlatformAdministratorSafety>();
+
         // The permission cache is a singleton over IMemoryCache, so it survives
         // across requests. Correctness comes from the version stamp, not from
         // the cache's lifetime.

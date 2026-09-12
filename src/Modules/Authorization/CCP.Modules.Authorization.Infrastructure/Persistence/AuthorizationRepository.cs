@@ -128,6 +128,36 @@ public sealed class AuthorizationRepository(AuthorizationDbContext dbContext) : 
             .OrderByDescending(a => a.GrantedAt)
             .ToListAsync(cancellationToken);
 
+    /// <summary>
+    /// One query across grants, roles and role-permissions.
+    /// <para>
+    /// Joined in the database rather than assembled in memory: the alternative
+    /// is reading every assignment in the company to answer a question asked on
+    /// every account disable.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<GrantingAssignment>> GetGrantingAssignmentsAsync(
+        string permissionName, DateTimeOffset asOf, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(permissionName);
+
+        var query =
+            from assignment in dbContext.Assignments.AsNoTracking()
+            where assignment.RevokedAt == null
+                  && (assignment.ExpiresAt == null || assignment.ExpiresAt > asOf)
+            join role in dbContext.Roles.AsNoTracking()
+                on assignment.RoleId equals role.Id
+            where role.IsActive
+            join rolePermission in dbContext.RolePermissions.AsNoTracking()
+                on role.Id equals rolePermission.RoleId
+            join permission in dbContext.Permissions.AsNoTracking()
+                on rolePermission.PermissionId equals permission.Id
+            where permission.Name == permissionName
+            select new GrantingAssignment(assignment.Id, assignment.UserId, role.Id);
+
+        return await query.Distinct().ToListAsync(cancellationToken);
+    }
+
     public Task<bool> AssignmentExistsAsync(
         Guid userId,
         Guid roleId,

@@ -96,6 +96,27 @@ public static class IdentityErrors
         "IDENTITY.CANNOT_MODIFY_SELF",
         "You cannot perform this action on your own account.");
 
+    /// <summary>
+    /// Disabling this account would leave nobody able to grant a role.
+    /// <para>
+    /// <b>There is no way back from it.</b> Bootstrapping refuses to run once
+    /// any user exists — correctly, because an endpoint that creates an
+    /// administrator on an empty database is a back door on a full one — so a
+    /// Platform with no granting account cannot be recovered through any
+    /// interface it offers. Somebody has to write the row by hand, in
+    /// production.
+    /// </para>
+    /// <para>
+    /// Identity does not know what a role is and does not learn it here: the
+    /// question goes to the kernel, which Authorization answers.
+    /// </para>
+    /// </summary>
+    public static readonly Error WouldStrandThePlatform = Error.Rule(
+        "IDENTITY.WOULD_STRAND_THE_PLATFORM",
+        "This is the last account that can grant a role to anybody, and disabling it cannot "
+        + "be undone from anywhere in the Platform. Give somebody else the ability to grant "
+        + "roles first.");
+
     // --- Field validation --------------------------------------------------
 
     public static readonly Error UsernameRequired = Error.Validation(

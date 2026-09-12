@@ -315,6 +315,11 @@ public sealed class DelegatedPermissionTests
             CancellationToken cancellationToken = default)
             => Task.FromResult(false);
 
+        public Task<IReadOnlyList<GrantingAssignment>> GetGrantingAssignmentsAsync(
+            string permissionName, DateTimeOffset asOf,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<GrantingAssignment>>([]);
+
         public void AddAssignment(UserRoleAssignment assignment)
         {
         }
