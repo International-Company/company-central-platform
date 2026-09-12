@@ -30,6 +30,16 @@ public sealed class IntegrationsModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<GetProviderHealthHandler>();
         services.AddScoped<SearchCallLogHandler>();
         services.AddScoped<ReceiveWebhookHandler>();
+
+        // Outbound subscriptions: who has asked to be told when something
+        // happens, and what became of each attempt to tell them.
+        services.AddScoped<RegisterSubscriptionHandler>();
+        services.AddScoped<ReconfigureSubscriptionHandler>();
+        services.AddScoped<SetSubscriptionEnabledHandler>();
+        services.AddScoped<ResumeSubscriptionHandler>();
+        services.AddScoped<DeleteSubscriptionHandler>();
+        services.AddScoped<GetSubscriptionsHandler>();
+        services.AddScoped<GetDeliveriesHandler>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder versionGroup)

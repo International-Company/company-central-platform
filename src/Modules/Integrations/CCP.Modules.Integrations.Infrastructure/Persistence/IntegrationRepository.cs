@@ -113,6 +113,91 @@ public sealed class IntegrationRepository(IntegrationDbContext dbContext) : IInt
 
         return (calls, receipts);
     }
+
+    // --- Outbound webhooks --------------------------------------------------
+
+    public async Task<WebhookSubscription?> FindSubscriptionAsync(
+        Guid subscriptionId, CancellationToken cancellationToken = default)
+        => await dbContext.WebhookSubscriptions
+            .FirstOrDefaultAsync(s => s.Id == subscriptionId, cancellationToken);
+
+    public async Task<IReadOnlyList<WebhookSubscription>> GetSubscriptionsAsync(
+        Guid? applicationId, CancellationToken cancellationToken = default)
+        => await dbContext.WebhookSubscriptions
+            .AsNoTracking()
+            .Where(s => applicationId == null || s.ApplicationId == applicationId)
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// Live subscriptions only, filtered on the event type in the database.
+    /// <para>
+    /// The membership test runs in PostgreSQL rather than in memory. Reading
+    /// every subscription on every event and filtering here would work for a
+    /// handful and quietly become the most expensive thing the Platform does.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<WebhookSubscription>> GetLiveSubscriptionsForAsync(
+        string eventType, CancellationToken cancellationToken = default)
+        => await dbContext.WebhookSubscriptions
+            .AsNoTracking()
+            .Where(s => s.IsEnabled
+                        && s.SuspendedAt == null
+                        && s.EventTypes.Contains(eventType))
+            .ToListAsync(cancellationToken);
+
+    public void AddSubscription(WebhookSubscription subscription)
+        => dbContext.WebhookSubscriptions.Add(subscription);
+
+    public void RemoveSubscription(WebhookSubscription subscription)
+        => dbContext.WebhookSubscriptions.Remove(subscription);
+
+    public void AddDelivery(WebhookDelivery delivery)
+        => dbContext.WebhookDeliveries.Add(delivery);
+
+    /// <summary>
+    /// Claims a batch with <c>FOR UPDATE SKIP LOCKED</c>.
+    /// <para>
+    /// The same mechanism the outbox relay uses, for the same reason: two
+    /// instances sweeping at the same moment take different rows instead of both
+    /// taking the same one. Without it, every delivery on a two-instance
+    /// deployment is posted twice on every pass -- which is not what
+    /// at-least-once is supposed to mean.
+    /// </para>
+    /// <para>
+    /// The lock is held by the transaction the caller commits, so the rows stay
+    /// claimed for exactly as long as this pass takes.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<WebhookDelivery>> ClaimDueDeliveriesAsync(
+        DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default)
+        => await dbContext.WebhookDeliveries
+            .FromSql($"""
+                SELECT * FROM integrations.webhook_deliveries
+                WHERE status = 1 AND next_attempt_at <= {asOf}
+                ORDER BY next_attempt_at
+                LIMIT {batchSize}
+                FOR UPDATE SKIP LOCKED
+                """)
+            .ToListAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<WebhookDelivery> Items, long Total)> SearchDeliveriesAsync(
+        Guid subscriptionId, int skip, int take, CancellationToken cancellationToken = default)
+    {
+        IQueryable<WebhookDelivery> query = dbContext.WebhookDeliveries
+            .AsNoTracking()
+            .Where(d => d.SubscriptionId == subscriptionId);
+
+        long total = await query.LongCountAsync(cancellationToken);
+
+        List<WebhookDelivery> items = await query
+            .OrderByDescending(d => d.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
 }
 
 /// <summary>Commits the Integrations module's changes.</summary>

@@ -30,17 +30,13 @@ public sealed class IntegrationEventDispatcher(
 
         object[] handlers = [.. serviceProvider.GetServices(handlerType).OfType<object>()];
 
-        if (handlers.Length == 0)
+        if (handlers.Length == 0 && logger.IsEnabled(LogLevel.Debug))
         {
-            // Not an error. An event with no subscriber yet is normal — Audit
-            // will subscribe to most of them in Phase 6.
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                logger.LogDebug(
-                    "No handler registered for {EventType}. Message marked processed.",
-                    integrationEvent.EventType);
-            }
-            return;
+            // Not an error. An event with no typed subscriber is normal, and it
+            // may still have observers -- so this logs and carries on rather
+            // than returning, which is what it used to do.
+            logger.LogDebug(
+                "No handler registered for {EventType}.", integrationEvent.EventType);
         }
 
         foreach (object handler in handlers)
@@ -49,6 +45,15 @@ public sealed class IntegrationEventDispatcher(
             // and causes a retry of all its handlers. That is why handlers must
             // be idempotent.
             await InvokeAsync(handler, handlerType, integrationEvent, cancellationToken);
+        }
+
+        // Then whoever wanted all of them. Outbound webhooks are the reason this
+        // exists: which events matter is chosen by a business application at
+        // runtime, so no typed subscription could express it.
+        foreach (IIntegrationEventObserver observer in
+                 serviceProvider.GetServices<IIntegrationEventObserver>())
+        {
+            await observer.ObserveAsync(integrationEvent, cancellationToken);
         }
     }
 

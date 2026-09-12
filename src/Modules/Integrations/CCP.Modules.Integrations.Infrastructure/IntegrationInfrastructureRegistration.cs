@@ -2,6 +2,7 @@ using System.Net.Http;
 using CCP.Modules.Integrations.Application;
 using CCP.Modules.Integrations.Application.Abstractions;
 using CCP.Modules.Integrations.Infrastructure.Outbound;
+using CCP.Modules.Integrations.Infrastructure.Webhooks;
 using CCP.Modules.Integrations.Infrastructure.Persistence;
 using CCP.Modules.Integrations.Infrastructure.SecretResolution;
 using Microsoft.EntityFrameworkCore;
@@ -78,6 +79,16 @@ public static class IntegrationInfrastructureRegistration
             });
 
         services.AddScoped<IIntegrationConnector, HttpIntegrationConnector>();
+
+        // Every Platform event is offered to the fan-out, which turns it into
+        // one queued delivery per interested subscriber. Registered as an
+        // observer rather than as handlers, because which events matter is
+        // chosen by a business application at runtime and cannot be named here.
+        services.AddScoped<CCP.Kernel.Application.Events.IIntegrationEventObserver, WebhookFanOut>();
+
+        // And the sweep that posts them, through the same guarded socket as
+        // every other outbound call.
+        services.AddHostedService<WebhookDeliverySweep>();
 
         services.AddHostedService<RetentionSweep>();
 

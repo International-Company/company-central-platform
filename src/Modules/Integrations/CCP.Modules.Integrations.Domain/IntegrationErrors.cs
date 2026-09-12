@@ -64,6 +64,71 @@ public static class IntegrationErrors
         $"The secret '{reference}' could not be resolved. The provider is configured and its "
         + "credential is not available.");
 
+    // --- Webhook subscriptions ----------------------------------------------
+
+    public static readonly Error SubscriptionApplicationRequired = Error.Validation(
+        "INTEGRATIONS.SUBSCRIPTION_APPLICATION_REQUIRED",
+        "A subscription belongs to a registered application.", "applicationId");
+
+    public static readonly Error SubscriptionNameRequired = Error.Validation(
+        "INTEGRATIONS.SUBSCRIPTION_NAME_REQUIRED", "A subscription needs a name.", "name");
+
+    /// <summary>
+    /// The address is not one the Platform will post to.
+    /// <para>
+    /// Refusals that need no network lookup: a relative address, a scheme that
+    /// is not http or https, or credentials in the URL — the last because
+    /// <c>https://trusted.example@evil.test/</c> points at evil.test and reads,
+    /// to a human skimming a list of subscriptions, as the allowed host.
+    /// </para>
+    /// <para>
+    /// Whether the host is <i>allowed</i> is the outbound guard's answer, not
+    /// this one, and it is the same answer for every outbound call.
+    /// </para>
+    /// </summary>
+    public static readonly Error SubscriptionEndpointInvalid = Error.Validation(
+        "INTEGRATIONS.SUBSCRIPTION_ENDPOINT_INVALID",
+        "That is not an address the Platform will post to. Use an absolute http or https URL "
+        + "with no credentials in it.",
+        "endpoint");
+
+    public static readonly Error SubscriptionEventsRequired = Error.Validation(
+        "INTEGRATIONS.SUBSCRIPTION_EVENTS_REQUIRED",
+        "Name at least one event type. There is deliberately no way to ask for everything: a "
+        + "subscription that received every event would receive ones nobody told you about.",
+        "eventTypes");
+
+    /// <summary>
+    /// No signing secret was named.
+    /// <para>
+    /// Refused rather than defaulted to unsigned. A webhook the receiver cannot
+    /// authenticate is a message anybody on the internet can forge, and "we will
+    /// add signing later" is how it never gets added.
+    /// </para>
+    /// </summary>
+    public static readonly Error SubscriptionSecretRequired = Error.Validation(
+        "INTEGRATIONS.SUBSCRIPTION_SECRET_REQUIRED",
+        "Name the secret the Platform should sign with. This is a reference such as "
+        + "'integrations/acme/webhook-secret'; the value lives in the secret store.",
+        "secretReference");
+
+    public static readonly Error SubscriptionNotFound = Error.NotFound(
+        "INTEGRATIONS.SUBSCRIPTION_NOT_FOUND", "The subscription does not exist.");
+
+    /// <summary>
+    /// The address is refused by the outbound policy.
+    /// <para>
+    /// Checked when the subscription is registered rather than discovered when
+    /// an event fires. A subscription nobody can deliver to is a subscription
+    /// whose owner believes they are being told things.
+    /// </para>
+    /// </summary>
+    public static readonly Error SubscriptionEndpointRefused = Error.Validation(
+        "INTEGRATIONS.SUBSCRIPTION_ENDPOINT_REFUSED",
+        "The Platform is not allowed to call that address. Add the host to the outbound "
+        + "allow-list first.",
+        "endpoint");
+
     // --- Endpoints ----------------------------------------------------------
 
     public static readonly Error EndpointKeyRequired = Error.Validation(

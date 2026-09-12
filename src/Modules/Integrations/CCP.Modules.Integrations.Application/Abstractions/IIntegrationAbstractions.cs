@@ -191,4 +191,44 @@ public interface IIntegrationRepository
         DateTimeOffset receiptsBefore,
         int batchSize,
         CancellationToken cancellationToken = default);
+
+    // --- Outbound webhooks --------------------------------------------------
+
+    Task<WebhookSubscription?> FindSubscriptionAsync(
+        Guid subscriptionId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<WebhookSubscription>> GetSubscriptionsAsync(
+        Guid? applicationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The subscriptions that want an event type and are still being delivered
+    /// to.
+    /// <para>
+    /// Asked once per event, so it reads only what it needs. A suspended or
+    /// switched-off subscription is absent rather than returned and skipped,
+    /// because a delivery row for one would be a row nothing will ever pick up.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<WebhookSubscription>> GetLiveSubscriptionsForAsync(
+        string eventType, CancellationToken cancellationToken = default);
+
+    void AddSubscription(WebhookSubscription subscription);
+
+    void RemoveSubscription(WebhookSubscription subscription);
+
+    void AddDelivery(WebhookDelivery delivery);
+
+    /// <summary>
+    /// The deliveries that are due, oldest first, claimed for this instance.
+    /// <para>
+    /// <c>FOR UPDATE SKIP LOCKED</c>, so two instances sweeping at once take
+    /// different rows rather than both taking the same one and posting the same
+    /// event twice. At-least-once is the promise; twice on every pass is not.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<WebhookDelivery>> ClaimDueDeliveriesAsync(
+        DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<WebhookDelivery> Items, long Total)> SearchDeliveriesAsync(
+        Guid subscriptionId, int skip, int take, CancellationToken cancellationToken = default);
 }

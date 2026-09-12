@@ -4046,6 +4046,257 @@
         }
       }
     },
+    "/api/v1/integrations/subscriptions": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Who has asked to be told when something happens.",
+        "description": "**Requires:** `platform.integrations.view`",
+        "operationId": "GetWebhookSubscriptions",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookSubscriptionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Subscribes an application to a set of Platform events.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "RegisterWebhookSubscription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/subscriptions/{id}": {
+      "put": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Changes where a subscription posts, and which events it wants.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "ReconfigureWebhookSubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Removes a subscription. Its delivery history goes with it.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "DeleteWebhookSubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/subscriptions/{id}/status": {
+      "put": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Turns a subscription on or off.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "SetWebhookSubscriptionEnabled",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSubscriptionEnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/subscriptions/{id}/resume": {
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Brings a suspended subscription back, and clears what suspended it.",
+        "description": "**Requires:** `platform.integrations.manage`",
+        "operationId": "ResumeWebhookSubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/subscriptions/{id}/deliveries": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "What happened to the events this subscription was meant to receive.",
+        "description": "**Requires:** `platform.integrations.view`",
+        "operationId": "GetWebhookDeliveries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfWebhookDeliveryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/configuration/settings": {
       "get": {
         "tags": [
@@ -7353,6 +7604,61 @@
           }
         }
       },
+      "PagedResultOfWebhookDeliveryDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalItems"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryDto"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalItems": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
       "PagedResultOfWorkflowInstanceDto": {
         "required": [
           "items",
@@ -7781,6 +8087,40 @@
             "type": "string"
           },
           "baseAddress": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterSubscriptionRequest": {
+        "required": [
+          "applicationId",
+          "name",
+          "endpoint",
+          "eventTypes",
+          "secretReference"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "eventTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "secretReference": {
             "type": "string"
           }
         }
@@ -8274,6 +8614,17 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SetSubscriptionEnabledRequest": {
+        "required": [
+          "isEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean"
           }
         }
       },
@@ -8787,6 +9138,152 @@
               "null",
               "string"
             ],
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookDeliveryDto": {
+        "required": [
+          "id",
+          "eventId",
+          "eventType",
+          "status",
+          "attempts",
+          "nextAttemptAt",
+          "responseStatusCode",
+          "lastError",
+          "createdAt",
+          "deliveredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "attempts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responseStatusCode": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookSubscriptionDto": {
+        "required": [
+          "id",
+          "applicationId",
+          "name",
+          "endpoint",
+          "eventTypes",
+          "secretReference",
+          "isEnabled",
+          "suspendedAt",
+          "suspendedReason",
+          "consecutiveFailures",
+          "lastDeliveredAt",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "eventTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "secretReference": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "suspendedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "suspendedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "consecutiveFailures": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastDeliveredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
             "format": "date-time"
           }
         }

@@ -73,3 +73,48 @@ public sealed record IntegrationHealthDto(
     DateTimeOffset? LastCallAt,
     DateTimeOffset? LastSuccessAt,
     string Status);
+
+/// <summary>
+/// A standing request from a business application to be told when something
+/// happens.
+/// </summary>
+/// <param name="SecretReference">
+/// The <b>name</b> of the signing secret, never its value. There is no field
+/// anywhere in this module that could carry one.
+/// </param>
+/// <param name="SuspendedAt">
+/// When the Platform stopped trying, or null. Suspended rather than deleted, so
+/// the owner's configuration survives and somebody can resume it.
+/// </param>
+public sealed record WebhookSubscriptionDto(
+    Guid Id,
+    Guid ApplicationId,
+    string Name,
+    string Endpoint,
+    IReadOnlyList<string> EventTypes,
+    string SecretReference,
+    bool IsEnabled,
+    DateTimeOffset? SuspendedAt,
+    string? SuspendedReason,
+    int ConsecutiveFailures,
+    DateTimeOffset? LastDeliveredAt,
+    DateTimeOffset CreatedAt);
+
+/// <summary>
+/// One event on its way to one subscriber, and what became of it.
+/// <para>
+/// The answer to "did you send it?", which is the first thing asked when a
+/// business system's state disagrees with the Platform's.
+/// </para>
+/// </summary>
+public sealed record WebhookDeliveryDto(
+    Guid Id,
+    Guid EventId,
+    string EventType,
+    string Status,
+    int Attempts,
+    DateTimeOffset NextAttemptAt,
+    int? ResponseStatusCode,
+    string? LastError,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? DeliveredAt);

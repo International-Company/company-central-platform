@@ -28,6 +28,10 @@ public sealed class IntegrationDbContext(DbContextOptions<IntegrationDbContext> 
 
     public DbSet<WebhookReceipt> WebhookReceipts => Set<WebhookReceipt>();
 
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(SchemaName);
@@ -36,6 +40,8 @@ public sealed class IntegrationDbContext(DbContextOptions<IntegrationDbContext> 
         ConfigureEndpoints(modelBuilder);
         ConfigureCallLog(modelBuilder);
         ConfigureWebhookReceipts(modelBuilder);
+        ConfigureWebhookSubscriptions(modelBuilder);
+        ConfigureWebhookDeliveries(modelBuilder);
 
         modelBuilder.ConfigureOutbox();
 
@@ -144,5 +150,69 @@ public sealed class IntegrationDbContext(DbContextOptions<IntegrationDbContext> 
                 .IsUnique();
 
             entity.HasIndex(e => e.ReceivedAt).HasDatabaseName("ix_webhook_receipts_received");
+        });
+
+    private static void ConfigureWebhookSubscriptions(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<WebhookSubscription>(entity =>
+        {
+            entity.ToTable("webhook_subscriptions");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Endpoint).HasMaxLength(500).IsRequired();
+
+            // A reference, never a value. There is no column here a secret could
+            // fit in by accident, which is what makes a leaked backup not a leak
+            // of every subscriber's signing key.
+            entity.Property(e => e.SecretReference).HasMaxLength(200).IsRequired();
+
+            entity.Property(e => e.SuspendedReason).HasMaxLength(500);
+
+            // A list of names in one column rather than a child table. They are
+            // read together, written together and never queried individually --
+            // a join table would buy nothing and cost a query on every event.
+            entity.PrimitiveCollection(e => e.EventTypes)
+                  .HasColumnName("event_types")
+                  .HasField("_eventTypes")
+                  .UsePropertyAccessMode(PropertyAccessMode.Field)
+                  .IsRequired();
+
+            // No foreign key to the application: it lives in another schema, and
+            // no foreign key crosses a schema boundary (ADR-004). The id is
+            // checked through Authorization's contract when the subscription is
+            // registered.
+            entity.HasIndex(e => e.ApplicationId)
+                .HasDatabaseName("ix_webhook_subscriptions_application");
+
+            entity.Ignore(e => e.DomainEvents);
+        });
+
+    private static void ConfigureWebhookDeliveries(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<WebhookDelivery>(entity =>
+        {
+            entity.ToTable("webhook_deliveries");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.EventType).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Payload).IsRequired();
+            entity.Property(e => e.Status).HasConversion<int>().IsRequired();
+            entity.Property(e => e.LastError).HasMaxLength(500);
+
+            // The sweep's only query: what is due, oldest first. Without this it
+            // is a scan of every delivery ever made, every few seconds, for ever.
+            entity.HasIndex(e => new { e.Status, e.NextAttemptAt })
+                .HasDatabaseName("ix_webhook_deliveries_due");
+
+            // One delivery per subscription per event. At-least-once delivery
+            // means the fan-out can run twice on the same event -- after a crash
+            // between committing the outbox and committing the rows -- and this
+            // is what stops the second run from sending everything again.
+            entity.HasIndex(e => new { e.SubscriptionId, e.EventId })
+                .HasDatabaseName("ux_webhook_deliveries_event")
+                .IsUnique();
+
+            entity.Ignore(e => e.DomainEvents);
         });
 }

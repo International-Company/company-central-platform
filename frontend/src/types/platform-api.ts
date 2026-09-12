@@ -1920,6 +1920,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who has asked to be told when something happens.
+         * @description **Requires:** `platform.integrations.view`
+         */
+        get: operations["GetWebhookSubscriptions"];
+        put?: never;
+        /**
+         * Subscribes an application to a set of Platform events.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        post: operations["RegisterWebhookSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Changes where a subscription posts, and which events it wants.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        put: operations["ReconfigureWebhookSubscription"];
+        post?: never;
+        /**
+         * Removes a subscription. Its delivery history goes with it.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        delete: operations["DeleteWebhookSubscription"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/subscriptions/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turns a subscription on or off.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        put: operations["SetWebhookSubscriptionEnabled"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/subscriptions/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Brings a suspended subscription back, and clears what suspended it.
+         * @description **Requires:** `platform.integrations.manage`
+         */
+        post: operations["ResumeWebhookSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/subscriptions/{id}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What happened to the events this subscription was meant to receive.
+         * @description **Requires:** `platform.integrations.view`
+         */
+        get: operations["GetWebhookDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/configuration/settings": {
         parameters: {
             query?: never;
@@ -2856,6 +2964,19 @@ export interface components {
             hasPrevious?: boolean;
             hasNext?: boolean;
         };
+        PagedResultOfWebhookDeliveryDto: {
+            items: components["schemas"]["WebhookDeliveryDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            totalItems: number | string;
+            /** Format: int32 */
+            totalPages?: number | string;
+            hasPrevious?: boolean;
+            hasNext?: boolean;
+        };
         PagedResultOfWorkflowInstanceDto: {
             items: components["schemas"]["WorkflowInstanceDto"][];
             /** Format: int32 */
@@ -2961,6 +3082,14 @@ export interface components {
             code: string;
             name: string;
             baseAddress: string;
+        };
+        RegisterSubscriptionRequest: {
+            /** Format: uuid */
+            applicationId: string;
+            name: string;
+            endpoint: string;
+            eventTypes: null | string[];
+            secretReference: string;
         };
         RenameCompanyRequest: {
             nameAr: string;
@@ -3082,6 +3211,9 @@ export interface components {
             scopeId: null | string;
             value: null | string;
             reason: null | string;
+        };
+        SetSubscriptionEnabledRequest: {
+            isEnabled: boolean;
         };
         SettingChangeDto: {
             key: string;
@@ -3211,6 +3343,45 @@ export interface components {
             expiresAt: null | string;
             /** Format: date-time */
             revokedAt: null | string;
+        };
+        WebhookDeliveryDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            eventType: string;
+            status: string;
+            /** Format: int32 */
+            attempts: number | string;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            /** Format: int32 */
+            responseStatusCode: null | number | string;
+            lastError: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            deliveredAt: null | string;
+        };
+        WebhookSubscriptionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            applicationId: string;
+            name: string;
+            endpoint: string;
+            eventTypes: string[];
+            secretReference: string;
+            isEnabled: boolean;
+            /** Format: date-time */
+            suspendedAt: null | string;
+            suspendedReason: null | string;
+            /** Format: int32 */
+            consecutiveFailures: number | string;
+            /** Format: date-time */
+            lastDeliveredAt: null | string;
+            /** Format: date-time */
+            createdAt: string;
         };
         WorkflowActionDto: {
             stepKey: string;
@@ -5898,6 +6069,167 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntegrationHealthDto"][];
+                };
+            };
+        };
+    };
+    GetWebhookSubscriptions: {
+        parameters: {
+            query?: {
+                applicationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionDto"][];
+                };
+            };
+        };
+    };
+    RegisterWebhookSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionDto"];
+                };
+            };
+        };
+    };
+    ReconfigureWebhookSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionDto"];
+                };
+            };
+        };
+    };
+    DeleteWebhookSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetWebhookSubscriptionEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetSubscriptionEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ResumeWebhookSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetWebhookDeliveries: {
+        parameters: {
+            query?: {
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResultOfWebhookDeliveryDto"];
                 };
             };
         };

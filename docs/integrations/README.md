@@ -270,7 +270,109 @@ wrong but the timestamp was fine tells an attacker which half to work on.
 
 ---
 
-## 8. When a provider is down
+## 8. Outbound webhooks — telling a business system what happened
+
+The other direction, and the one that took two phases to arrive.
+
+**The Platform decides *that* something happened; the business application
+decides what that means** (§16.4). Until now the only way for it to find out was
+to poll.
+
+```http
+POST /api/v1/integrations/subscriptions
+{
+  "applicationId": "…",
+  "name": "Payroll",
+  "endpoint": "https://payroll.acme.test/platform-events",
+  "eventTypes": ["workflow.instance.completed", "identity.user.disabled"],
+  "secretReference": "integrations/payroll/webhook-secret"
+}
+```
+
+### What arrives
+
+```http
+POST https://payroll.acme.test/platform-events
+X-CCP-Signature: v1=9f86d081…
+X-CCP-Timestamp: 1789041720
+X-CCP-Event-Id: 0192f3…
+X-CCP-Event-Type: workflow.instance.completed
+X-CCP-Attempt: 1
+Content-Type: application/json; charset=utf-8
+```
+
+**The same signature scheme the Platform demands of its own providers**, in the
+same shape: `HMAC-SHA256(secret, "{timestamp}.{raw body}")`. Symmetry is the
+point — one implementation to get right, one to explain, and §7 above already
+documents how to verify it.
+
+`X-CCP-Event-Id` is stable across retries. **Delivery is at-least-once**: a
+response lost on the way back is indistinguishable from one that never arrived,
+so the Platform tries again and the receiver needs something to deduplicate on.
+
+### Why event types are named one by one
+
+There is deliberately no way to subscribe to everything. A subscription that
+received every event would receive ones added years later, and the first its
+owner would know is a parser failing on a shape nobody told them about.
+
+### The part that made this wait for Phase 12
+
+**A subscription is an SSRF primitive if it is not governed.** Somebody who can
+register a URL and have the Platform post to it has a proxy into the network the
+Platform runs in.
+
+So every delivery goes out through the same door as every other outbound call:
+the allow-list, the private-address check, and the guarded socket that connects
+to the address it checked (§4). The address is checked **when the subscription is
+registered**, not when an event fires — a subscription nobody can deliver to is a
+subscription whose owner believes they are being told things, and the failure
+would otherwise surface weeks later in a sweep summary nobody reads.
+
+A payload is never sent unsigned. If the signing secret cannot be resolved the
+delivery fails and retries; sending it unsigned because the secret store was
+briefly unavailable would teach receivers to accept unsigned messages.
+
+### Retry, and giving up
+
+| | |
+|---|---|
+| Attempts | 6, over roughly an hour |
+| Backoff | Exponential, **with jitter** — without it every delivery queued during an outage retries at the same instant when the endpoint returns, which is how a recovery becomes a second outage |
+| After the last attempt | `Abandoned`, and the row is kept |
+| After 20 consecutive failures | The **subscription** is suspended |
+
+The row is kept because "we tried six times over an hour and your endpoint
+refused every one" is the answer to the question a subscriber eventually asks,
+and a delivery mechanism that erased its own failures could only answer with an
+opinion.
+
+Suspension is on the subscription rather than the delivery, so a hundred queued
+events to a dead endpoint suspend it once. **Suspended, not deleted** — the
+owner's configuration survives, and resuming clears the count that suspended it,
+because resuming with the failures still recorded would suspend it again on the
+next failure and look like resuming had done nothing.
+
+```http
+GET  /api/v1/integrations/subscriptions/{id}/deliveries
+POST /api/v1/integrations/subscriptions/{id}/resume
+```
+
+### Queued, then posted
+
+The fan-out runs while the outbox relay holds a transaction, so it writes rows
+and sends nothing. Posting to somebody else's server from inside that
+transaction would hold a database transaction open for as long as their slowest
+endpoint takes, and a subscriber that never answers would stall the relay for
+everybody.
+
+One row per subscriber, never one row with a list: a single row cannot express
+"delivered to two of three, retrying the third", which is the ordinary state of
+affairs rather than an edge case.
+
+---
+
+## 9. When a provider is down
 
 A provider being down must degrade **one capability, not the Platform**.
 
@@ -290,12 +392,12 @@ degrades in the same way at the same moment.
 
 ---
 
-## 9. Permissions
+## 10. Permissions
 
 | Permission | For |
 |---|---|
 | `platform.integrations.view` | Providers, health, the call log |
-| `platform.integrations.manage` | Registering and configuring providers |
+| `platform.integrations.manage` | Registering and configuring providers, and administering outbound subscriptions |
 | *(none — signature only)* | Inbound webhooks |
 
 Registering a provider demands a second factor: it decides where the Platform may

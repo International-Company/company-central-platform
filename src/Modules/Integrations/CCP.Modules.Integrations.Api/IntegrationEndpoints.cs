@@ -33,6 +33,7 @@ public static class IntegrationEndpoints
         MapWebhookEndpoint(versionGroup);
         MapProviderEndpoints(versionGroup);
         MapCallLogEndpoints(versionGroup);
+        MapSubscriptionEndpoints(versionGroup);
     }
 
     // -----------------------------------------------------------------------
@@ -262,6 +263,168 @@ public static class IntegrationEndpoints
             .WithTags("Integrations")
             .WithName("SearchIntegrationCalls")
             .WithSummary("What the Platform sent, and what came back.");
+
+    // -----------------------------------------------------------------------
+    // Outbound subscriptions
+    // -----------------------------------------------------------------------
+
+    /// <summary>
+    /// Standing requests from business applications to be told when something
+    /// happens.
+    /// <para>
+    /// Administered under <c>platform.integrations.manage</c> rather than by the
+    /// subscribing application itself. <b>A subscription is a standing
+    /// instruction to send the company's events to an address somebody chose</b>
+    /// — which is a decision about where data goes, not a preference an
+    /// application sets for itself.
+    /// </para>
+    /// </summary>
+    private static void MapSubscriptionEndpoints(IEndpointRouteBuilder versionGroup)
+    {
+        RouteGroupBuilder subscriptions = versionGroup
+            .MapGroup("/integrations/subscriptions")
+            .WithTags("Integrations");
+
+        subscriptions.MapGet("/", async (
+            Guid? applicationId,
+            HttpContext context,
+            [FromServices] GetSubscriptionsHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<IReadOnlyList<WebhookSubscriptionDto>> result =
+                await handler.HandleAsync(applicationId, cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.view"))
+            .Produces<IReadOnlyList<WebhookSubscriptionDto>>(StatusCodes.Status200OK)
+            .WithName("GetWebhookSubscriptions")
+            .WithSummary("Who has asked to be told when something happens.");
+
+        subscriptions.MapPost("/", async (
+            RegisterSubscriptionRequest request,
+            HttpContext context,
+            [FromServices] RegisterSubscriptionHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<WebhookSubscriptionDto> result = await handler.HandleAsync(
+                new RegisterSubscriptionCommand(
+                    request.ApplicationId, request.Name, request.Endpoint,
+                    request.EventTypes ?? [], request.SecretReference),
+                cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.manage"))
+            .Produces<WebhookSubscriptionDto>(StatusCodes.Status200OK)
+            .WithName("RegisterWebhookSubscription")
+            .WithSummary("Subscribes an application to a set of Platform events.");
+
+        subscriptions.MapPut("/{id:guid}", async (
+            Guid id,
+            RegisterSubscriptionRequest request,
+            HttpContext context,
+            [FromServices] ReconfigureSubscriptionHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<WebhookSubscriptionDto> result = await handler.HandleAsync(
+                new ReconfigureSubscriptionCommand(
+                    id, request.Name, request.Endpoint,
+                    request.EventTypes ?? [], request.SecretReference),
+                cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.manage"))
+            .Produces<WebhookSubscriptionDto>(StatusCodes.Status200OK)
+            .WithName("ReconfigureWebhookSubscription")
+            .WithSummary("Changes where a subscription posts, and which events it wants.");
+
+        subscriptions.MapPut("/{id:guid}/status", async (
+            Guid id,
+            SetSubscriptionEnabledRequest request,
+            HttpContext context,
+            [FromServices] SetSubscriptionEnabledHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result result = await handler.HandleAsync(
+                new SetSubscriptionEnabledCommand(id, request.IsEnabled), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.manage"))
+            .WithName("SetWebhookSubscriptionEnabled")
+            .WithSummary("Turns a subscription on or off.");
+
+        subscriptions.MapPost("/{id:guid}/resume", async (
+            Guid id,
+            HttpContext context,
+            [FromServices] ResumeSubscriptionHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result result = await handler.HandleAsync(
+                new ResumeSubscriptionCommand(id), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.manage"))
+            .WithName("ResumeWebhookSubscription")
+            .WithSummary("Brings a suspended subscription back, and clears what suspended it.");
+
+        subscriptions.MapDelete("/{id:guid}", async (
+            Guid id,
+            HttpContext context,
+            [FromServices] DeleteSubscriptionHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result result = await handler.HandleAsync(
+                new DeleteSubscriptionCommand(id), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.manage"))
+            .WithName("DeleteWebhookSubscription")
+            .WithSummary("Removes a subscription. Its delivery history goes with it.");
+
+        subscriptions.MapGet("/{id:guid}/deliveries", async (
+            Guid id,
+            int? page,
+            int? pageSize,
+            HttpContext context,
+            [FromServices] GetDeliveriesHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<PageRequest> pageRequest = PageRequest.Create(page, pageSize, null);
+
+            if (pageRequest.IsFailure)
+            {
+                return pageRequest.ToHttpResult(context, requestContext);
+            }
+
+            Result<PagedResult<WebhookDeliveryDto>> result = await handler.HandleAsync(
+                new GetDeliveriesQuery(id, pageRequest.Value), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.view"))
+            .Produces<PagedResult<WebhookDeliveryDto>>(StatusCodes.Status200OK)
+            .WithName("GetWebhookDeliveries")
+            .WithSummary("What happened to the events this subscription was meant to receive.");
+    }
 }
 
 /// <summary>Registering an external service.</summary>
@@ -289,3 +452,26 @@ public sealed record SetProviderEnabledRequest(bool IsEnabled);
 
 /// <summary>Adding an operation.</summary>
 public sealed record AddEndpointRequest(string Key, string Method, string PathTemplate);
+
+/// <summary>
+/// Subscribing an application to a set of events.
+/// </summary>
+/// <param name="EventTypes">
+/// Named explicitly. There is deliberately no way to ask for everything: a
+/// subscription that received every event would receive ones added years later,
+/// and the first its owner would know is a parser failing on a shape nobody told
+/// them about.
+/// </param>
+/// <param name="SecretReference">
+/// The <b>name</b> of the secret the Platform signs with, such as
+/// <c>integrations/acme/webhook-secret</c>. The value lives in the secret store.
+/// </param>
+public sealed record RegisterSubscriptionRequest(
+    Guid ApplicationId,
+    string Name,
+    string Endpoint,
+    IReadOnlyList<string>? EventTypes,
+    string SecretReference);
+
+/// <summary>Turning a subscription off, or back on.</summary>
+public sealed record SetSubscriptionEnabledRequest(bool IsEnabled);

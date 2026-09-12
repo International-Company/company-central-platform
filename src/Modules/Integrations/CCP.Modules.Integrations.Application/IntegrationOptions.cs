@@ -66,4 +66,45 @@ public sealed class IntegrationOptions
     /// </para>
     /// </summary>
     public TimeSpan WebhookTolerance { get; set; } = TimeSpan.FromMinutes(5);
+
+    // --- Outbound webhooks --------------------------------------------------
+
+    /// <summary>How often queued webhook deliveries are attempted.</summary>
+    public TimeSpan WebhookPollInterval { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>How many deliveries one pass claims.</summary>
+    public int WebhookBatchSize { get; set; } = 50;
+
+    /// <summary>
+    /// How long one attempt may take.
+    /// <para>
+    /// Short. A subscriber's endpoint is somebody else's server, and a sweep
+    /// that waits two minutes for each of fifty deliveries is a sweep that runs
+    /// once an hour.
+    /// </para>
+    /// </summary>
+    public TimeSpan WebhookTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// How many times a delivery is attempted before it is abandoned.
+    /// <para>
+    /// Six, which with the backoff below spans roughly an hour — long enough to
+    /// ride out a deployment on the subscriber's side, short enough that a
+    /// genuinely dead endpoint is visible the same morning.
+    /// </para>
+    /// </summary>
+    public int WebhookMaximumAttempts { get; set; } = 6;
+
+    /// <summary>The first wait after a failure. Each retry roughly doubles it.</summary>
+    public TimeSpan WebhookInitialBackoff { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// How many consecutive failures suspend a subscription.
+    /// <para>
+    /// Counted on the subscription rather than on a delivery, so a hundred
+    /// events to a dead endpoint suspend it once. Suspended, not deleted: the
+    /// owner's configuration survives and somebody can resume it.
+    /// </para>
+    /// </summary>
+    public int WebhookFailuresBeforeSuspending { get; set; } = 20;
 }
