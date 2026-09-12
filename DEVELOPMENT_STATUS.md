@@ -817,7 +817,7 @@ eventually pass the wrong one.
 
 | # | Blocker | Severity | Blocks | Needed from |
 |---|---|---|---|---|
-| B1 | **No database reachable on this machine** | **High** | Running the 27 integration tests | See below |
+| B1 | **No database reachable on this machine** | Medium | Running the 187 integration tests locally | See below |
 | B2 | ~~.NET 10 SDK not installed~~ | — | — | ✅ **Resolved** — 10.0.400 installed |
 | B3 | **Requirements document still not provided** | High | Confidence in all phases | Project owner |
 | B4 | Cloud provider not chosen (Q4) | Medium | Phase 19 | Project owner |
@@ -838,34 +838,55 @@ Two independent problems, neither in the code:
    pgAdmin / the installer, or Docker to be fixed. I did not attempt to guess
    the password or weaken `pg_hba.conf` to bypass authentication.
 
-Either fix unblocks the integration tests. The suite is written and compiles;
+Either fix unblocks running them here. The suite is written and compiles;
 running it is a single command once a database is reachable:
 
 ```bash
 dotnet test tests/CCP.Api.IntegrationTests
 ```
 
-**CI is unaffected** — the pipeline provisions PostgreSQL as a service
-container, so the integration tests run there regardless of local state.
+**CI is unaffected** — the pipeline provisions PostgreSQL 17 as a service
+container, so the integration tests run there on every push regardless of local
+state.
+
+The severity came down from High as a result. This was written when the suite
+had never run anywhere; it now runs on every push, and what is blocked is
+running it *before* the push rather than running it at all. That is a real cost
+— a failure found in CI is a failure found after a commit is public — but it is
+not the same blocker, and leaving it at High crowds out the one item that
+deserves it (#65).
 
 ---
 
 ## 5. Open questions
 
-Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
+Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md).
 
-| Q | Question | Needed by |
-|---|---|---|
-| Q1 | Does the requirements document exist? | **Overdue** |
-| Q3 | Expected scale (users, apps, audit volume)? | Phase 2 sizing |
-| Q5 | Is external SSO required? | **Before Phase 2** |
-| Q11 | Existing user/employee data to migrate? | **Before Phase 2** |
-| Q10 | Bootstrap administrator: who and how? | Before Phase 4 |
-| Q2 | One company, or several legal entities? | Before Phase 3 |
-| Q12 | Arabic typeface and brand blue? | Before Phase 7 |
-| Q4, Q6 | Cloud provider and data residency | Before Phase 19 |
-| Q7, Q8 | RPO/RTO and audit retention | Before Phase 17 |
-| Q9 | SMS in the first release? | Before Phase 9 |
+**Every deadline in this table has passed.** It was written looking forward and
+has been read ever since as though it still did; at Phase 20, "before Phase 2"
+does not mean a question is upcoming, it means the Platform has been built for
+eighteen phases without the answer. The column below says so plainly, because
+"Before Phase 3" and "overdue by seventeen phases" are the same fact and only
+one of them prompts anybody to act.
+
+None of this blocked the work, and that is the part worth noticing: each
+unanswered question was answered by default, and a default that nobody chose is
+still a decision. Where the Platform assumed something, it is recorded at the
+point of the assumption — but the assumption is the Platform's, not the owner's,
+and reversing one is more expensive with every phase that builds on it.
+
+| Q | Question | Needed by | At Phase 20 |
+|---|---|---|---|
+| Q1 | Does the requirements document exist? | Phase 1 | **19 phases overdue.** Blocker B3 |
+| Q3 | Expected scale (users, apps, audit volume)? | Phase 2 | 18 overdue. Sizing assumed; the load budgets in ARCHITECTURE §24 are the guess that stood in for it |
+| Q5 | Is external SSO required? | Phase 2 | 18 overdue. Nothing has been built towards it, so the answer "yes" costs a module rather than a setting |
+| Q11 | Existing user/employee data to migrate? | Phase 2 | 18 overdue. Identity and Organization are built for data that arrives through their APIs |
+| Q10 | Bootstrap administrator: who and how? | Phase 4 | 16 overdue on *who*. The *how* was answered by building it: seeded from configuration, `MustChangePassword`, refuses to run once any user exists |
+| Q2 | One company, or several legal entities? | Phase 3 | 17 overdue, **and answered by default in code**: the repository method is `GetSingleCompanyAsync`, and every unit is created under the one company it returns. Unit *trees* may have several roots; companies may not. Several legal entities is not a configuration change |
+| Q12 | Arabic typeface and brand blue? | Phase 7 | 13 overdue. The portal shipped with defaults, which are now in thirteen phases of screens |
+| Q9 | SMS in the first release? | Phase 9 | 11 overdue. Not built; the channel seam exists, so this one stays cheap to answer late |
+| Q7, Q8 | RPO/RTO and audit retention | Phase 17 | 3 overdue. RPO and RTO are what a backup plan is *for*, so #65 cannot be finished without them |
+| Q4, Q6 | Cloud provider and data residency | Phase 19 | 1 overdue, and now blocking five register items including the only High one (#65, #55, #66, #67, #74) |
 
 ---
 
@@ -873,16 +894,16 @@ Twelve are recorded in [ARCHITECTURE.md §27](ARCHITECTURE.md). Needed soonest:
 
 | ID | Risk | Impact | Likelihood | Status | Note |
 |---|---|---|---|---|---|
-| R1 | Boundary erosion — business logic pushed into the Platform | High | High | Open | No violation yet; Phase 1 contains no business concept |
+| R1 | Boundary erosion — business logic pushed into the Platform | High | High | Open | No violation through Phase 20. The closest call is workflow routing, where the engine holds no thresholds and business-conditional routing leaves through `SuppliedByCaller` (#28) |
 | R2 | The missing requirements document changes scope | High | Medium | **Open, ageing** | Phase 2 designs identity; late requirements there are expensive |
 | R3 | Over-engineering | Medium | Medium | Open | Held so far: no mediator, no job framework, no broker, no Kubernetes |
-| R4 | An authentication or authorization flaw | Critical | Low | **Open — now live** | Authentication is implemented. Mitigated by 103 unit tests covering the security properties explicitly, and by two silent defects being found and fixed. Not yet exercised against a real database, nor penetration-tested. |
-| R5 | UI drifts to an AI-dashboard look | High | Medium | Open | Not yet applicable |
-| R6 | RTL treated as an afterthought | High | Medium | Open | Not yet applicable |
+| R4 | An authentication or authorization flaw | Critical | Low | **Open — now live** | Authentication is implemented. Mitigated by 803 unit tests covering the security properties explicitly, and by two silent defects being found and fixed. Not yet exercised against a real database, nor penetration-tested. |
+| R5 | UI drifts to an AI-dashboard look | High | Medium | Open | **This said "not yet applicable" for thirteen phases after the portal shipped.** It is applicable: the portal is built and deployed. Held so far — no icon set, text buttons, tables as the primary surface, white and blue — but held by nothing except the person writing each screen |
+| R6 | RTL treated as an afterthought | High | Medium | Open | **Also stale by thirteen phases.** The portal mirrors for Arabic and no UI string is hardcoded. Nothing in the build checks either, so this is held the same way R5 is |
 | R7 | Backups never actually restored | Critical | Medium | Open | Phase 17 |
 | R8 | Secrets committed | Critical | Low | **Mitigated** | `.gitignore` written before the first file; CI secret scanning configured; no secret in the repository |
 | R9 | Audit becomes a bottleneck | High | Medium | Open | Outbox in place and designed for it |
-| R10 | Documentation drifts from implementation | Medium | High | **Mitigated so far** | Docs updated within this phase |
+| R10 | Documentation drifts from implementation | Medium | **Realised, repeatedly** | **Open — and it was marked "Mitigated so far" while this register's own rows were the evidence against it** | The most frequently realised risk here by a wide margin. In recent passes: four documents describing a Platform that stopped existing phases earlier; an operational warning telling readers not to deploy, false for about twenty phases; a WebAuthn "extension point" that does not exist, named in four places; an MFA reset listed as an unbuilt gap several phases after it shipped; a row asserting nothing had run against a real database directly above the sentence saying it runs in CI; #69 justified by parallel test classes that are explicitly disabled; #65 contradicting #66 about whether the restore script has ever run. **Two mechanisms now catch part of it** — `check-doc-links.py` and `check-doc-endpoints.py`, both in CI — and their limit is exact: a citation of something that does not exist has a shape a scan can match, and a claim that something is *absent* does not. Every item in that list was found by a person re-reading |
 | R11 | Scope creep from future business systems | High | High | Open | |
 | R12 | Team unfamiliar with parts of the stack | Medium | Unknown | Open | |
 | **R13** | **Local environment cannot run integration tests** | Medium | — | **New, open** | See B1. CI is unaffected. |
