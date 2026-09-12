@@ -11,6 +11,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { IfPermitted, usePermission } from '@/lib/permissions';
+import { EmployeeAttributes } from './employee-attributes';
 import { EmployeeForm } from './employee-form';
 import { EmployeeAccountDialog } from './employee-account-dialog';
 import { EmployeeTransferDialog } from './employee-transfer-dialog';
@@ -52,6 +53,7 @@ export function EmployeesScreen() {
   // before it offers a button that could only fail.
   const [units, setUnits] = useState<OrganizationUnitTreeDto[]>([]);
 
+  const [showingAttributes, setShowingAttributes] = useState<EmployeeDto | null>(null);
   const [transferring, setTransferring] = useState<EmployeeDto | null>(null);
   const [linking, setLinking] = useState<EmployeeDto | null>(null);
 
@@ -273,8 +275,25 @@ export function EmployeesScreen() {
               actions: tCommon('actions'),
             }}
             rowActions={(employee) => (
-              <IfPermitted permission="platform.employees.manage">
-                <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
+                {/*
+                  Outside the manage guard on purpose: reading what is held
+                  about somebody is a view permission, and the panel guards its
+                  own editing.
+                */}
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  onClick={() =>
+                    setShowingAttributes(
+                      showingAttributes?.id === employee.id ? null : employee)
+                  }
+                >
+                  {t('attributes')}
+                </Button>
+
+                <IfPermitted permission="platform.employees.manage">
+                  <div className="flex flex-wrap justify-end gap-2">
                   <Button
                     variant="quiet"
                     size="sm"
@@ -290,10 +309,18 @@ export function EmployeesScreen() {
                   >
                     {employee.userId ? t('account') : t('linkAccount')}
                   </Button>
-                </div>
-              </IfPermitted>
+                  </div>
+                </IfPermitted>
+              </div>
             )}
           />
+
+          {showingAttributes ? (
+            <EmployeeAttributes
+              employee={showingAttributes}
+              onClose={() => setShowingAttributes(null)}
+            />
+          ) : null}
 
           <Pagination
             page={result.page}

@@ -27,6 +27,7 @@ export type UserDto = Schemas['UserDto'];
 export type CurrentUserDto = Schemas['CurrentUserDto'];
 export type AuthenticationResultDto = Schemas['AuthenticationResultDto'];
 export type EmployeeDto = Schemas['EmployeeDto'];
+export type EmployeeAttributeDto = Schemas['EmployeeAttributeDto'];
 export type LocalizedNameDto = Schemas['LocalizedNameDto'];
 export type RoleDto = Schemas['RoleDto'];
 export type AuditEventDto = Schemas['AuditEventDto'];

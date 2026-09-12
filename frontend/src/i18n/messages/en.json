@@ -174,7 +174,22 @@
     "linkTitle": "Link a Platform account",
     "linkDescription": "Connects this employee record to an account that signs in. They are separate things: an employee may have no account, and an account may belong to nobody on the payroll.",
     "account": "Account",
-    "unlink": "Unlink"
+    "unlink": "Unlink",
+    "attributes": "Attributes",
+    "attributesFor": "What applications keep about {name}",
+    "attributesHint": "An application's own notes about this person. The Platform stores them and never interprets them, which is why a key names the application that owns it.",
+    "attributeKey": "Key",
+    "attributeKeyHint": "application.name — for example payroll.cost-centre. The namespace is what stops two systems colliding on the same word.",
+    "attributeValue": "Value",
+    "attributeValueHint": "Metadata about a person, not a place to keep a document or a credential.",
+    "attributeSetAt": "Set",
+    "attributeOwner": "Kept by {application}",
+    "noAttributes": "Nothing is kept",
+    "noAttributesDescription": "No application has recorded anything about this person.",
+    "attributeLooksLikeASecret": "That looks like a credential, and it was not stored. An employee record is exported, backed up and broadly readable; secrets live in the secret store and are named by reference.",
+    "attributeKeyInvalid": "A key is 'application.name' — letters, digits, hyphens and underscores.",
+    "attributeValueRequired": "An attribute needs a value. Remove it instead of emptying it.",
+    "attributeLimitReached": "This person already carries fifty attributes. Remove one before adding another."
   },
   "roles": {
     "title": "Roles",
