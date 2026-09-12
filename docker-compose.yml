@@ -41,7 +41,11 @@ services:
   # S3-compatible object storage for the Documents module (ADR-014).
   # Production uses the cloud provider's object storage; the API is the same.
   minio:
-    image: minio/minio:latest
+    # quay.io, not Docker Hub. MinIO withdrew the `latest` tag from Docker Hub,
+    # so `minio/minio:latest` now fails to pull with "repository does not
+    # exist" -- which is what Docker Hub says about a tag that is gone, and
+    # reads like a permissions problem. Quay is MinIO's own registry.
+    image: quay.io/minio/minio:latest
     container_name: ccp-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"

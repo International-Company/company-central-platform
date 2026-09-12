@@ -73,12 +73,18 @@ jobs:
       # "server /data" arguments and the services syntax has nowhere to put
       # them. The image and the command are the ones in docker-compose.yml, so
       # what CI exercises is what a developer runs.
+      #
+      # From quay.io rather than Docker Hub: MinIO withdrew the `latest` tag
+      # there, so `docker pull minio/minio` fails with "repository does not
+      # exist" -- which is Docker Hub's message for a tag that is gone, and
+      # reads like a permissions problem. Quay is MinIO's own registry and still
+      # carries it.
       - name: Start object storage
         env:
           MINIO_ROOT_USER: ci_only_not_a_real_key
           MINIO_ROOT_PASSWORD: ci_only_not_a_real_secret
         run: |
-          docker run -d --name ccp-ci-minio -p 9000:9000 -e MINIO_ROOT_USER -e MINIO_ROOT_PASSWORD minio/minio:latest server /data
+          docker run -d --name ccp-ci-minio -p 9000:9000 -e MINIO_ROOT_USER -e MINIO_ROOT_PASSWORD quay.io/minio/minio:latest server /data
 
           for attempt in $(seq 1 40); do
             if curl -sf http://localhost:9000/minio/health/live > /dev/null; then
