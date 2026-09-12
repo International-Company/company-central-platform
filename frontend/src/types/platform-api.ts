@@ -2556,6 +2556,16 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        JobInstanceDto: {
+            instance: string;
+            /** Format: date-time */
+            lastStartedAt: string;
+            lastOutcome: string;
+            /** Format: int32 */
+            recentRuns: number | string;
+            /** Format: int32 */
+            recentFailures: number | string;
+        };
         JobRunDto: {
             /** Format: uuid */
             id: string;
@@ -2585,6 +2595,9 @@ export interface components {
             recentFailures: number | string;
             /** Format: double */
             averageDurationMs: number | string;
+            instances: components["schemas"]["JobInstanceDto"][];
+            /** Format: int32 */
+            failingInstances: number | string;
         };
         LinkUserRequest: {
             /** Format: uuid */

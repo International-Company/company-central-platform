@@ -6118,6 +6118,44 @@
           }
         }
       },
+      "JobInstanceDto": {
+        "required": [
+          "instance",
+          "lastStartedAt",
+          "lastOutcome",
+          "recentRuns",
+          "recentFailures"
+        ],
+        "type": "object",
+        "properties": {
+          "instance": {
+            "type": "string"
+          },
+          "lastStartedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastOutcome": {
+            "type": "string"
+          },
+          "recentRuns": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentFailures": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "JobRunDto": {
         "required": [
           "id",
@@ -6181,7 +6219,9 @@
           "lastInstance",
           "recentRuns",
           "recentFailures",
-          "averageDurationMs"
+          "averageDurationMs",
+          "instances",
+          "failingInstances"
         ],
         "type": "object",
         "properties": {
@@ -6241,6 +6281,20 @@
               "string"
             ],
             "format": "double"
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobInstanceDto"
+            }
+          },
+          "failingInstances": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

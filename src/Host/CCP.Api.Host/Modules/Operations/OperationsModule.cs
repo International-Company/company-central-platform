@@ -102,6 +102,35 @@ public sealed class OperationsModule : IPlatformModule, IModuleEndpoints
                     List<JobRunRecord> window =
                         [.. recent.Where(run => string.Equals(run.Job, last.Job, StringComparison.Ordinal))];
 
+                    // One entry per machine that has run this job in the window.
+                    //
+                    // The row is still about the job, because that is what
+                    // somebody is looking for. But "last outcome" across every
+                    // instance is a single value hiding a plural fact: a job
+                    // failing on one of two machines and succeeding on the other
+                    // reads as intermittent, which is the wrong repair. The
+                    // per-instance breakdown is what turns that back into "one
+                    // machine is broken".
+                    //
+                    // Scoped to the window rather than to all time, because an
+                    // instance name on a container platform changes with every
+                    // deployment — grouped over all history this would list
+                    // every container that ever existed and answer nothing.
+                    List<JobInstanceDto> instances = [.. window
+                        .GroupBy(run => run.Instance, StringComparer.Ordinal)
+                        .Select(group =>
+                        {
+                            JobRunRecord newest = group.MaxBy(run => run.StartedAt)!;
+
+                            return new JobInstanceDto(
+                                Instance: group.Key,
+                                LastStartedAt: newest.StartedAt,
+                                LastOutcome: newest.Outcome.ToString(),
+                                RecentRuns: group.Count(),
+                                RecentFailures: group.Count(run => run.Outcome == JobOutcome.Failed));
+                        })
+                        .OrderBy(instance => instance.Instance, StringComparer.Ordinal)];
+
                     return new JobSummaryDto(
                         Job: last.Job,
                         LastStartedAt: last.StartedAt,
@@ -118,7 +147,14 @@ public sealed class OperationsModule : IPlatformModule, IModuleEndpoints
                         // duration since Tuesday is the thing worth seeing.
                         AverageDurationMs: window.Count == 0
                             ? last.DurationMs
-                            : window.Average(run => run.DurationMs));
+                            : window.Average(run => run.DurationMs),
+
+                        Instances: instances,
+
+                        // Counted here rather than derived on the screen, so the
+                        // answer is the same in the API, the dashboard and
+                        // whatever asks next.
+                        FailingInstances: instances.Count(instance => instance.RecentFailures > 0));
                 })
                 .OrderBy(summary => summary.Job, StringComparer.Ordinal)];
 
@@ -206,6 +242,26 @@ public sealed class OperationsModule : IPlatformModule, IModuleEndpoints
 }
 
 /// <summary>One background job, as the operations screen shows it.</summary>
+/// <param name="Instances">
+/// One entry per machine that has run this job in the last day.
+/// <para>
+/// <b>A single last outcome is a single value hiding a plural fact.</b> On a
+/// deployment with two instances, a job failing on one and succeeding on the
+/// other reads as intermittent — and "intermittent" and "one machine is broken"
+/// call for entirely different repairs. This is what lets the second reading be
+/// available without the row stopping being about the job.
+/// </para>
+/// <para>
+/// Empty on a job that has not run in the window, and a single entry on a
+/// single-instance deployment — where a screen can leave it out entirely rather
+/// than print a breakdown of one.
+/// </para>
+/// </param>
+/// <param name="FailingInstances">
+/// How many of those machines have failed this job at least once in the window.
+/// Counted here rather than left to each caller, so the answer is the same in
+/// the API, on the dashboard, and wherever asks next.
+/// </param>
 public sealed record JobSummaryDto(
     string Job,
     DateTimeOffset LastStartedAt,
@@ -216,7 +272,17 @@ public sealed record JobSummaryDto(
     string LastInstance,
     int RecentRuns,
     int RecentFailures,
-    double AverageDurationMs);
+    double AverageDurationMs,
+    IReadOnlyList<JobInstanceDto> Instances,
+    int FailingInstances);
+
+/// <summary>One background job on one machine, over the last day.</summary>
+public sealed record JobInstanceDto(
+    string Instance,
+    DateTimeOffset LastStartedAt,
+    string LastOutcome,
+    int RecentRuns,
+    int RecentFailures);
 
 /// <summary>One execution of a background job.</summary>
 public sealed record JobRunDto(

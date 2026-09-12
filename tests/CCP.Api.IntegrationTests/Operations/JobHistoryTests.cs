@@ -189,6 +189,146 @@ public sealed class JobHistoryTests(PlatformApiFactory factory)
         Assert.Equal(20d, mixed.GetProperty("averageDurationMs").GetDouble(), 3);
     }
 
+    /// <summary>
+    /// A job broken on one machine of two does not read as intermittent.
+    /// <para>
+    /// <b>This is the sentence the summary could not previously say.</b> The
+    /// newest run across every instance is one value hiding a plural fact: with
+    /// two instances running the same sweep, one failing every pass and one
+    /// succeeding every pass produces a fifty-per-cent failure rate and a last
+    /// outcome that depends on which machine happened to finish most recently.
+    /// "Intermittent" and "one machine is broken" call for entirely different
+    /// repairs, and the first one wastes the night.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task TheSummary_SaysWhenOnlyOneInstanceIsFailing()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        // Written straight to the table: the journal stamps the run with the
+        // process that is actually running, and there is only one of those here.
+        await using (KernelDbContext kernel = Kernel())
+        {
+            kernel.JobRuns.AddRange(
+                Run("test.one-bad-machine", "instance-a", now.AddMinutes(-40), JobOutcome.Succeeded),
+                Run("test.one-bad-machine", "instance-b", now.AddMinutes(-30), JobOutcome.Failed),
+                Run("test.one-bad-machine", "instance-a", now.AddMinutes(-20), JobOutcome.Succeeded),
+                Run("test.one-bad-machine", "instance-b", now.AddMinutes(-10), JobOutcome.Failed));
+
+            await kernel.SaveChangesAsync();
+        }
+
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await SignInWithOperationsAsync(client));
+
+        using HttpResponseMessage response = await client.GetAsync(
+            new Uri("/api/v1/platform/jobs", UriKind.Relative));
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        JsonElement job = body
+            .EnumerateArray()
+            .Single(row => row.GetProperty("job").GetString() == "test.one-bad-machine");
+
+        JsonElement[] instances = [.. job.GetProperty("instances").EnumerateArray()];
+
+        Assert.Equal(2, instances.Length);
+        Assert.Equal(1, job.GetProperty("failingInstances").GetInt32());
+
+        JsonElement bad = instances.Single(
+            instance => instance.GetProperty("instance").GetString() == "instance-b");
+
+        // Every pass, not some of them. That is the shape of a broken machine
+        // rather than of a flaky job.
+        Assert.Equal(2, bad.GetProperty("recentRuns").GetInt32());
+        Assert.Equal(2, bad.GetProperty("recentFailures").GetInt32());
+        Assert.Equal("Failed", bad.GetProperty("lastOutcome").GetString());
+
+        JsonElement good = instances.Single(
+            instance => instance.GetProperty("instance").GetString() == "instance-a");
+
+        Assert.Equal(0, good.GetProperty("recentFailures").GetInt32());
+    }
+
+    /// <summary>
+    /// On one instance the breakdown is a breakdown of one, which a screen can
+    /// leave out. Nothing is invented to fill it.
+    /// </summary>
+    [Fact]
+    public async Task TheSummary_ReportsOneInstanceWhenThereIsOne()
+    {
+        var journal = factory.Services.GetRequiredService<IJobJournal>();
+
+        await journal.RecordAsync(new JobRun(
+            "test.single-machine", DateTimeOffset.UtcNow.AddMinutes(-5), 5, JobOutcome.Succeeded, "fine"));
+
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await SignInWithOperationsAsync(client));
+
+        using HttpResponseMessage response = await client.GetAsync(
+            new Uri("/api/v1/platform/jobs", UriKind.Relative));
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        JsonElement job = body
+            .EnumerateArray()
+            .Single(row => row.GetProperty("job").GetString() == "test.single-machine");
+
+        Assert.Single(job.GetProperty("instances").EnumerateArray());
+        Assert.Equal(0, job.GetProperty("failingInstances").GetInt32());
+    }
+
+    /// <summary>
+    /// A job with nothing in the window has no instances to break down, and the
+    /// row still appears — the breakdown must not become a second way for a
+    /// stopped job to vanish.
+    /// </summary>
+    [Fact]
+    public async Task AJobThatStoppedRunning_HasNoInstanceBreakdownAndStillAppears()
+    {
+        await using (KernelDbContext kernel = Kernel())
+        {
+            kernel.JobRuns.Add(Run(
+                "test.stopped-no-instances", "instance-gone",
+                DateTimeOffset.UtcNow.AddDays(-5), JobOutcome.Failed));
+
+            await kernel.SaveChangesAsync();
+        }
+
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await SignInWithOperationsAsync(client));
+
+        using HttpResponseMessage response = await client.GetAsync(
+            new Uri("/api/v1/platform/jobs", UriKind.Relative));
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        JsonElement job = body
+            .EnumerateArray()
+            .Single(row => row.GetProperty("job").GetString() == "test.stopped-no-instances");
+
+        Assert.Empty(job.GetProperty("instances").EnumerateArray());
+        Assert.Equal("Failed", job.GetProperty("lastOutcome").GetString());
+        Assert.Equal("instance-gone", job.GetProperty("lastInstance").GetString());
+    }
+
+    private static JobRunRecord Run(
+        string job, string instance, DateTimeOffset startedAt, JobOutcome outcome)
+        => new()
+        {
+            Id = Guid.CreateVersion7(),
+            Job = job,
+            Instance = instance,
+            StartedAt = startedAt,
+            DurationMs = 10,
+            Outcome = outcome,
+            Error = outcome == JobOutcome.Failed ? "it broke" : null
+        };
+
     [Fact]
     public async Task TheRunHistory_ReturnsOneJobsRunsNewestFirst()
     {

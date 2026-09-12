@@ -674,6 +674,8 @@
     "duration": "Average",
     "outcome": "Outcome",
     "instance": "Instance",
+    "acrossInstances": "On {count} instances",
+    "failingOnInstances": "Failing on {failing} of {total} instances",
     "history": "Run history",
     "noRuns": "No runs",
     "noRunsDescription": "Nothing has been recorded for this job.",

@@ -95,7 +95,16 @@ export function OperationsScreen() {
       render: (job) => (
         <div>
           <p className="font-mono text-sm font-medium text-text">{job.job}</p>
-          <p className="mt-0.5 font-mono text-xs text-text-secondary">{job.lastInstance}</p>
+          {/*
+            One instance: its name, as before. Several: how many, because on a
+            multi-instance deployment the name of whichever machine happened to
+            run last answers nothing.
+          */}
+          <p className="mt-0.5 font-mono text-xs text-text-secondary">
+            {job.instances.length > 1
+              ? t('acrossInstances', { count: job.instances.length })
+              : job.lastInstance}
+          </p>
         </div>
       ),
     },
@@ -103,9 +112,30 @@ export function OperationsScreen() {
       key: 'outcome',
       header: t('lastRun'),
       render: (job) => (
-        <StatusBadge tone={toneFor(job.lastOutcome)}>
-          {t(`outcomes.${job.lastOutcome}` as never)}
-        </StatusBadge>
+        <div>
+          <StatusBadge tone={toneFor(job.lastOutcome)}>
+            {t(`outcomes.${job.lastOutcome}` as never)}
+          </StatusBadge>
+
+          {/*
+            The sentence this column could not say before.
+
+            A last outcome is one value hiding a plural fact: a job failing on
+            one machine of two and succeeding on the other reads as intermittent,
+            and "intermittent" and "one machine is broken" call for entirely
+            different repairs. Shown only where there is more than one instance —
+            on a single-instance deployment it would be a breakdown of one, which
+            is noise.
+          */}
+          {job.instances.length > 1 && Number(job.failingInstances) > 0 ? (
+            <p className="mt-1 text-xs font-medium text-danger">
+              {t('failingOnInstances', {
+                failing: Number(job.failingInstances),
+                total: job.instances.length,
+              })}
+            </p>
+          ) : null}
+        </div>
       ),
     },
     {

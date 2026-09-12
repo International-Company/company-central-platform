@@ -674,6 +674,8 @@
     "duration": "المتوسط",
     "outcome": "النتيجة",
     "instance": "النسخة",
+    "acrossInstances": "على {count} من النسخ",
+    "failingOnInstances": "فاشلة على {failing} من أصل {total} نسخ",
     "history": "سجل التنفيذ",
     "noRuns": "لا توجد تنفيذات",
     "noRunsDescription": "لم يُسجَّل شيء لهذه المهمة.",
