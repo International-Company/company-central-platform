@@ -289,6 +289,3 @@ can see. A stale cache there grants access to the wrong part of the company.
 |---|---|
 | `EmployeeAssignment` history | Deferred. The current unit, position and manager are on the employee. Historical assignment tracking is genuinely useful for "where was this person in March?" but nobody has asked for it (P1). |
 | Matrix / dotted-line reporting | A single manager, because workflow's approver resolution must be unambiguous. A separate entity is the escalation path. |
-| Position CRUD endpoints | The entity, repository and validation exist; the endpoints do not. |
-| Company setup endpoint | The entity exists; creating the company is currently a seeding concern. |
-| Integration tests | Written for Identity, not yet for Organization. Nothing has run against a real database. |

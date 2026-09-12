@@ -241,12 +241,10 @@ is not a protected operation.
 
 | Missing | Note |
 |---|---|
-| Role create/edit endpoints | Roles can be read and granted; creating one is currently a seeding concern |
-| Application registration endpoints | The domain, repository and declaration handler exist; the endpoints do not |
-| Machine-to-machine credentials | OAuth2 client credentials for applications — Phase 11 |
 | Scope filters on the remaining list endpoints | Employee search and the user list both apply the filter at the data layer. See §11.1 for what a scope means when the thing being listed is an account. |
-| Integration tests | Nothing has run against a real database |
 | ABAC | Explicitly deferred (ADR-007). Adopting it requires a superseding ADR. |
+
+> **Four rows were removed from this table on re-reading it.** Role and application endpoints, machine-to-machine credentials and the integration tests were all listed as missing and all arrived in Phases 4 and 11 — `/roles`, `/applications`, `/oauth/token`, and three suites that run against PostgreSQL on every push. The table had been appended to and never read back.
 
 ### The filter in practice
 

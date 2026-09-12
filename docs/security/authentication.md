@@ -336,15 +336,27 @@ before it holds any credential, and they are public keys.
 
 ## 12. What is not built yet
 
-| Missing | Phase |
+| Missing | Note |
 |---|---|
-| MFA / TOTP | 5 |
-| Per-endpoint rate limits on auth | 5 |
-| Permission enforcement (the strings exist; nothing evaluates them) | 4 |
-| Reset emails actually being sent | 9 |
-| External SSO federation | Open question Q5 |
-| Key rotation procedure | 5 |
+| External SSO federation | Open question Q5. Nothing has been decided, so nothing has been built towards it. |
 
-> **Operational warning.** Rate limiting is currently global, not per-endpoint.
-> The global limit is far too generous for a login endpoint. **Do not expose
-> this to the internet before Phase 5.**
+**This section used to list six things and an operational warning, and five of
+the six had been built for phases.** MFA, per-endpoint rate limits, permission
+enforcement, reset emails and MFA key rotation all arrived in Phases 4, 5, 9 and
+the key-rotation work that followed — the list was written in Phase 2 and
+appended to rather than read back.
+
+The warning mattered more than the list. It said:
+
+> Rate limiting is currently global, not per-endpoint. The global limit is far
+> too generous for a login endpoint. **Do not expose this to the internet before
+> Phase 5.**
+
+Phase 5 built the per-endpoint policies: authentication, anonymous, write and
+credential limits, each partitioned, each answering `429` with a `Retry-After`.
+The warning was true when written and became false about twenty phases ago, and
+it sat in the authentication document telling anybody who found it not to deploy.
+
+A stale warning is worse than a stale feature list. A reader who trusts it makes
+a decision on it — and a reader who discovers it is wrong stops trusting the rest
+of the document, which is the more expensive loss.
