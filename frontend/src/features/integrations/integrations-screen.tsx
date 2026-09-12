@@ -6,7 +6,11 @@ import { FormMessage } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/shared/data-table';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
+import { Button } from '@/components/ui/button';
+import { IfPermitted } from '@/lib/permissions';
 import { IntegrationCallLog } from './integration-call-log';
+import { ProviderForm } from './provider-form';
+import { ProviderSettings } from './provider-settings';
 import type { IntegrationHealthDto, IntegrationProviderDto } from '@/types/platform';
 
 /**
@@ -33,6 +37,9 @@ export function IntegrationsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [registering, setRegistering] = useState(false);
+  const [configuring, setConfiguring] = useState<IntegrationProviderDto | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // When health was read, not when the component last rendered. Health is
   // derived from the last hour of calls and nothing on this page refreshes it,
@@ -182,8 +189,21 @@ export function IntegrationsScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('title')} description={t('description')} />
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        action={
+          // Hidden from somebody who could not do it anyway. The Platform
+          // refuses the call regardless; this only spares them the surprise.
+          <IfPermitted permission="platform.integrations.manage">
+            <Button variant="primary" onClick={() => setRegistering(true)}>
+              {t('register')}
+            </Button>
+          </IfPermitted>
+        }
+      />
 
+      {notice ? <FormMessage tone="success">{notice}</FormMessage> : null}
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
 
       {loading && providers.length === 0 ? (
@@ -213,6 +233,16 @@ export function IntegrationsScreen() {
                 {t('calls')}
               </button>
 
+              <IfPermitted permission="platform.integrations.manage">
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary-700 hover:underline"
+                  onClick={() => setConfiguring(provider)}
+                >
+                  {t('settings')}
+                </button>
+              </IfPermitted>
+
               <button
                 type="button"
                 className={
@@ -228,6 +258,29 @@ export function IntegrationsScreen() {
           )}
         />
       )}
+
+      {registering ? (
+        <ProviderForm
+          onSaved={(name) => {
+            setRegistering(false);
+            setNotice(t('registered', { name }));
+            void load();
+          }}
+          onCancel={() => setRegistering(false)}
+        />
+      ) : null}
+
+      {configuring ? (
+        <ProviderSettings
+          provider={configuring}
+          onSaved={() => {
+            setNotice(t('settingsSaved', { name: configuring.name }));
+            setConfiguring(null);
+            void load();
+          }}
+          onCancel={() => setConfiguring(null)}
+        />
+      ) : null}
 
       {selected ? (
         <IntegrationCallLog providerCode={selected} onClose={() => setSelected(null)} />

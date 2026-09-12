@@ -59,6 +59,21 @@ is what makes the allow-list mean anything, and it is why a path template must b
 relative. An absolute one would let an endpoint definition point at a host the
 provider was never registered for.
 
+### From the portal
+
+The Integrations screen registers a provider — code, name, base address — and
+edits its resilience settings, its redacted field list and its credential
+reference. Both behind `platform.integrations.manage`.
+
+Registration deliberately does not ask for resilience. A provider arrives with
+the Platform's defaults and is tuned afterwards, because a form demanding five
+numbers before it would accept anything gets answered by guessing, and the
+guesses then look like decisions.
+
+**Endpoints are still an API call.** They are the part of a provider that
+business applications depend on by key, and adding one is a change to a contract
+somebody else is calling — which belongs with that change rather than in a form.
+
 ---
 
 ## 3. Credentials are names, never values
