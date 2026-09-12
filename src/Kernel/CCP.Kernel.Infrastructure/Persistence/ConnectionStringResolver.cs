@@ -25,6 +25,26 @@ public static class ConnectionStringResolver
     public const string PlatformConnectionName = "Platform";
 
     /// <summary>
+    /// The connection migrations run on, when the deployment separates the two
+    /// roles.
+    /// <para>
+    /// Changing the schema and serving requests are different privileges.
+    /// Migrations need the right to create and drop tables; a request needs the
+    /// right to read and write rows. One role holding both means a
+    /// SQL-injection defect anywhere in the Platform is a defect that can drop a
+    /// table — and the audit trail's append-only guarantee, which is a
+    /// <c>REVOKE</c> rather than a promise, can be granted straight back by the
+    /// very connection it is meant to bind.
+    /// </para>
+    /// <para>
+    /// Optional. A deployment that supplies only <c>Platform</c> runs as it
+    /// always did, which is what keeps this from being a breaking change to
+    /// every environment at once.
+    /// </para>
+    /// </summary>
+    public const string MigrationsConnectionName = "PlatformMigrations";
+
+    /// <summary>
     /// The variable managed platforms conventionally publish. Read without the
     /// <c>CCP_</c> prefix because the platform sets it, not us.
     /// </summary>
@@ -49,6 +69,26 @@ public static class ConnectionStringResolver
                            ?? Environment.GetEnvironmentVariable(DatabaseUrlVariable);
 
         return string.IsNullOrWhiteSpace(databaseUrl) ? null : FromUri(databaseUrl);
+    }
+
+    /// <summary>
+    /// The connection migrations should run on, or null when the deployment has
+    /// not separated the roles.
+    /// <para>
+    /// <b>No <c>DATABASE_URL</c> fallback, deliberately.</b> That variable is
+    /// the one credential the hosting platform publishes, and it is the
+    /// application's. Falling back to it would silently reunite the two roles in
+    /// exactly the deployment that had gone to the trouble of separating them,
+    /// and the configuration would still read as though they were apart.
+    /// </para>
+    /// </summary>
+    public static string? ResolveMigrations(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        string? value = configuration.GetConnectionString(MigrationsConnectionName);
+
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     /// <summary>

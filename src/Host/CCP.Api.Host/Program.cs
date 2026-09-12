@@ -159,13 +159,22 @@ string resolvedConnectionString = ConnectionStringResolver.Resolve(builder.Confi
 // Anything the deployment already specified is left alone.
 string connectionString = ConnectionHardening.Apply(resolvedConnectionString);
 
-// The migrator's lock connection keeps the unhardened string. pg_advisory_lock
+// Migrations may run as a different role, and on a serious deployment they
+// should. Changing the schema and serving requests are different privileges:
+// one role holding both means a SQL-injection defect anywhere in the Platform is
+// a defect that can drop a table, and the audit trail's append-only guarantee —
+// a REVOKE, not a promise — can be granted straight back by the very connection
+// it is meant to bind. Optional, so an environment that supplies one string goes
+// on working exactly as it did.
+//
+// The migrator's connection also keeps the unhardened timeouts. pg_advisory_lock
 // blocks until it is granted, and a statement timeout applies to a blocking
 // statement — so a second instance waiting behind a long migration would have
 // its wait cancelled and would go on to serve requests against a half-migrated
 // schema.
-string migrationConnectionString =
-    ConnectionHardening.Apply(resolvedConnectionString, serverSideTimeouts: false);
+string migrationConnectionString = ConnectionHardening.Apply(
+    ConnectionStringResolver.ResolveMigrations(builder.Configuration) ?? resolvedConnectionString,
+    serverSideTimeouts: false);
 
 builder.Services
     .AddOptions<DatabaseOptions>()
@@ -488,7 +497,8 @@ if (databaseOptions.ApplyMigrationsOnStartup)
             migrationScope.ServiceProvider.GetRequiredService<DocumentDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<IntegrationDbContext>(),
             migrationScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>()
-        ]);
+        ],
+        databaseOptions.ApplicationRole);
 }
 
 // ---------------------------------------------------------------------------

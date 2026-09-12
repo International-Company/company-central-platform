@@ -26,6 +26,24 @@ public sealed class DatabaseOptions
     /// </para>
     /// </summary>
     public bool ApplyMigrationsOnStartup { get; set; }
+
+    /// <summary>
+    /// The role the application connects as, when it is not the role that
+    /// migrates.
+    /// <para>
+    /// A migration that tightens privileges has to name somebody. With one role
+    /// for everything the answer is <c>current_user</c> and there is nothing to
+    /// configure. Once the roles are separated, <c>current_user</c> is the
+    /// migrator — so the audit trail's append-only grant would land on the role
+    /// that never inserts an audit row, and the application would be left
+    /// without the privilege it needs.
+    /// </para>
+    /// <para>
+    /// Empty means "the role running the migration", which is the single-role
+    /// deployment and the behaviour every existing environment already has.
+    /// </para>
+    /// </summary>
+    public string? ApplicationRole { get; set; }
 }
 
 /// <summary>
@@ -63,9 +81,18 @@ public sealed class DatabaseMigrator(ILogger<DatabaseMigrator> logger)
     /// no foreign key crosses a schema boundary, so the modules are independent
     /// of one another.
     /// </param>
+    /// <param name="applicationRole">
+    /// The role the application connects as, when it is not this one. Published
+    /// to each migration as <c>ccp.application_role</c>, so a migration that
+    /// grants or revokes privileges can name the role that will actually be
+    /// bound by them. Null or empty leaves the setting unset, and a migration
+    /// falls back to <c>current_user</c> — which is correct, and is what every
+    /// single-role deployment has always done.
+    /// </param>
     public async Task MigrateAsync(
         string connectionString,
         IReadOnlyList<DbContext> contexts,
+        string? applicationRole = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(contexts);
@@ -132,6 +159,20 @@ public sealed class DatabaseMigrator(ILogger<DatabaseMigrator> logger)
                     await context.Database.ExecuteSqlRawAsync(
                         "SET statement_timeout = 0; SET idle_in_transaction_session_timeout = 0;",
                         cancellationToken);
+
+                    if (!string.IsNullOrWhiteSpace(applicationRole))
+                    {
+                        // Told to the migration rather than compiled into it,
+                        // because the role's name belongs to the deployment and
+                        // a migration is a file in the repository. Set through
+                        // set_config with a parameter: SET takes no parameters,
+                        // and a role name pasted into SQL is a role name
+                        // somebody can choose.
+                        await context.Database.ExecuteSqlRawAsync(
+                            "SELECT set_config('ccp.application_role', {0}, false)",
+                            [applicationRole.Trim()],
+                            cancellationToken);
+                    }
 
                     await context.Database.MigrateAsync(cancellationToken);
                 }

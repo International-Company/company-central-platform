@@ -9,6 +9,7 @@ Reference: [ARCHITECTURE.md §20](../../ARCHITECTURE.md) (Cloud), §21 (Deployme
 | [`observability.md`](observability.md) | Logs, metrics, traces, the seven alert conditions, and the runbook — including how to answer "did last night's sweep run?" |
 | [`backup-and-recovery.md`](backup-and-recovery.md) | What is at stake, what to back up, how to restore, how to **verify** a restore, the Platform's own database limits and retention, and the recovery drill |
 | [`railway.md`](railway.md) | The current deployment, its environment variables, and the ephemeral-storage trap |
+| [`database-roles.md`](database-roles.md) | Separating the role that migrates from the role that serves — why, how, and the part that fails silently |
 
 `backup.md` and `recovery-runbook.md` were planned as two documents and written
 as one. Splitting them would put the backup procedure in a file nobody opens
@@ -33,6 +34,7 @@ are one subject, because a backup is only the input to a restore.
 - **Production is never a development environment.**
 - Staging mirrors production configuration and contains **no real personal data**.
 - Migrations run as an explicit deployment step, preceded by a backup — never automatically at application start.
+- Migrations run as a **different database role** from the one serving requests ([`database-roles.md`](database-roles.md)). One role for both means a SQL-injection defect anywhere can drop a table.
 - The same container image is promoted through environments; only configuration differs.
 - Secrets come from the secret manager. They are never in an image, a build argument, or the repository.
 - A backup that has never been restored is a hypothesis. Restore drills are scheduled, timed against the RTO, and their results recorded.
