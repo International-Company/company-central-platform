@@ -130,6 +130,16 @@ jobs:
       - name: Documented endpoints exist
         run: python scripts/check-doc-endpoints.py
 
+      # The same defect in the file people actually read to find out where the
+      # project is. Its summary sections drifted further than anything else,
+      # because the detail gets edited every phase and the summary gets edited
+      # when somebody remembers: section 2 once opened with "no capability
+      # module has been implemented" while eleven were deployed with screens.
+      # This catches the two parts with a shape -- the phase summary agreeing
+      # with the phase table, and every module having a row.
+      - name: Status document agrees with itself
+        run: python scripts/check-status-consistency.py
+
       - name: Unit tests
         run: >-
           dotnet test tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj
