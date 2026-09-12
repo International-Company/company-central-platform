@@ -99,6 +99,10 @@ public sealed class ThingDbContext(DbContextOptions<ThingDbContext> options) : D
         // Phase 1, so columns generated as PascalCase while hand-written index
         // filters referred to snake_case ones that did not exist. The migration
         // would have failed on the first deployment.
+        //
+        // ColumnNamingTests builds every module's model through its design-time
+        // factory and fails the build on a column that is not snake_case, so
+        // forgetting this line costs a red build rather than a deployment.
         modelBuilder.ApplySnakeCaseNames();
     }
 }
