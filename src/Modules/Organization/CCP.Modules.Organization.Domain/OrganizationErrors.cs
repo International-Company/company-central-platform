@@ -104,6 +104,57 @@ public static class OrganizationErrors
     public static readonly Error EmployeeNumberRequired = Error.Validation(
         "ORGANIZATION.EMPLOYEE_NUMBER_REQUIRED", "An employee number is required.", "employeeNumber");
 
+    // --- Custom attributes --------------------------------------------------
+
+    /// <summary>
+    /// The key is not <c>&lt;application&gt;.&lt;name&gt;</c>.
+    /// <para>
+    /// A key with no namespace belongs to nobody, and the first collision would
+    /// be silent: one application overwriting another's value on the same
+    /// employee, with both convinced they owned it.
+    /// </para>
+    /// </summary>
+    public static readonly Error AttributeKeyInvalid = Error.Validation(
+        "ORGANIZATION.ATTRIBUTE_KEY_INVALID",
+        "An attribute key is '<application>.<name>' — letters, digits, hyphens and underscores.",
+        "key");
+
+    /// <summary>
+    /// Nothing is expressed by removing the attribute, not by storing an empty
+    /// string. Two ways of saying "no value" is two things to check everywhere
+    /// afterwards.
+    /// </summary>
+    public static readonly Error AttributeValueRequired = Error.Validation(
+        "ORGANIZATION.ATTRIBUTE_VALUE_REQUIRED",
+        "An attribute needs a value. Remove the attribute instead of emptying it.",
+        "value");
+
+    public static readonly Error AttributeValueTooLong = Error.Validation(
+        "ORGANIZATION.ATTRIBUTE_VALUE_TOO_LONG",
+        "An attribute value is at most 1000 characters. This is metadata about a person, not a "
+        + "place to keep a document.",
+        "value");
+
+    /// <summary>
+    /// A credential was pasted where metadata belongs.
+    /// <para>
+    /// An employee record is exported, backed up and broadly readable inside the
+    /// company. A secret put here is a secret in all of those places, and the
+    /// person who put it there did so because it was convenient — which is
+    /// exactly when it happens.
+    /// </para>
+    /// </summary>
+    public static readonly Error AttributeLooksLikeASecret = Error.Validation(
+        "ORGANIZATION.ATTRIBUTE_LOOKS_LIKE_A_SECRET",
+        "That looks like a credential. An employee's attributes are exported, backed up and "
+        + "broadly readable; secrets live in the secret store and are named by reference.",
+        "value");
+
+    public static readonly Error AttributeLimitReached = Error.Rule(
+        "ORGANIZATION.ATTRIBUTE_LIMIT_REACHED",
+        "An employee may carry at most 50 custom attributes. A bag with no limit is a table "
+        + "somebody eventually uses as a database.");
+
     public static readonly Error UserAlreadyLinked = Error.Conflict(
         "ORGANIZATION.USER_ALREADY_LINKED",
         "That user account is already linked to another employee.");

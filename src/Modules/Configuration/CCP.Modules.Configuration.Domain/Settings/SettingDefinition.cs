@@ -1,3 +1,4 @@
+using CCP.Kernel.Security;
 using CCP.Kernel.Domain;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;

@@ -1,3 +1,4 @@
+using CCP.Kernel.Security;
 using CCP.Kernel.Results;
 using CCP.Modules.Configuration.Domain.Settings;
 

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace CCP.Modules.Configuration.Domain.Settings;
+namespace CCP.Kernel.Security;
 
 /// <summary>
 /// Refuses a value that looks like a secret, wherever one is offered.
@@ -23,6 +23,13 @@ namespace CCP.Modules.Configuration.Domain.Settings;
 /// a long high-entropy string — and it will not catch a short password somebody
 /// typed. A heuristic that tried to would refuse half the legitimate values in
 /// the Platform. The rest is a review and a documented rule.
+/// </para>
+/// <para>
+/// <b>In the kernel because the argument is not about settings.</b> It was
+/// written for the Configuration module and every word of it applies wherever a
+/// module stores text somebody typed: an employee's custom attributes are
+/// exported and backed up in exactly the same way. A second copy of a security
+/// heuristic is a second copy that drifts, so there is one.
 /// </para>
 /// </summary>
 public static partial class SecretShapedValue

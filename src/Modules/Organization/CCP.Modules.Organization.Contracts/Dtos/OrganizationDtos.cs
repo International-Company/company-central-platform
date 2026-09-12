@@ -82,3 +82,14 @@ public sealed record EmployeeDto(
 
 /// <summary>One link in a reporting line, for showing who someone reports to.</summary>
 public sealed record ManagerLinkDto(Guid EmployeeId, string EmployeeNumber, LocalizedNameDto FullName);
+
+/// <summary>
+/// One piece of metadata a business application keeps about an employee
+/// (§7.2.2).
+/// </summary>
+/// <param name="Key">
+/// <c>&lt;application&gt;.&lt;name&gt;</c>. Namespaced, so two business systems
+/// that both care about "status" do not collide — and so an attribute's owner
+/// can be read off the key rather than looked up.
+/// </param>
+public sealed record EmployeeAttributeDto(string Key, string Value, DateTimeOffset SetAt);

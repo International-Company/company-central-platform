@@ -894,6 +894,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization/employees/{id}/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Everything every application keeps about this person.
+         * @description **Requires:** `platform.employees.view`
+         */
+        get: operations["GetEmployeeAttributes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/employees/{id}/attributes/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets one custom attribute on an employee.
+         * @description **Requires:** `platform.employees.manage`
+         */
+        put: operations["SetEmployeeAttribute"];
+        post?: never;
+        /**
+         * Removes one custom attribute. Saying nothing when there was none.
+         * @description **Requires:** `platform.employees.manage`
+         */
+        delete: operations["RemoveEmployeeAttribute"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles": {
         parameters: {
             query?: never;
@@ -2496,6 +2540,12 @@ export interface components {
             notes: null | string;
             contentRemoved: boolean;
         };
+        EmployeeAttributeDto: {
+            key: string;
+            value: string;
+            /** Format: date-time */
+            setAt: string;
+        };
         EmployeeDto: {
             /** Format: uuid */
             id: string;
@@ -3172,6 +3222,9 @@ export interface components {
         };
         SetApplicationStatusRequest: {
             isActive: boolean;
+        };
+        SetEmployeeAttributeRequest: {
+            value: string;
         };
         SetFlagRequest: {
             isEnabled: boolean;
@@ -4552,6 +4605,74 @@ export interface operations {
                 "application/json": components["schemas"]["LinkUserRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetEmployeeAttributes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAttributeDto"][];
+                };
+            };
+        };
+    };
+    SetEmployeeAttribute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetEmployeeAttributeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemoveEmployeeAttribute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {

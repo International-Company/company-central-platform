@@ -147,6 +147,56 @@ the Platform does not hold its data.
 > year. Apply the ARCHITECTURE.md §4.4 test to every field proposed for
 > `Employee`.
 
+### The pressure valve: a typed extension bag
+
+That test says no to almost everything, and it should. But an application
+genuinely does need somewhere to keep its own note about a person — a cost
+centre, a badge number, a shift pattern — and without one the pressure goes
+somewhere worse: a column on `Employee` that the Platform then has to understand.
+
+```http
+PUT    /api/v1/organization/employees/{id}/attributes/payroll.cost-centre
+{ "value": "CC-1180" }
+
+GET    /api/v1/organization/employees/{id}/attributes
+DELETE /api/v1/organization/employees/{id}/attributes/payroll.cost-centre
+```
+
+**Namespaced, and that is the load-bearing part.** A key is
+`<application>.<name>`, so two business systems that both care about "status" do
+not collide — and an attribute's owner can be read off the key rather than
+looked up. A key with no namespace belongs to nobody, and the first collision
+would be silent: one application overwriting another's value, both convinced they
+owned it. The database enforces one value per key per employee, so two
+applications racing settle in PostgreSQL rather than by luck.
+
+**A credential pasted here is refused.** An employee record is exported, backed
+up and broadly readable inside the company, so a secret put here is a secret in
+all of those places — and the person who put it there did so because it was
+convenient, which is exactly when it happens. The check is the one the
+Configuration module applies to a setting, and it now lives in the kernel because
+the argument was never about settings.
+
+**Fifty per employee.** A bag with no limit is a table somebody eventually uses
+as a database, and this row is one a company has to be able to describe in full
+when somebody asks what is held about them. Replacing an existing attribute
+always works, even at the limit — a limit that blocked edits would strand an
+application with fifty attributes it could never correct.
+
+**Reading returns everything, from every application.** "What do you hold about
+me" is a question that must be answerable in full, and an endpoint that only ever
+showed one application's slice would make the complete answer something only a
+database query could produce.
+
+Setting and removing are audited by **key, never by value**: an attribute's value
+is an application's business and may be somebody's medical category, while "who
+decided this" is the question actually being asked.
+
+What this is **not** is a way around §6. An attribute is an application's own
+note, opaque to the Platform, which reads it back and never interprets it. The
+moment the Platform needs to understand a field, it is a Platform field and the
+§4.4 test applies.
+
 ---
 
 ## 7. Employees and user accounts
@@ -178,6 +228,9 @@ one employee per account.
 | POST | `/api/v1/organization/employees` | `platform.employees.manage` |
 | POST | `/api/v1/organization/employees/{id}/transfer` | `platform.employees.manage` |
 | PUT | `/api/v1/organization/employees/{id}/user` | `platform.employees.manage` |
+| `GET` | `/organization/employees/{id}/attributes` | `platform.employees.view` |
+| `PUT` | `/organization/employees/{id}/attributes/{key}` | `platform.employees.manage` |
+| `DELETE` | `/organization/employees/{id}/attributes/{key}` | `platform.employees.manage` |
 
 Reading the structure is broadly permitted; changing it is not. The people who
 may see the org chart are many; the people who may restructure it are few.
@@ -236,7 +289,6 @@ can see. A stale cache there grants access to the wrong part of the company.
 |---|---|
 | `EmployeeAssignment` history | Deferred. The current unit, position and manager are on the employee. Historical assignment tracking is genuinely useful for "where was this person in March?" but nobody has asked for it (P1). |
 | Matrix / dotted-line reporting | A single manager, because workflow's approver resolution must be unambiguous. A separate entity is the escalation path. |
-| Custom attribute extension bag | Planned in ARCHITECTURE.md §7.2.2 so business apps can attach metadata without a Platform schema change. Not yet built. |
 | Position CRUD endpoints | The entity, repository and validation exist; the endpoints do not. |
 | Company setup endpoint | The entity exists; creating the company is currently a seeding concern. |
 | Integration tests | Written for Identity, not yet for Organization. Nothing has run against a real database. |

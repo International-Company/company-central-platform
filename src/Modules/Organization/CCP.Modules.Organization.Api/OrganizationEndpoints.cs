@@ -477,8 +477,82 @@ public static class OrganizationEndpoints
             .WithMetadata(new RequirePermissionAttribute("platform.employees.manage"))
             .WithName("LinkEmployeeUser")
             .WithSummary("Links or unlinks an employee's Platform account.");
+
+        // --- Custom attributes ---------------------------------------------
+        //
+        // The extension point ARCHITECTURE.md 7.2.2 asks for: business
+        // applications attach their own metadata to a person without a Platform
+        // schema change.
+        //
+        // Read behind view and written behind manage, the same split as every
+        // other fact about an employee. An attribute is not a lesser kind of
+        // personal data because an application rather than HR put it there.
+
+        employees.MapGet("/{id:guid}/attributes", async (
+            Guid id,
+            HttpContext context,
+            [FromServices] GetEmployeeAttributesHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<IReadOnlyList<EmployeeAttributeDto>> result =
+                await handler.HandleAsync(new GetEmployeeAttributesQuery(id), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.employees.view"))
+            .Produces<IReadOnlyList<EmployeeAttributeDto>>(StatusCodes.Status200OK)
+            .WithName("GetEmployeeAttributes")
+            .WithSummary("Everything every application keeps about this person.");
+
+        employees.MapPut("/{id:guid}/attributes/{key}", async (
+            Guid id,
+            string key,
+            SetEmployeeAttributeRequest request,
+            HttpContext context,
+            [FromServices] SetEmployeeAttributeHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result result = await handler.HandleAsync(
+                new SetEmployeeAttributeCommand(id, key, request.Value), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.employees.manage"))
+            .WithName("SetEmployeeAttribute")
+            .WithSummary("Sets one custom attribute on an employee.");
+
+        employees.MapDelete("/{id:guid}/attributes/{key}", async (
+            Guid id,
+            string key,
+            HttpContext context,
+            [FromServices] RemoveEmployeeAttributeHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result result = await handler.HandleAsync(
+                new RemoveEmployeeAttributeCommand(id, key), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.employees.manage"))
+            .WithName("RemoveEmployeeAttribute")
+            .WithSummary("Removes one custom attribute. Saying nothing when there was none.");
     }
 }
+
+/// <summary>
+/// The value of one custom attribute.
+/// <para>
+/// The key is in the path, because it names the thing being addressed. A body
+/// carrying both would let the two disagree.
+/// </para>
+/// </summary>
+public sealed record SetEmployeeAttributeRequest(string Value);
 
 // ---------------------------------------------------------------------------
 // Request bodies

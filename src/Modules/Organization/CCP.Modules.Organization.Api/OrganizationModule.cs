@@ -43,6 +43,12 @@ public sealed class OrganizationModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<TransferEmployeeHandler>();
         services.AddScoped<LinkEmployeeUserHandler>();
         services.AddScoped<SearchEmployeesHandler>();
+
+        // The typed extension bag: business applications attach their own
+        // metadata to a person without a Platform schema change.
+        services.AddScoped<SetEmployeeAttributeHandler>();
+        services.AddScoped<RemoveEmployeeAttributeHandler>();
+        services.AddScoped<GetEmployeeAttributesHandler>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder versionGroup)

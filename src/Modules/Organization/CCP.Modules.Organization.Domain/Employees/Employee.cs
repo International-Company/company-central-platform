@@ -31,6 +31,18 @@ namespace CCP.Modules.Organization.Domain.Employees;
 /// </summary>
 public sealed class Employee : AggregateRoot, IAuditableEntity
 {
+    /// <summary>
+    /// How many custom attributes one employee may carry.
+    /// <para>
+    /// A bag with no limit is a table somebody eventually uses as a database,
+    /// and the row it lives on is one a company has to be able to describe in
+    /// full when somebody asks what is held about them.
+    /// </para>
+    /// </summary>
+    public const int MaximumAttributes = 50;
+
+    private readonly List<EmployeeAttribute> _attributes = [];
+
     private Employee() { }
 
     private Employee(
@@ -72,6 +84,18 @@ public sealed class Employee : AggregateRoot, IAuditableEntity
     /// </para>
     /// </summary>
     public Guid? UserId { get; private set; }
+
+    /// <summary>
+    /// What business applications keep about this person (§7.2.2).
+    /// <para>
+    /// <b>Typed and namespaced, not a JSON column.</b> A free-form bag would let
+    /// an application store anything at all on an employee record — including a
+    /// credential, and including a field nobody else can interpret — and the
+    /// Platform would have no answer to "what do you hold about this person",
+    /// which is a question a company is obliged to answer.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<EmployeeAttribute> Attributes => _attributes;
 
     /// <summary>The unit this person belongs to.</summary>
     public Guid UnitId { get; private set; }
@@ -283,4 +307,86 @@ public sealed class Employee : AggregateRoot, IAuditableEntity
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Sets one custom attribute, or replaces it.
+    /// <para>
+    /// No event is raised. An attribute is an application's own note about
+    /// somebody, not an organizational fact — raising <c>EmployeeChanged</c> for
+    /// one would wake every subscriber for something none of them can interpret.
+    /// </para>
+    /// </summary>
+    public Result SetAttribute(string key, string value, DateTimeOffset now)
+    {
+        Result<string> name = EmployeeAttribute.NormaliseKey(key);
+
+        if (name.IsFailure)
+        {
+            return Result.Failure(name.Errors);
+        }
+
+        EmployeeAttribute? existing = Find(name.Value);
+
+        if (existing is not null)
+        {
+            Result updated = existing.Update(value, now);
+
+            if (updated.IsSuccess)
+            {
+                UpdatedAt = now;
+            }
+
+            return updated;
+        }
+
+        // Counted before it is added, so the limit is a limit rather than a
+        // number the fiftieth write happens to pass.
+        if (_attributes.Count >= MaximumAttributes)
+        {
+            return Result.Failure(OrganizationErrors.AttributeLimitReached);
+        }
+
+        Result<EmployeeAttribute> created = EmployeeAttribute.Set(Id, name.Value, value, now);
+
+        if (created.IsFailure)
+        {
+            return Result.Failure(created.Errors);
+        }
+
+        _attributes.Add(created.Value);
+        UpdatedAt = now;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Removes one, and says nothing when there was nothing to remove.
+    /// <para>
+    /// Idempotent because an application clearing its own attributes should not
+    /// have to ask first, and "it was already gone" is the outcome it wanted.
+    /// </para>
+    /// </summary>
+    public void RemoveAttribute(string key, DateTimeOffset now)
+    {
+        Result<string> name = EmployeeAttribute.NormaliseKey(key);
+
+        if (name.IsFailure)
+        {
+            return;
+        }
+
+        EmployeeAttribute? existing = Find(name.Value);
+
+        if (existing is null)
+        {
+            return;
+        }
+
+        _attributes.Remove(existing);
+        UpdatedAt = now;
+    }
+
+    private EmployeeAttribute? Find(string key)
+        => _attributes.FirstOrDefault(
+            attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal));
 }

@@ -136,7 +136,25 @@ public sealed class OrganizationDbContext(DbContextOptions<OrganizationDbContext
             entity.Ignore(e => e.DomainEvents);
         });
 
-    private static void ConfigureEmployees(ModelBuilder modelBuilder) =>
+    private static void ConfigureEmployees(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EmployeeAttribute>(entity =>
+        {
+            entity.ToTable("employee_attributes");
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.Id).ValueGeneratedNever();
+            entity.Property(a => a.Key).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.Value).HasMaxLength(1000).IsRequired();
+
+            // One value per key per employee, settled by the database. Two
+            // applications racing to set the same key would otherwise both
+            // succeed and one would silently win.
+            entity.HasIndex(a => new { a.EmployeeId, a.Key })
+                  .HasDatabaseName("ux_employee_attributes_key")
+                  .IsUnique();
+        });
+
         modelBuilder.Entity<Employee>(entity =>
         {
             entity.ToTable("employees");
@@ -167,6 +185,24 @@ public sealed class OrganizationDbContext(DbContextOptions<OrganizationDbContext
 
             entity.HasIndex(e => e.ManagerId).HasDatabaseName("ix_employees_manager");
 
+            // Owned by the employee, cascading with them, and loaded with them.
+            //
+            // A child table rather than a JSON column: the keys are declared,
+            // the unique index below is what stops two applications writing the
+            // same one, and "what do you hold about this person" is a query
+            // rather than a parse.
+            entity.HasMany(e => e.Attributes)
+                  .WithOne()
+                  .HasForeignKey(a => a.EmployeeId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Navigation(e => e.Attributes).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            // Read whenever the employee is, because an attribute bag nobody
+            // loaded is a bag that reads as empty -- which is indistinguishable
+            // from one that is.
+            entity.Navigation(e => e.Attributes).AutoInclude();
+
             entity.HasOne<Company>()
                   .WithMany()
                   .HasForeignKey(e => e.CompanyId)
@@ -194,6 +230,7 @@ public sealed class OrganizationDbContext(DbContextOptions<OrganizationDbContext
 
             entity.Ignore(e => e.DomainEvents);
         });
+    }
 
     /// <summary>
     /// Maps a <see cref="LocalizedName"/> to two columns rather than a JSON
