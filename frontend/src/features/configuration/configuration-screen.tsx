@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { Field, FormMessage } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/shared/data-table';
 import { FormDialog } from '@/components/shared/form-dialog';
@@ -9,7 +9,19 @@ import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { FlagTargeting } from './flag-targeting';
 import { SettingHistory } from './setting-history';
-import type { FeatureFlagDto, SettingDto } from '@/types/platform';
+import {
+  describeScope,
+  PlatformToken,
+  scopeChoices,
+  valueAt,
+  type ScopeChoice,
+} from './setting-scopes';
+import type {
+  CompanyDto,
+  FeatureFlagDto,
+  RegisteredApplicationDto,
+  SettingDto,
+} from '@/types/platform';
 
 /**
  * Settings and switches.
@@ -25,8 +37,17 @@ export function ConfigurationScreen() {
   const tErrors = useTranslations('errors');
   const format = useFormatter();
 
+  // Names in the reader's language, like everywhere else in the portal.
+  const arabic = useLocale() === 'ar';
+
   const [settings, setSettings] = useState<SettingDto[]>([]);
   const [flags, setFlags] = useState<FeatureFlagDto[]>([]);
+
+  // What a setting can be aimed at. Read once with the settings, because a
+  // picker built from what exists is the difference between choosing a company
+  // and typing a GUID from memory.
+  const [company, setCompany] = useState<CompanyDto | null>(null);
+  const [applications, setApplications] = useState<RegisteredApplicationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -34,6 +55,7 @@ export function ConfigurationScreen() {
   const [targeting, setTargeting] = useState<FeatureFlagDto | null>(null);
 
   const [editing, setEditing] = useState<SettingDto | null>(null);
+  const [scopeToken, setScopeToken] = useState<string>(PlatformToken);
   const [value, setValue] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,10 +66,13 @@ export function ConfigurationScreen() {
     setError(null);
 
     try {
-      const [settingsResponse, flagsResponse] = await Promise.all([
-        fetch('/api/configuration/settings'),
-        fetch('/api/configuration/flags'),
-      ]);
+      const [settingsResponse, flagsResponse, companyResponse, applicationsResponse] =
+        await Promise.all([
+          fetch('/api/configuration/settings'),
+          fetch('/api/configuration/flags'),
+          fetch('/api/organization/company'),
+          fetch('/api/applications'),
+        ]);
 
       if (!settingsResponse.ok) {
         setError(tErrors('generic'));
@@ -60,6 +85,17 @@ export function ConfigurationScreen() {
       if (flagsResponse.ok) {
         setFlags((await flagsResponse.json()) as FeatureFlagDto[]);
       }
+
+      // Neither of these failing is fatal. A scope whose list did not load is
+      // one the picker cannot offer; refusing to show the screen at all because
+      // the application registry was slow would be worse than offering less.
+      if (companyResponse.ok) {
+        setCompany((await companyResponse.json()) as CompanyDto | null);
+      }
+
+      if (applicationsResponse.ok) {
+        setApplications((await applicationsResponse.json()) as RegisteredApplicationDto[]);
+      }
     } catch {
       setError(tErrors('network'));
     } finally {
@@ -70,6 +106,41 @@ export function ConfigurationScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const choices = useMemo(
+    () =>
+      scopeChoices(
+        company,
+        applications,
+        {
+          platform: t('scopePlatform'),
+          company: t('scopeCompany'),
+          application: t('scopeApplication'),
+        },
+        arabic,
+      ),
+    [company, applications, t, arabic],
+  );
+
+  const chosen: ScopeChoice =
+    choices.find((choice) => choice.token === scopeToken) ?? choices[0]!;
+
+  /**
+   * Opens the dialog on one scope, showing what is set there.
+   *
+   * An empty box means no override at this scope, not "the value is empty" —
+   * which is the same thing the field's hint says, because saving an empty box
+   * is how an override is cleared.
+   */
+  function edit(setting: SettingDto, token: string) {
+    const choice = choices.find((c) => c.token === token) ?? choices[0]!;
+
+    setEditing(setting);
+    setScopeToken(choice.token);
+    setValue(setting.isSensitive ? '' : (valueAt(setting, choice) ?? ''));
+    setReason('');
+    setFormError(null);
+  }
 
   async function save() {
     if (!editing) {
@@ -85,8 +156,12 @@ export function ConfigurationScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           key: editing.key,
-          scope: 'Platform',
-          scopeId: null,
+          scope: chosen.scope,
+          scopeId: chosen.scopeId,
+
+          // Empty clears the override at this scope rather than storing an
+          // empty string. Narrowest-wins then falls back to the next scope out,
+          // which is what "remove this exception" means.
           value: value.trim() === '' ? null : value,
           reason: reason.trim() === '' ? null : reason.trim(),
         }),
@@ -96,7 +171,7 @@ export function ConfigurationScreen() {
         setEditing(null);
         setValue('');
         setReason('');
-        setNotice(t('saved', { key: editing.key }));
+        setNotice(t('savedAt', { key: editing.key, scope: chosen.label }));
         await load();
 
         return;
@@ -187,9 +262,31 @@ export function ConfigurationScreen() {
     {
       key: 'overrides',
       header: t('overrides'),
+
+      // The scopes, not a count. A number told somebody an exception existed
+      // and refused to say where — which is the one thing worth knowing when a
+      // setting is behaving differently for one application than for everybody
+      // else.
       render: (setting) =>
-        setting.values.length === 0 ? t('atDefault') : String(setting.values.length),
-      numeric: true,
+        setting.values.length === 0 ? (
+          <span className="text-sm text-text-secondary">{t('atDefault')}</span>
+        ) : (
+          <ul className="flex flex-col gap-0.5">
+            {setting.values.map((override) => (
+              <li
+                key={`${override.scope}:${override.scopeId ?? ''}`}
+                className="text-xs text-text-secondary"
+              >
+                <span className="text-text">
+                  {describeScope(override.scope, override.scopeId ?? null, choices)}
+                </span>
+                {setting.isSensitive ? null : (
+                  <span className="ms-1 font-mono">{override.value}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ),
       secondary: true,
     },
     {
@@ -283,12 +380,7 @@ export function ConfigurationScreen() {
                   <button
                     type="button"
                     className="text-sm font-medium text-primary-700 hover:underline"
-                    onClick={() => {
-                      setEditing(setting);
-                      setValue(setting.isSensitive ? '' : effective(setting));
-                      setReason('');
-                      setFormError(null);
-                    }}
+                    onClick={() => edit(setting, PlatformToken)}
                   >
                     {tCommon('edit')}
                   </button>
@@ -365,7 +457,7 @@ export function ConfigurationScreen() {
       <FormDialog
         open={editing !== null}
         title={t('editTitle')}
-        description={editing?.key ?? ''}
+        description={editing ? `${editing.key} — ${chosen.label}` : ''}
         submitLabel={tCommon('save')}
         cancelLabel={tCommon('cancel')}
         busy={busy}
@@ -374,6 +466,40 @@ export function ConfigurationScreen() {
         onSubmit={() => void save()}
         onCancel={() => setEditing(null)}
       >
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="setting-scope" className="text-sm font-medium text-text">
+            {t('scope')}
+          </label>
+
+          <select
+            id="setting-scope"
+            value={scopeToken}
+            onChange={(event) => {
+              const token = event.target.value;
+
+              setScopeToken(token);
+
+              // The box follows the scope. Leaving the previous scope's value
+              // behind would make "save" quietly copy an override from one
+              // place to another.
+              const next = choices.find((choice) => choice.token === token);
+
+              setValue(
+                editing && next && !editing.isSensitive ? (valueAt(editing, next) ?? '') : '',
+              );
+            }}
+            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          >
+            {choices.map((choice) => (
+              <option key={choice.token} value={choice.token}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+
+          <p className="text-xs text-text-secondary">{t('scopeHint')}</p>
+        </div>
+
         <Field
           label={t('value')}
           value={value}

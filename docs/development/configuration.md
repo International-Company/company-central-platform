@@ -130,6 +130,26 @@ customised three things has three rows.
 Sending `"value": null` clears the override, and the setting falls back to the
 scope above. That is a different act from setting it to an empty string.
 
+### From the portal
+
+The Configuration screen edits at any of these scopes. The picker offers the
+Platform, the company once one is set up, and every registered application — by
+name, because a GUID is no help at all to the person deciding. The overrides
+column lists the scopes a setting has been overridden at rather than counting
+them: a number told somebody an exception existed and refused to say where, which
+is the one thing worth knowing when a setting behaves differently for one
+application than for everybody else.
+
+**Emptying the value box clears the override at the chosen scope**, which is the
+same `null` as above, and the setting falls back to the next scope out. The
+dialog reloads the box whenever the scope changes, so saving cannot quietly copy
+one scope's value onto another.
+
+An override naming a company or an application that has since been removed still
+resolves, and is still listed — under its raw identifier, because that is the
+only string left that says what the row is about. Printing nothing would make a
+live override invisible.
+
 ---
 
 ## 5. Every change is kept
