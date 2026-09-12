@@ -79,12 +79,56 @@ plainly that enrolments will not survive a restart.
 | Secret | Rotation |
 |---|---|
 | JWT signing key | JWKS publishes the current key by `kid`; a new key is added and the old one retained until every issued token has expired, then removed. Access tokens are short-lived, so the overlap is minutes. |
-| MFA protection key | **No rotation path yet.** Rotating it today would make every enrolled secret undecryptable. A proper rotation needs a re-encryption pass keyed by a version marker on the stored ciphertext. Recorded as technical debt, not as a solved problem. |
+| MFA protection key | A new key is made active under a new id and the old one is listed as retired; secrets written under either are readable throughout. See §5.1. **Re-encryption of existing secrets is still manual** — until each is rewritten, the retired key must stay configured. |
 | Database password | Rotated in the secret manager; the deployment is restarted to pick it up. |
 
-The MFA key gap is real and is written down here rather than left implicit. The
-stored format (`nonce | tag | ciphertext`) has no key version field, which is the
-change that would need to come first.
+### 5.1 Rotating the MFA protection key
+
+Until recently this could not be done at all. A stored secret was bare base64 of
+`nonce | tag | ciphertext` with nothing to say which key wrote it, so a new key
+made every enrolled second factor undecryptable — which is to say, locked every
+user out of their own account. **A key that can never be replaced is a key that
+stays in place after the laptop it was generated on is sold.**
+
+The stored form is now `v2.{keyId}.{base64(nonce | tag | ciphertext)}`. The
+version lives in a prefix rather than in the encrypted bytes, and that is what
+made the change deployable: a value written before versioning has no prefix, is
+recognised by its absence, and is read with the active key — which is the only
+key it can have been written with.
+
+To rotate:
+
+1. Generate a new key: `openssl rand -base64 32`.
+2. Put it where the active key lives (`Security:MfaProtection:KeyPath`, or
+   `:Key` on a platform with no mounted files).
+3. Give it a new id: `Security:MfaProtection:ActiveKeyId`. Any short label with
+   no full stop — `2`, `2026-09`, whatever the procedure finds meaningful. The
+   full stop separates the fields of the stored form, and one in a key id would
+   write values that cannot be read back; the Platform refuses to start rather
+   than let that happen.
+4. List the old key as retired, under **the id it was active with**:
+
+   ```
+   Security__MfaProtection__RetiredKeys__0__Id=1
+   Security__MfaProtection__RetiredKeys__0__KeyPath=/run/secrets/mfa-2025.key
+   ```
+
+5. Deploy. New enrolments use the new key immediately; existing secrets are
+   still read with the retired one.
+
+**The retired key must stay configured until every secret written under it has
+been rewritten.** Removing it early denies the second factor to everyone who has
+not re-enrolled since — which is the outage this whole mechanism exists to make
+avoidable, arrived at by a different route.
+
+A secret naming a key the deployment does not hold is **denied**, not guessed
+at. Trying every key in turn would turn a configuration mistake into a silent
+success under the wrong assumption, and there is no good version of that.
+
+**What is not built: an automatic re-encryption pass.** Today a secret moves to
+the new key only when the person re-enrols. Rewriting each one on its next
+successful use would finish a rotation without anybody being asked to do
+anything, and is recorded as debt rather than implied here.
 
 ---
 

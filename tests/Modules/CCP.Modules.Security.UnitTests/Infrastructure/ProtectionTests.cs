@@ -135,12 +135,18 @@ public sealed class MfaSecretProtectorTests : IDisposable
         MfaSecretProtector protector = CreateProtector();
         byte[] secret = RandomNumberGenerator.GetBytes(20);
 
-        byte[] raw = Convert.FromBase64String(protector.Protect(secret));
+        // The stored form is `v2.{keyId}.{base64}`, so the ciphertext is the
+        // last field. Decoding the whole string would decode a key name too,
+        // and tampering with that tests the parser rather than the cipher.
+        string[] parts = protector.Protect(secret).Split('.', 3);
+
+        byte[] raw = Convert.FromBase64String(parts[2]);
         raw[^1] ^= 0xFF;
 
         // AES-GCM authenticates. Null rather than a wrong secret is the whole
         // reason for choosing an AEAD mode here.
-        Assert.Null(protector.Unprotect(Convert.ToBase64String(raw)));
+        Assert.Null(protector.Unprotect(
+            $"{parts[0]}.{parts[1]}.{Convert.ToBase64String(raw)}"));
     }
 
     [Fact]
