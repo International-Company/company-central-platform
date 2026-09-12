@@ -11,7 +11,13 @@ import { IfPermitted } from '@/lib/permissions';
 import { IntegrationCallLog } from './integration-call-log';
 import { ProviderForm } from './provider-form';
 import { ProviderSettings } from './provider-settings';
-import type { IntegrationHealthDto, IntegrationProviderDto } from '@/types/platform';
+import { SubscriptionDeliveries } from './subscription-deliveries';
+import { SubscriptionForm } from './subscription-form';
+import type {
+  IntegrationHealthDto,
+  IntegrationProviderDto,
+  WebhookSubscriptionDto,
+} from '@/types/platform';
 
 /**
  * The external services the Platform is allowed to call.
@@ -41,6 +47,13 @@ export function IntegrationsScreen() {
   const [configuring, setConfiguring] = useState<IntegrationProviderDto | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // The other direction: who has asked to be told when something happens.
+  const [subscriptions, setSubscriptions] = useState<WebhookSubscriptionDto[]>([]);
+  const [subscribing, setSubscribing] = useState<{ editing: WebhookSubscriptionDto | null } | null>(
+    null,
+  );
+  const [deliveries, setDeliveries] = useState<WebhookSubscriptionDto | null>(null);
+
   // When health was read, not when the component last rendered. Health is
   // derived from the last hour of calls and nothing on this page refreshes it,
   // so an operator watching during an incident needs the stamp to go stale in
@@ -53,9 +66,10 @@ export function IntegrationsScreen() {
     setError(null);
 
     try {
-      const [providersResponse, healthResponse] = await Promise.all([
+      const [providersResponse, healthResponse, subscriptionsResponse] = await Promise.all([
         fetch('/api/integrations/providers'),
         fetch('/api/integrations/providers/health'),
+        fetch('/api/integrations/subscriptions'),
       ]);
 
       if (!providersResponse.ok) {
@@ -69,6 +83,10 @@ export function IntegrationsScreen() {
       if (healthResponse.ok) {
         setHealth((await healthResponse.json()) as IntegrationHealthDto[]);
         setCheckedAt(new Date());
+      }
+
+      if (subscriptionsResponse.ok) {
+        setSubscriptions((await subscriptionsResponse.json()) as WebhookSubscriptionDto[]);
       }
     } catch {
       setError(tErrors('network'));
@@ -108,6 +126,31 @@ export function IntegrationsScreen() {
    * nothing is known — and a green light nobody earned is worse than an honest
    * blank.
    */
+  async function act(path: string, method: string, body?: unknown, noticeKey?: string) {
+    try {
+      const response = await fetch(path, {
+        method,
+        ...(body === undefined
+          ? {}
+          : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+      });
+
+      if (!response.ok) {
+        setError(tErrors('generic'));
+
+        return;
+      }
+
+      if (noticeKey) {
+        setNotice(t(noticeKey as never));
+      }
+
+      await load();
+    } catch {
+      setError(tErrors('network'));
+    }
+  }
+
   function toneFor(status: string): StatusTone {
     if (status === 'Healthy') {
       return 'success';
@@ -183,6 +226,90 @@ export function IntegrationsScreen() {
           timeout: provider.timeoutSeconds,
           retries: provider.maxRetries,
         }),
+      secondary: true,
+    },
+  ];
+
+  const subscriptionColumns: Column<WebhookSubscriptionDto>[] = [
+    {
+      key: 'name',
+      header: t('subscription'),
+      render: (subscription) => (
+        <div>
+          <p className="text-sm font-medium text-text">{subscription.name}</p>
+          <p className="mt-0.5 font-mono text-xs text-text-secondary">{subscription.endpoint}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'events',
+      header: t('subscriptionEvents'),
+      render: (subscription) => (
+        // Listed, not counted. Which events a system receives is the whole
+        // content of a subscription, and a number says nothing anybody needs.
+        <ul className="flex flex-col gap-0.5">
+          {subscription.eventTypes.map((eventType) => (
+            <li key={eventType} className="font-mono text-xs text-text-secondary">
+              {eventType}
+            </li>
+          ))}
+        </ul>
+      ),
+    },
+    {
+      key: 'state',
+      header: t('statusHeading'),
+      render: (subscription) => (
+        <div>
+          <StatusBadge
+            tone={
+              subscription.suspendedAt
+                ? 'danger'
+                : subscription.isEnabled
+                  ? 'success'
+                  : 'neutral'
+            }
+          >
+            {subscription.suspendedAt
+              ? t('suspended')
+              : subscription.isEnabled
+                ? t('on')
+                : t('off')}
+          </StatusBadge>
+
+          {/*
+            A suspended subscription is a business system that has silently
+            stopped hearing about anything, so the reason is on the row rather
+            than a click away.
+          */}
+          {subscription.suspendedAt ? (
+            <p className="mt-1 text-xs text-danger">{subscription.suspendedReason}</p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'secret',
+      header: t('credential'),
+      render: (subscription) => (
+        // The reference, never a value. There is no field in the Platform that
+        // could hold one.
+        <span className="font-mono text-xs text-text-secondary">
+          {subscription.secretReference}
+        </span>
+      ),
+      secondary: true,
+    },
+    {
+      key: 'lastDelivered',
+      header: t('lastDelivered'),
+      render: (subscription) =>
+        subscription.lastDeliveredAt
+          ? format.dateTime(new Date(subscription.lastDeliveredAt), {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })
+          : t('neverDelivered'),
       secondary: true,
     },
   ];
@@ -279,6 +406,116 @@ export function IntegrationsScreen() {
             void load();
           }}
           onCancel={() => setConfiguring(null)}
+        />
+      ) : null}
+
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-text">{t('subscriptions')}</h2>
+
+          <IfPermitted permission="platform.integrations.manage">
+            <Button variant="secondary" onClick={() => setSubscribing({ editing: null })}>
+              {t('subscribe')}
+            </Button>
+          </IfPermitted>
+        </div>
+
+        <p className="mb-3 text-sm text-text-secondary">{t('subscriptionsHint')}</p>
+
+        <DataTable
+          columns={subscriptionColumns}
+          rows={subscriptions}
+          rowKey={(subscription) => subscription.id}
+          caption={t('subscriptions')}
+          labels={{
+            noResults: t('noSubscriptions'),
+            noResultsDescription: t('noSubscriptionsDescription'),
+            sortAscending: tTable('sortAscending'),
+            sortDescending: tTable('sortDescending'),
+            actions: tCommon('actions'),
+          }}
+          rowActions={(subscription) => (
+            <>
+              <button
+                type="button"
+                className="text-sm font-medium text-primary-700 hover:underline"
+                onClick={() =>
+                  setDeliveries(deliveries?.id === subscription.id ? null : subscription)
+                }
+              >
+                {t('deliveries')}
+              </button>
+
+              <IfPermitted permission="platform.integrations.manage">
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary-700 hover:underline"
+                  onClick={() => setSubscribing({ editing: subscription })}
+                >
+                  {tCommon('edit')}
+                </button>
+              </IfPermitted>
+
+              {subscription.suspendedAt ? (
+                <IfPermitted permission="platform.integrations.manage">
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-primary-700 hover:underline"
+                    onClick={() =>
+                      void act(
+                        `/api/integrations/subscriptions/${subscription.id}/resume`,
+                        'POST',
+                        undefined,
+                        'subscriptionResumed',
+                      )
+                    }
+                  >
+                    {t('resume')}
+                  </button>
+                </IfPermitted>
+              ) : (
+                <IfPermitted permission="platform.integrations.manage">
+                  <button
+                    type="button"
+                    className={
+                      subscription.isEnabled
+                        ? 'text-sm font-medium text-danger hover:underline'
+                        : 'text-sm font-medium text-primary-700 hover:underline'
+                    }
+                    onClick={() =>
+                      void act(
+                        `/api/integrations/subscriptions/${subscription.id}/status`,
+                        'PUT',
+                        { isEnabled: !subscription.isEnabled },
+                      )
+                    }
+                  >
+                    {subscription.isEnabled ? t('disable') : t('enable')}
+                  </button>
+                </IfPermitted>
+              )}
+            </>
+          )}
+        />
+      </section>
+
+      {deliveries ? (
+        <SubscriptionDeliveries
+          subscriptionId={deliveries.id}
+          subscriptionName={deliveries.name}
+          onClose={() => setDeliveries(null)}
+        />
+      ) : null}
+
+      {subscribing ? (
+        <SubscriptionForm
+          editing={subscribing.editing}
+          onSaved={(name) => {
+            setSubscribing(null);
+            setNotice(t('subscriptionSaved', { name }));
+            void load();
+          }}
+          onCancel={() => setSubscribing(null)}
         />
       ) : null}
 

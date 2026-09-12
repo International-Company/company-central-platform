@@ -68,6 +68,8 @@ export type IntegrationProviderDto = Schemas['IntegrationProviderDto'];
 export type IntegrationEndpointDto = Schemas['IntegrationEndpointDto'];
 export type IntegrationCallDto = Schemas['IntegrationCallDto'];
 export type IntegrationHealthDto = Schemas['IntegrationHealthDto'];
+export type WebhookSubscriptionDto = Schemas['WebhookSubscriptionDto'];
+export type WebhookDeliveryDto = Schemas['WebhookDeliveryDto'];
 
 export type SettingDto = Schemas['SettingDto'];
 export type SettingValueDto = Schemas['SettingValueDto'];
