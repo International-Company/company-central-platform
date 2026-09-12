@@ -253,6 +253,39 @@ async function exchange(session: Session): Promise<Session | null> {
   return next;
 }
 
+/**
+ * Trades the current session for a fresh pair, now.
+ *
+ * **For the one moment when the token is right about the past and wrong about
+ * the present.** The Platform puts "this person owes a password change" in the
+ * access token, so the check costs no database round trip on every request. The
+ * consequence is that the token minted at sign-in still says so after the
+ * password has been changed — and until it expires, the Platform correctly
+ * refuses everything the person tries next.
+ *
+ * The refresh mints from current state, so calling it here closes that window
+ * rather than leaving somebody staring at a portal that refuses them seconds
+ * after they did exactly what it asked.
+ *
+ * Failure is deliberately silent. The password *was* changed; the worst case is
+ * the old behaviour, where the next call refreshes on its own or the person
+ * signs in again. Turning a successful change into an error response would be a
+ * worse outcome than the thing being avoided.
+ */
+export async function renewSession(): Promise<void> {
+  const session = await readSession();
+
+  if (session === null) {
+    return;
+  }
+
+  try {
+    await exchange(session);
+  } catch {
+    // See above: the change succeeded, and this is only making it pleasant.
+  }
+}
+
 function safeParse(text: string): unknown {
   try {
     return JSON.parse(text);

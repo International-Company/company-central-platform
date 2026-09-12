@@ -1,4 +1,4 @@
-import { callPlatform } from '@/lib/platform-client';
+import { callPlatform, renewSession } from '@/lib/platform-client';
 import { relay } from '@/lib/bff';
 
 /**
@@ -17,11 +17,20 @@ import { relay } from '@/lib/bff';
 export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
 
-  return await relay(
-    await callPlatform({
-      path: '/api/v1/auth/password/change',
-      method: 'POST',
-      body,
-    }),
-  );
+  const result = await callPlatform({
+    path: '/api/v1/auth/password/change',
+    method: 'POST',
+    body,
+  });
+
+  if (result.status >= 200 && result.status < 300) {
+    // The obligation to change a password travels in the access token, so the
+    // one this session is holding still says it stands. Until it expires the
+    // Platform refuses everything — correctly, and seconds after the person did
+    // exactly what it asked of them. A refresh mints from current state and
+    // closes that window.
+    await renewSession();
+  }
+
+  return await relay(result);
 }

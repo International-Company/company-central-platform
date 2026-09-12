@@ -47,10 +47,18 @@ public sealed class AllowWhilePasswordChangePendingAttribute(string because) : A
 /// every request to ask a question that was already settled at sign-in would put
 /// a database round trip in front of the whole Platform. The consequence is that
 /// the flag is as old as the token: somebody who changes their password keeps a
-/// token that still says they owe one, until it expires or they refresh. Both
-/// paths mint a fresh token from current state, and the lifetime is minutes, so
-/// the window is small and closes by itself — and it errs towards asking again
-/// rather than towards letting through.
+/// token that still says they owe one.
+/// </para>
+/// <para>
+/// <b>That window does not close by itself, and saying so here was wrong.</b>
+/// The first version of this comment called it small and self-closing on the
+/// grounds that a refresh mints from current state — true, and a refresh does
+/// not happen because a password changed. So the person did exactly what the
+/// Platform asked and was then refused everything until their token expired.
+/// The end-to-end suite found it within the hour. The portal now renews the
+/// session immediately after a successful change; any other client should do
+/// the same, and a client that does not is refused rather than let through,
+/// which is the right way round for this to be wrong.
 /// </para>
 /// </summary>
 public sealed class PasswordChangePendingMiddleware(RequestDelegate next)
