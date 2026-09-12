@@ -235,9 +235,17 @@ one employee per account.
 Reading the structure is broadly permitted; changing it is not. The people who
 may see the org chart are many; the people who may restructure it are few.
 
-> **These permissions are declared and not yet enforced.** The handler that
-> evaluates them arrives in Phase 4. Until then these endpoints require
-> authentication only.
+> **These permissions are enforced.** This note said the opposite for sixteen
+> phases — that they were "declared and not yet enforced" and that the endpoints
+> required authentication only, pending a handler arriving in Phase 4. Phase 4
+> shipped, and every endpoint above carries a `RequirePermission` and refuses
+> without it. `AuthorizationMatrixTests` asks each one twice — once anonymous,
+> once signed in holding nothing — and fails the build if either is let through.
+>
+> A note like this one is worse than no note: a reader plans around it. Anyone
+> reading it would have believed the organization API was unprotected, and
+> either kept away from it or built a second layer of protection over a first
+> one that was already there.
 
 ### Scoping a query to a subtree
 

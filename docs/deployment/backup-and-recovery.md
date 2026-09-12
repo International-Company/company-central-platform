@@ -170,9 +170,13 @@ not write. Two grants are already narrower than the rest:
   migrations as a role with schema-modification rights and serve requests as one
   without, so an SQL-injection defect cannot become a schema change.
 
-Recorded as an open item rather than claimed: the second half is documented and
-**not enforced** — the Platform currently connects with one role for both. See
-the technical debt register.
+Recorded honestly rather than claimed: **the Platform supports this and no
+deployment has adopted it.** It takes an optional second connection string,
+`ConnectionStrings:PlatformMigrations`, used by the migrator and by nothing else,
+and `scripts/database-roles.sql` creates the two roles with the right grants.
+Where a deployment supplies one, migrating and serving are different roles; where
+it does not — including production today — it is one role for both, exactly as
+before. See debt #64.
 
 ---
 

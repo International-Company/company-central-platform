@@ -91,6 +91,17 @@ Operations (Phase 16, the screen that reads it).
 
 ## 3. Phase 1 report
 
+> **Sections 3 to 3E, and every phase report below, are snapshots.** Each
+> records what was true at the end of the phase it names and is deliberately not
+> rewritten afterwards — that record is the point of them, and editing history to
+> match the present would destroy the only account of how the Platform got here.
+>
+> **So nothing in them describes the current state, including the parts written
+> in the present tense.** A phase 2 report saying "any signed-in user can
+> administer users" was true in phase 2 and stopped being true in phase 4. The
+> live lists are §1 (phases), §2 (modules), §4 (blockers) and §7 (debt); where a
+> report names something unfinished, the register says what became of it.
+
 ### 3.1 What was built
 
 **Solution structure** — 5 source projects, 3 test projects, layered per
@@ -350,7 +361,7 @@ warning level. Procedure documented; **still needs Q10**.
 | 6 | Three new anonymous endpoints were added without review | Architecture test rejected them | Each added to the reviewed public surface with a written justification. The guard did exactly its job. |
 | 7 | User search used `ToLower().Contains()`, which is culture-dependent and applies a function to every row | Analyzer | PostgreSQL `ILIKE`, with LIKE metacharacters escaped. Noted that the leading wildcard precludes a B-tree index; a `pg_trgm` index is the fix if it ever matters (Phase 17). |
 
-### 3A.8 Still not done
+### 3A.8 Still not done *(as at the end of Phase 2 — all three were resolved later: permissions in Phase 4 (#9), reset delivery in Phase 9, integration tests in CI)*
 
 - **Permissions are declared but not enforced.** Every administrative endpoint
   carries `[RequirePermission("platform.users.…")]`, and nothing evaluates it
@@ -925,7 +936,7 @@ and reversing one is more expensive with every phase that builds on it.
 | R7 | Backups never actually restored | Critical | Medium | Open | Phase 17 |
 | R8 | Secrets committed | Critical | Low | **Mitigated** | `.gitignore` written before the first file; CI secret scanning configured; no secret in the repository |
 | R9 | Audit becomes a bottleneck | High | Medium | Open | Outbox in place and designed for it |
-| R10 | Documentation drifts from implementation | Medium | **Realised, repeatedly** | **Open — and it was marked "Mitigated so far" while this register's own rows were the evidence against it** | The most frequently realised risk here by a wide margin. In recent passes: four documents describing a Platform that stopped existing phases earlier; an operational warning telling readers not to deploy, false for about twenty phases; a WebAuthn "extension point" that does not exist, named in four places; an MFA reset listed as an unbuilt gap several phases after it shipped; a row asserting nothing had run against a real database directly above the sentence saying it runs in CI; #69 justified by parallel test classes that are explicitly disabled; #65 contradicting #66 about whether the restore script has ever run. **Two mechanisms now catch part of it** — `check-doc-links.py` and `check-doc-endpoints.py`, both in CI — and their limit is exact: a citation of something that does not exist has a shape a scan can match, and a claim that something is *absent* does not. Every item in that list was found by a person re-reading |
+| R10 | Documentation drifts from implementation | Medium | **Realised, repeatedly** | **Open — and it was marked "Mitigated so far" while this register's own rows were the evidence against it** | The most frequently realised risk here by a wide margin. In recent passes: a note in the organization guide telling readers the endpoints were "declared and not yet enforced" and required "authentication only" — **false for sixteen phases, and the worst kind, because a reader plans around a security claim**: they would either have kept away from the API or built a second layer over a first that was already there; four documents describing a Platform that stopped existing phases earlier; an operational warning telling readers not to deploy, false for about twenty phases; a WebAuthn "extension point" that does not exist, named in four places; an MFA reset listed as an unbuilt gap several phases after it shipped; a row asserting nothing had run against a real database directly above the sentence saying it runs in CI; #69 justified by parallel test classes that are explicitly disabled; #65 contradicting #66 about whether the restore script has ever run. **Two mechanisms now catch part of it** — `check-doc-links.py` and `check-doc-endpoints.py`, both in CI — and their limit is exact: a citation of something that does not exist has a shape a scan can match, and a claim that something is *absent* does not. Every item in that list was found by a person re-reading |
 | R11 | Scope creep from future business systems | High | High | Open | |
 | R12 | Team unfamiliar with parts of the stack | Medium | Unknown | Open | |
 | **R13** | **Local environment cannot run integration tests** | Medium | — | **New, open** | See B1. CI is unaffected. |

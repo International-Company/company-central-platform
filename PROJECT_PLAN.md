@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document | PROJECT_PLAN.md |
-| Status | **Phases 1–6 core complete; deployed to Railway; Phase 7 next — see DEVELOPMENT_STATUS.md** |
+| Status | **Phase status is not kept here.** This line said "Phases 1–6 core complete; Phase 7 next" for thirteen phases. See [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) §1, which counts its own table and is checked in CI |
 | Version | 0.1 |
 | Last updated | 2026-09-08 |
 | Companion documents | [ARCHITECTURE.md](ARCHITECTURE.md) · [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) · [ADRs](docs/architecture/adr/) |
@@ -128,7 +128,7 @@ Not applicable. Verification is by review: the documents are internally consiste
 - [x] Open questions recorded rather than answered by invention
 - [x] No production code
 
-### Known Issues
+### Known Issues *(as at the end of this phase — a snapshot, not current state; the live list is DEVELOPMENT_STATUS.md §7)*
 1. **The referenced requirements document was not found.** The working directory was empty. This analysis derives from the Master Development Prompt. See ARCHITECTURE.md §27 Q1.
 2. Twelve open questions require the owner's input before or during early phases.
 
