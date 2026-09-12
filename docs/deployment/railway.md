@@ -126,3 +126,29 @@ leaving a credential lying about for no reason.
 One context, one set of ignore rules. `frontend/.next` and
 `frontend/node_modules` are excluded: large, reproducible, and belonging in
 neither image.
+
+---
+
+## Backups: an unanswered question, not a deferred one
+
+**Nothing in this repository records whether this database has backups.**
+
+The long-term answer is blocked on Q4 — continuous archiving and point-in-time
+recovery are features of a managed PostgreSQL, and which managed PostgreSQL is
+not decided. `backup-and-recovery.md` holds the procedure and
+`scripts/verify-restore.sh` holds the checks, and neither has run against a real
+dump (DEVELOPMENT_STATUS.md §7, debt #65 and #66).
+
+None of that is a reason not to know the answer for the database that is running
+right now. Railway offers backups on its PostgreSQL plans; whether they are
+switched on here, how often they run and how long they are kept is a question
+somebody can answer from the Railway dashboard this afternoon, without deciding
+anything about Q4. **Write the answer here when you have it**, including if the
+answer is no — "nobody has checked" and "there are none" call for different
+actions, and today only the first is true.
+
+This matters more than its place at the end of a deployment guide suggests. The
+audit trail is the one thing in the Platform that cannot be reconstructed from
+anywhere else: every other table could in principle be rebuilt from the business
+systems that fed it, and that one is the record of who did what. Losing it is
+not an outage.
