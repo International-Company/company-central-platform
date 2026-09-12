@@ -7,6 +7,14 @@
     <ProjectReference Include="..\CCP.Modules.Identity.Domain\CCP.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="..\CCP.Modules.Identity.Application\CCP.Modules.Identity.Application.csproj" />
     <ProjectReference Include="..\CCP.Modules.Identity.Contracts\CCP.Modules.Identity.Contracts.csproj" />
+
+    <!--
+      Contracts only, and only here. Identity needs to know where the person
+      behind an account sits in order to scope a user list, and a user account
+      has no department of its own. The application layer declares the question
+      (IUserPlacement) and never learns which module answers it.
+    -->
+    <ProjectReference Include="..\..\Organization\CCP.Modules.Organization.Contracts\CCP.Modules.Organization.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

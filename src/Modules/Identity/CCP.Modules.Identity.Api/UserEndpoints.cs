@@ -155,8 +155,18 @@ public static class UserEndpoints
                 return pageRequest.ToHttpResult(context, requestContext);
             }
 
+            // The filter the authorization handler attached after admitting this
+            // request. Reading it here is what turns "may list users" into "may
+            // list these users"; defaulting to SelfOnly means a wiring mistake
+            // denies rather than leaks.
+            ScopeFilter scope = context.GetScopeFilter();
+
             Result<PagedResult<UserDto>> result = await handler.HandleAsync(
-                new SearchUsersQuery(pageRequest.Value, q, status), cancellationToken);
+                new SearchUsersQuery(
+                    pageRequest.Value, q, status,
+                    scope.UnitPathPrefixes,
+                    ScopeRestricted: scope.Kind != ScopeFilterKind.All),
+                cancellationToken);
 
             return result.ToHttpResult(context, requestContext);
         })

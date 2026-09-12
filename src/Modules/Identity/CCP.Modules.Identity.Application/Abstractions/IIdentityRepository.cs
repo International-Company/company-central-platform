@@ -102,6 +102,18 @@ public interface IIdentityRepository
     /// response, and it is hand-written for exactly that reason.
     /// </para>
     /// </summary>
+    /// <param name="visibleUserIds">
+    /// When supplied, the only accounts this caller may see.
+    /// <para>
+    /// <b>Applied before paging, not after.</b> Filtering a page after it has
+    /// been read gives the caller a short page, a wrong total and a set of page
+    /// numbers describing rows they are not allowed to know exist.
+    /// </para>
+    /// <para>
+    /// An empty list is a real answer and means nobody, not everybody. A caller
+    /// whose scope resolved to no units sees nothing.
+    /// </para>
+    /// </param>
     Task<(IReadOnlyList<User> Items, long TotalCount)> SearchUsersAsync(
         string? searchTerm,
         UserStatus? status,
@@ -109,5 +121,6 @@ public interface IIdentityRepository
         int take,
         string? sortField,
         bool sortDescending,
+        IReadOnlyCollection<Guid>? visibleUserIds = null,
         CancellationToken cancellationToken = default);
 }

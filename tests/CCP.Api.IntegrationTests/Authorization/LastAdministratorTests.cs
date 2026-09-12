@@ -122,10 +122,25 @@ public sealed class LastAdministratorTests(PlatformApiFactory factory)
 
     // --- Fixtures -----------------------------------------------------------
 
-    private AuthorizationDbContext Authorization() =>
-        new(new DbContextOptionsBuilder<AuthorizationDbContext>()
-            .UseNpgsql(factory.TestConnectionString)
-            .Options);
+    /// <summary>
+    /// Reads the database the host migrated and seeded.
+    /// <para>
+    /// Touching <c>Services</c> first is what makes the permission rows exist.
+    /// The connection string is a plain property that starts nothing, and the
+    /// permissions this suite looks up are declared by the endpoints and written
+    /// by the seeder when the host starts — so a test that only read the string
+    /// found an empty table and failed on a name that is certainly there.
+    /// </para>
+    /// </summary>
+    private AuthorizationDbContext Authorization()
+    {
+        _ = factory.Services;
+
+        return new AuthorizationDbContext(
+            new DbContextOptionsBuilder<AuthorizationDbContext>()
+                .UseNpgsql(factory.TestConnectionString)
+                .Options);
+    }
 
     /// <summary>
     /// Looks for one assignment among everything the query returns.

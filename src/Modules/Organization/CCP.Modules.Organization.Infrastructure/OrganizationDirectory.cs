@@ -32,6 +32,38 @@ public sealed class OrganizationDirectory(OrganizationDbContext dbContext) : IOr
     /// every scope resolution.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// One query, with the prefixes pushed into it.
+    /// <para>
+    /// An empty prefix list returns nothing rather than everything. The caller
+    /// that passes one is a caller whose scope resolved to no units at all, and
+    /// answering "everybody" there would turn a scope that grants nothing into a
+    /// scope that grants the lot.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> GetUserIdsUnderAsync(
+        IReadOnlyCollection<string> unitPathPrefixes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(unitPathPrefixes);
+
+        string[] prefixes = [.. unitPathPrefixes.Where(p => !string.IsNullOrWhiteSpace(p))];
+
+        if (prefixes.Length == 0)
+        {
+            return [];
+        }
+
+        return await (
+            from employee in dbContext.Employees.AsNoTracking()
+            where employee.UserId != null && employee.IsActive
+            join unit in dbContext.Units.AsNoTracking() on employee.UnitId equals unit.Id
+            where prefixes.Any(prefix => EF.Functions.Like(unit.Path, prefix + "%"))
+            select employee.UserId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<string?> GetUnitPathForUserAsync(
         Guid userId, CancellationToken cancellationToken = default)
         => await (

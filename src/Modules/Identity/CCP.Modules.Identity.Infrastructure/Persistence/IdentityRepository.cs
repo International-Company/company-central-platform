@@ -180,9 +180,25 @@ public sealed class IdentityRepository(IdentityDbContext dbContext) : IIdentityR
         int take,
         string? sortField,
         bool sortDescending,
+        IReadOnlyCollection<Guid>? visibleUserIds = null,
         CancellationToken cancellationToken = default)
     {
         IQueryable<User> query = dbContext.Users.AsNoTracking();
+
+        if (visibleUserIds is not null)
+        {
+            // Before the count and before the page. A caller who may see one
+            // department gets that department's total and that department's page
+            // numbers -- filtering afterwards would tell them how many accounts
+            // exist elsewhere, which is most of what the scope was hiding.
+            //
+            // A list of ids rather than a join: no foreign key crosses a schema
+            // boundary, so the set comes from Organization through its contract
+            // and arrives here as values.
+            Guid[] visible = [.. visibleUserIds];
+
+            query = query.Where(u => visible.Contains(u.Id));
+        }
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {

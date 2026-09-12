@@ -244,7 +244,7 @@ is not a protected operation.
 | Role create/edit endpoints | Roles can be read and granted; creating one is currently a seeding concern |
 | Application registration endpoints | The domain, repository and declaration handler exist; the endpoints do not |
 | Machine-to-machine credentials | OAuth2 client credentials for applications — Phase 11 |
-| Scope filters on the remaining list endpoints | Employee search applies the filter at the data layer. The user list does not yet — Identity has no organizational dimension of its own, so it needs a decision about what `Unit` scope means there. |
+| Scope filters on the remaining list endpoints | Employee search and the user list both apply the filter at the data layer. See §11.1 for what a scope means when the thing being listed is an account. |
 | Integration tests | Nothing has run against a real database |
 | ABAC | Explicitly deferred (ADR-007). Adopting it requires a superseding ADR. |
 
@@ -269,7 +269,34 @@ The filter type lives in the kernel, not in Authorization: every module's
 endpoints apply it, and passing Authorization's own type would make Identity and
 Organization reference its internals, which §6.2 forbids.
 
-> **Still open:** the user list endpoint does not apply a scope filter. Identity
-> has no organizational dimension of its own, so what `Unit` scope should mean
-> there is a decision, not an oversight — most likely "users linked to employees
-> in reachable units". It needs deciding rather than assuming.
+### 11.1 What a scope means for a user account
+
+An account has no department. **The person behind it does**, through an employee
+record the Organization module owns — so a department-scoped caller sees the
+accounts of the people in their department, and Identity never grows a unit
+column of its own. A second place the answer lives is a second place it goes
+stale.
+
+Three consequences, each decided rather than fallen into:
+
+- **An account with no employee record is invisible to a scoped caller.** It has
+  no place in the organization, so it is in no department. The alternative —
+  showing unplaced accounts to everybody — would show every service account to
+  every unit administrator in the company.
+- **The cost is real and worth stating:** a unit-scoped administrator who creates
+  an account cannot see it until it is linked to an employee, which is the act
+  that puts it in the organization.
+- **No reachable units means nobody, not everybody.** The natural mistake is to
+  treat an empty prefix list as "no filter", which turns a scope that grants
+  nothing into a scope that grants the whole company — silently, and in the
+  direction nobody notices.
+
+Mechanically it is a list of account ids rather than a join, because no foreign
+key crosses a schema boundary: Identity asks its own application-layer seam,
+which the infrastructure layer answers through Organization's contract. A company
+of ten thousand produces a ten-thousand-id filter, and that is the price of a
+module that can be lifted out.
+
+The filter is applied **before** paging. Narrowing a page after reading it gives
+the caller a short page, a wrong total, and page numbers describing rows they are
+not allowed to know exist.

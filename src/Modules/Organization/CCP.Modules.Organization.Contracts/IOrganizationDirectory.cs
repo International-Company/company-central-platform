@@ -39,6 +39,29 @@ public interface IOrganizationDirectory
     Task<string?> GetUnitPathForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The accounts of everyone whose employee record sits under any of these
+    /// unit paths.
+    /// <para>
+    /// The bulk form of <see cref="GetUnitPathForUserAsync"/>, and it exists for
+    /// a reason the per-user version cannot serve: a scoped <i>list</i> has to be
+    /// narrowed before it is paged, or the page numbers and the total describe a
+    /// set the caller is not allowed to see.
+    /// </para>
+    /// <para>
+    /// Matched by prefix on the materialized path, so "this unit and everything
+    /// under it" is one index scan rather than a tree walk.
+    /// </para>
+    /// <para>
+    /// An employee with no account contributes nothing, and an account with no
+    /// employee is absent — it has no place in the organization, and there is no
+    /// unit it could be under.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetUserIdsUnderAsync(
+        IReadOnlyCollection<string> unitPathPrefixes,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The employee id linked to a user account, or null.
     /// </summary>
     Task<Guid?> GetEmployeeIdForUserAsync(Guid userId, CancellationToken cancellationToken = default);

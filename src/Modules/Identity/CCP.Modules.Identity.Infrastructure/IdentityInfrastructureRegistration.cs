@@ -52,6 +52,12 @@ public static class IdentityInfrastructureRegistration
         services.AddScoped<IIdentityUnitOfWork, IdentityUnitOfWork>();
         services.AddScoped<IIdentityOutbox, IdentityOutbox>();
 
+        // Where the person behind an account sits, so a scoped user list can be
+        // narrowed. Registered here rather than in the application layer,
+        // because answering it means asking Organization -- which only this
+        // layer may do, and only through its contract.
+        services.AddScoped<IUserPlacement, PlatformUserPlacement>();
+
         // Security. Singletons: all three are stateless and hold only
         // configuration, and the signing key should be read once rather than on
         // every request.
