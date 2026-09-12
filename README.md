@@ -130,11 +130,18 @@ than by a right-to-left stylesheet, and no user-facing string is hardcoded.
 
 ## Status
 
-Seventeen of twenty-two phases are done or substantially done. The Platform is
-deployed and running. What remains, what is broken, and what is merely believed
-rather than verified are all in
-[DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md).
+The Platform is deployed and running. What remains, what is broken, and what is
+merely believed rather than verified are all in
+[DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) — **including the phase count,
+which is deliberately not repeated here.**
 
-The most serious open item: **nothing is taking a backup yet.** The procedure is
-written and the restore verification runs; the backup itself waits on the cloud
-provider decision.
+This paragraph used to say "seventeen of twenty-two phases are done or
+substantially done". It was wrong, and it was wrong in the ordinary way: a number
+copied into a second place goes stale in one of them, and the copy is never the
+one somebody thinks to update. The status document counts its own table now, and
+CI checks that it does.
+
+The most serious open item: **nothing is taking a backup.** The procedure is
+written; the restore verification has never been run against a real dump, which
+this paragraph also used to claim it had. Whether the database it is deployed on
+has provider-level backups is not recorded anywhere — see debt #65 and #66.
