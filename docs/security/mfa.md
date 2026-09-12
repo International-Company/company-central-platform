@@ -13,7 +13,7 @@ Introduced in Phase 5.
 |---|---|
 | SMS | Costs money per message, and SIM swapping is a routine attack rather than a theoretical one. A factor an attacker can obtain from a phone shop is not a second factor. |
 | Email | Usually protected by the same password being defended. Not independent. |
-| WebAuthn / hardware keys | Genuinely better — phishing-resistant in a way TOTP is not. Requires hardware the company does not yet have. Kept as an extension point, not ruled out. |
+| WebAuthn / hardware keys | Genuinely better — phishing-resistant in a way TOTP is not. Requires hardware the company does not yet have. Not ruled out, and not seamed for either: see §11. |
 | **TOTP** | **Free, offline, no provider dependency, supported by every authenticator app. Good enough now, and it does not block WebAuthn later.** |
 
 TOTP is not phishing-resistant: a convincing fake login page can collect a code
@@ -220,7 +220,7 @@ opening a dashboard should not be able to cause one.
 
 | Limitation | Status |
 |---|---|
-| TOTP is not phishing-resistant. | Accepted for Phase 5. WebAuthn is the answer and is an extension point. |
+| TOTP is not phishing-resistant. | Accepted. WebAuthn is the answer, and **there is no extension point for it** — this row used to say there was. `MfaEnrolment` stores a shared secret and carries no method discriminator, and the endpoints, DTOs and handlers name TOTP directly; adding WebAuthn means a discriminator, a different kind of stored material (credential id, public key, signature counter) and its own endpoints. Building that seam against a method nobody has the hardware for would shape it around this one anyway — but a plan made on the strength of the old sentence would have been a plan against nothing. |
 | MFA is not required to sign in, only to act. | Deliberate — see §5. Revisit if a business application needs read protection too. |
-| No administrator-initiated MFA reset for a user who lost both phone and codes. | Gap. Needs an audited, permission-gated flow; deferred with the account-recovery work. |
-| Nothing in this module has run against a real database. | Environment blocker B1. Integration tests are written and run in CI. |
+| ~~No administrator-initiated MFA reset for a user who lost both phone and codes.~~ | **Built.** `POST /api/v1/security/users/{userId}/mfa/reset`, gated on `platform.security.manage`, requiring a written reason and audited. This row described it as a gap for several phases after it shipped. |
+| ~~Nothing in this module has run against a real database.~~ | **False as written, and it contradicted its own second half.** `MfaFlowTests` runs against PostgreSQL 17 on every push. What is true is narrower and belongs to the machine, not the module: debt #70, no local PostgreSQL superuser password and no Docker here, so the suite is verified in CI rather than before the push. |

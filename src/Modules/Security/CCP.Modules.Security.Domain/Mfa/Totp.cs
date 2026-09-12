@@ -9,7 +9,24 @@ namespace CCP.Modules.Security.Domain.Mfa;
 /// TOTP first, because it needs no provider, costs nothing, and works offline
 /// (ARCHITECTURE.md §12.5). SMS is neither free nor trustworthy — SIM swapping
 /// is a routine attack — and WebAuthn, though better, needs hardware the company
-/// does not yet have. Both remain extension points.
+/// does not yet have.
+/// </para>
+/// <para>
+/// <b>Neither is an extension point, and this comment used to say they were.</b>
+/// There is no second-factor abstraction: <c>MfaEnrolment</c> stores a shared
+/// secret and carries no notion of which method produced it, and the enrolment
+/// and verification endpoints, their DTOs and the handlers all name TOTP
+/// directly. Adding WebAuthn means a method discriminator on the enrolment, a
+/// different kind of stored material — a credential id, a public key and a
+/// signature counter, none of which is a secret to protect the way this one is —
+/// and its own endpoints.
+/// </para>
+/// <para>
+/// That is a considered position rather than an oversight: building the seam now
+/// means designing it against a method nobody has the hardware to use, and the
+/// seam that results would be shaped by this one method anyway. But "extension
+/// point" reads as "the seam is there, write a provider", and somebody planning
+/// against that sentence would be planning against nothing.
 /// </para>
 /// <para>
 /// The algorithm: HMAC the counter with the shared secret, take four bytes at a

@@ -891,7 +891,7 @@ Progressive lockout on repeated failure — a delay that grows, rather than a ha
 
 ### 12.5 MFA
 
-TOTP (RFC 6238) first, because it needs no provider and no cost. Recovery codes issued once, stored hashed, shown once. SMS and WebAuthn/passkeys are planned extension points, not first-release work. MFA is enforceable by policy — required for holders of administrative permissions, optional otherwise, configurable.
+TOTP (RFC 6238) first, because it needs no provider and no cost. Recovery codes issued once, stored hashed, shown once. SMS and WebAuthn/passkeys are deferred, and deferred without a seam: the enrolment holds a shared secret and no notion of which method produced it, so adding either means a method discriminator, its own stored material and its own endpoints. That is the honest cost, recorded because "extension point" promises a seam that is not there. MFA is enforceable by policy — required for holders of administrative permissions, optional otherwise, configurable.
 
 ### 12.6 Rate limiting
 
