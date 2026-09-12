@@ -62,6 +62,12 @@ public static class IdentityInfrastructureRegistration
         // configuration, and the signing key should be read once rather than on
         // every request.
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
+
+        // And a report of what those parameters actually cost on this machine.
+        // The numbers are a guess until something running says how long they
+        // take, and #22 stayed open for twenty phases because there was nowhere
+        // for the measurement to happen.
+        services.AddSingleton<PasswordCostReport>();
         services.AddSingleton<ISigningKeyProvider, FileSigningKeyProvider>();
         services.AddSingleton<JwtTokenService>();
         services.AddSingleton<ITokenService>(sp => sp.GetRequiredService<JwtTokenService>());

@@ -187,11 +187,31 @@ refresh token copied beforehand would still work.
 Argon2id. Memory-hard, so the work cannot be made cheap with GPUs or ASICs,
 which is how modern offline cracking works.
 
-Default cost: 64 MiB, 3 iterations, 2 lanes — roughly 100 ms per hash on typical
-server hardware. **These must be measured on the real production instance**
-(Phase 5). Too low and cracking is cheap; too high and an authentication burst
-becomes a self-inflicted denial of service, because each attempt reserves that
-memory.
+Default cost: 64 MiB, 3 iterations, 2 lanes. Too low and cracking is cheap; too
+high and an authentication burst becomes a self-inflicted denial of service,
+because each attempt reserves that memory.
+
+**The Platform measures this itself, at startup, on the hardware it is actually
+running on**, and writes the figure to the log:
+
+```
+Password hashing takes 143ms on this hardware with m=65536KiB t=3 p=2.
+```
+
+Below 100 ms it says so as a warning, because cheap for the Platform is cheap for
+somebody working through a stolen password table — which is the entire thing
+these parameters exist to make expensive. Above a second it says so too, more
+mildly: safe and slow is a smaller problem than fast.
+
+**It reports and does not tune.** Hashing cost is a security parameter, and a
+Platform that raised its own would change how long every sign-in takes on a
+schedule nobody chose, with no record of what it used to be — and a machine that
+happened to be busy during startup would pick a number wrong for every hour
+after. The measurement is one hash, once per process, and the decision stays with
+whoever owns the deployment.
+
+Raise it with `Identity:Argon2:MemoryKib` until the figure in the log is one you
+are happy with under load.
 
 Hashes are self-describing: `$argon2id$v=19$m=65536,t=3,p=2$<salt>$<hash>`. The
 parameters travel with the hash, so raising the cost later does not invalidate

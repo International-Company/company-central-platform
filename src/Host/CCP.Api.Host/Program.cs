@@ -509,6 +509,19 @@ if (databaseOptions.ApplyMigrationsOnStartup)
 }
 
 // ---------------------------------------------------------------------------
+// What the password parameters cost here
+// ---------------------------------------------------------------------------
+// One hash, once, so the log says how long a sign-in's most expensive step takes
+// on this machine. The parameters are a guess until something running says what
+// they cost, and there was nowhere for that measurement to happen for twenty
+// phases.
+//
+// It reports and does not tune: password hashing cost is a security parameter,
+// and a Platform that raised its own would change every sign-in on a schedule
+// nobody chose.
+app.Services.GetRequiredService<PasswordCostReport>().Report();
+
+// ---------------------------------------------------------------------------
 // First administrator
 // ---------------------------------------------------------------------------
 // Off unless explicitly enabled, and it refuses to run once any user exists, so
