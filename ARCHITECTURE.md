@@ -1501,20 +1501,24 @@ When a decision proves wrong — and some will — the process is: identify the 
 
 These require the project owner's input. Recommendations are given; none is decided unilaterally.
 
+**None has been answered, and every deadline below has passed.** This table was written before Phase 1 and reads as though its "decide before Phase 19" were still ahead; at Phase 20 it is not. The recommendations are kept as written, because they are the architectural reasoning and that has not changed — but where a recommendation names a phase, read it as a cost already incurred rather than a date to meet.
+
+The Platform was built anyway, which means each question was answered by default. A default nobody chose is still a decision, and the ones that have hardened are recorded with what they cost in [DEVELOPMENT_STATUS.md §5](DEVELOPMENT_STATUS.md) — **the status lives there and only there**, so that this table does not become a second place to keep it current and a second place to forget.
+
 | # | Question | Why it matters | Recommendation |
 |---|---|---|---|
 | **Q1** | **The referenced requirements document was not found in the repository.** Does it exist? | This entire analysis is derived from the Master Prompt. A real document may contain constraints, integrations or scope that change the plan. | Provide the document before Phase 1. If none exists, confirm the Master Prompt as the baseline in writing. |
-| **Q2** | Single company, or must the Platform support multiple legal entities? | Affects the Organization model and every scoped query. Retrofitting is expensive. | Assume **one company** (the brief says "Company Settings", singular). The `Company` root entity is already present, so supporting several later relaxes a constraint rather than reshaping the schema. |
+| **Q2** | Single company, or must the Platform support multiple legal entities? | Affects the Organization model and every scoped query. Retrofitting is expensive. | Assume **one company** (the brief says "Company Settings", singular). The `Company` root entity is already present, so supporting several later relaxes a constraint rather than reshaping the schema. **Half of that held.** The schema needs no reshaping — every unit, position and employee carries a `CompanyId`. The other half, which this row's own "why it matters" named, did not: **1 of the 19 Organization repository methods takes a company**, and the rest are correct only because `GetSingleCompanyAsync` guarantees there is one. Multiple entities is 18 query signatures and every caller of them, not a relaxed constraint. |
 | **Q3** | Expected scale: users, business applications, audit events per day? | Drives instance sizing, partition strategy and caching. | Assume 500–2,000 users, under 10 applications, under 1M audit events/day. Confirm. |
-| **Q4** | Which cloud provider? | Determines managed service names, secret manager, telemetry backend and cost. | Decide before Phase 19; the architecture stays provider-neutral until then. See ADR-009. |
-| **Q5** | Is external SSO (Microsoft 365 / Google Workspace) required, now or later? | An extension point is cheap to design now, expensive to add after Identity ships. | Design the seam in Phase 2; implement only on request. |
+| **Q4** | Which cloud provider? | Determines managed service names, secret manager, telemetry backend and cost. | Decide before Phase 19; the architecture stays provider-neutral until then. See ADR-009. **Phase 19 has passed.** Provider neutrality held, which is the good news; the cost is five open register items, including the only High one — nothing is taking a backup. |
+| **Q5** | Is external SSO (Microsoft 365 / Google Workspace) required, now or later? | An extension point is cheap to design now, expensive to add after Identity ships. | Design the seam in Phase 2; implement only on request. **This was not done.** Identity shipped without one, so the cheap version of this answer has expired: "yes" now costs a module rather than a seam. |
 | **Q6** | Data residency or regulatory constraints (where may data be stored)? | Constrains provider and region choice, and may forbid cross-region replication. | Must be answered before Q4. |
 | **Q7** | Confirm RPO 5 min / RTO 4 hours. | Directly determines infrastructure cost. | Accept the proposal, or state the real tolerance. |
 | **Q8** | Audit retention period, and any legal minimum? | Determines partition retention and storage cost. | Propose 7 years archived, 12 months hot. Confirm. |
 | **Q9** | Does the Platform notify by SMS in the first release? | Decides whether an SMS provider integration is in scope early. | Recommend In-App + Email first; SMS when a real need appears. |
-| **Q10** | Who is the bootstrap administrator, and by what procedure? | A security-critical, one-time operation that must not be improvised. | Document the procedure in Phase 4 and execute it with the owner present. |
+| **Q10** | Who is the bootstrap administrator, and by what procedure? | A security-critical, one-time operation that must not be improvised. | Document the procedure in Phase 4 and execute it with the owner present. **The procedure is documented and built** (`docs/identity/bootstrap-administrator.md`); it is *who*, and the execution with the owner present, that remains. |
 | **Q11** | Is there an existing user directory or employee data to migrate? | A migration path is a phase of its own if so. | Answer before Phase 2 and Phase 3. |
-| **Q12** | Preferred Arabic typeface, and does the company have a brand blue? | Affects the design system tokens set in Phase 7. | Answer before the frontend phase; a sensible default is chosen otherwise. |
+| **Q12** | Preferred Arabic typeface, and does the company have a brand blue? | Affects the design system tokens set in Phase 7. | Answer before the frontend phase; a sensible default is chosen otherwise. **The default was chosen**, and is now in thirteen phases of screens. |
 
 ---
 

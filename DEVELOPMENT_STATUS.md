@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-09-10 |
+| Last updated | 2026-09-12 |
 | Current phase | **Phase 20 — Testing & Quality Hardening** |
 | Phase status | 🟡 **Substantially complete.** Every endpoint is asked to refuse rather than trusted to declare — twice, once anonymous and once signed in holding nothing. It found a live defect. What remains needs an environment or a person this project does not have: a realistic data volume, and an external penetration test. |
-| Next phase | **Phase 19 — Cloud Deployment** — ⛔ still blocked on Q4 |
+| Next phase | **Phase 21 — Final Hardening & Go-Live.** Phase 19 stays partly done until Q4 is answered; what it still needs is a provider decision, not work |
 | Blocked | ⚠️ Partially — see §4 |
 | Deployed | ✅ **Live on Railway** — API https://company-central-platform-production.up.railway.app · portal https://ccp-frontend-production-3752.up.railway.app |
 
@@ -16,7 +16,7 @@
 | # | Phase | Status | Notes |
 |---|---|---|---|
 | 0 | Analysis | ✅ Complete | Documents and 15 ADRs |
-| 1 | Foundation & Platform Kernel | 🟡 **Substantially complete** | Builds, runs, verified manually; integration tests unrun (§4) |
+| 1 | Foundation & Platform Kernel | 🟡 **Substantially complete** | Builds, runs, verified manually. The note here said "integration tests unrun" for nineteen phases; they run on every push against PostgreSQL 17, and what is unrun is running them on *this machine* (§4) |
 | 2 | Identity & Authentication | 🟡 **Feature-complete** | All planned tasks built: authentication, password management and reset, user administration, `/me`, JWKS, bootstrap seeder. 116 unit tests. **Corrected on re-reading:** this row said the integration tests were unrun and the permission strings unenforced. Both stopped being true in Phase 4 — the tests run in CI on every push, and `PermissionPolicyProvider` turns the attribute into a requirement that `PermissionAuthorizationHandler` answers. See #5 and #3. |
 | 3 | Organization | 🟡 **Core complete** | Unit hierarchy with materialized path, arbitrary depth, atomic moves, cycle prevention, bilingual names, employees, positions, company. 48 unit tests. **Corrected on re-reading:** this row said the position and company endpoints and the integration tests were outstanding. All three exist — `GET`/`POST /organization/company` and `/positions` with their edit endpoints, and two integration suites against a real database. The employee extension bag (§7.2.2) arrived later, as #14. |
 | 4 | Authorization & RBAC | 🟡 **Core complete** | RBAC with organizational scope, enforcement wired, anti-escalation, version-stamped cache, application registry, permission declaration. Scope filter applied at the data layer for employee search. 63 unit tests. |
@@ -34,11 +34,13 @@
 | 16 | Platform Dashboard | 🟢 **Complete** | Background jobs keep a history, and it exists because writing the screen found that they kept nothing. Phase 14 declared `ccp.jobs.runs`, wrote an alert against it, and put the meter in a project no module's Infrastructure references — so not one of the five sweeps could call it, and the alert sat permanently green on jobs that might never have run. The meter moved to the application layer; every periodic sweep now runs through one `JobRunner` that times the pass, records the outcome, swallows what it throws so a bad pass cannot retire the timer for the life of the process, and tells a shutdown apart from a failure so a deployment does not read as an outage. Runs are stored in the kernel schema through a neutral seam, in their own transaction — the record of a failed pass must not roll back with the pass — and pruned by the journal itself rather than by a sixth job whose failure nothing would record. Each row carries what the pass **did**, in the job's own words, because "removed 412" and "removed 0" are different facts and a history that cannot tell them apart cannot tell a working sweep from one whose query quietly stopped matching. The screen shows every job plus the outbox, where the figure given the most room is the **age** of the oldest undelivered message rather than the depth. A job that stopped running a week ago still appears and turns red instead of vanishing, which has an integration test on it. 9 unit tests, 8 integration tests.
 | 17 | Database Hardening, Backup & Recovery | 🟡 **Core complete** | `statement_timeout` and `idle_in_transaction_session_timeout` are enforced **by PostgreSQL**, not by a client-side command timeout that stops the application waiting while the query carries on burning the server's CPU. They are applied to the connection string in one place, because there are twenty-two `UseNpgsql` call sites and a rule repeated twenty-two times is missing from at least one. The migrator is exempt on purpose — an index build is legitimately long, and the subtler half is that its advisory-lock connection is exempt too, since `pg_advisory_lock` blocks and a statement timeout applies to a blocking statement, so a second instance queuing behind a long migration would be cut off and then serve requests against a half-migrated schema. The outbox finally prunes delivered rows (the oldest open debt, #4), **never dead-lettered ones**, because those are events that will never arrive and a timer must not erase the evidence. `docs/deployment/backup-and-recovery.md` covers what is at stake, what to back up — including the secrets, which are in neither the database nor the bucket and whose absence makes every enrolled second factor undecryptable — how to restore, and a drill. `scripts/verify-restore.sh` answers what a dump file cannot: it restores into a scratch database and asserts the audit trail is still partitioned and that somebody can still sign in. 9 unit tests. **No backup is being taken** — that is a provider feature and the provider is undecided (Q4).
 | 18 | Developer Experience & Documentation | 🟢 **Complete** | The repository had **no `README.md`** — seventeen phases, forty-five documents, and nothing at the front door. It has one now, and it points at `DEVELOPMENT_STATUS.md` as the honest account rather than claiming completeness itself. The bigger find was that `getting-started.md` still described Phase 1: it said there were no capability modules yet, that the frontend arrived later, and it applied **one** migration where there are twelve — so a new developer following it word for word would get a Platform that starts, reports healthy, and answers 500 from every module. That failure is now the first entry under common problems. The guide also gained the portal, the module test suites, the contract regeneration step that CI enforces, and the first-administrator bootstrap. Both documentation indexes were rewritten: one listed as *planned* several documents that exist, and stated that the .NET SDK was not installed on this machine. `scripts/check-doc-links.py` now fails the build on a broken relative link, and it was tested against a deliberately broken one before being trusted — a guard that passes on its first run is the exact shape of the two dead instruments found last phase.
-| 19 | Cloud Deployment | ⬜ Not started | Blocked on provider decision (Q4) |
+| 19 | Cloud Deployment | 🟡 **Partly done, and this row said "not started" while the Platform was live on the internet** — twenty-seven lines below the header recording its URLs | The API and the portal run on Railway, built from this repository, with secrets supplied as environment variables and never committed. What is not done is the phase as written: a chosen provider (Q4), managed PostgreSQL with point-in-time recovery, a secret manager, and a telemetry backend. **Railway is where it is deployed, not a decision that it is the answer** — and treating a working deployment as "not started" is how the absence of a backup (#65) stayed a Q4 item rather than a live one |
 | 20 | Testing & Quality Hardening | 🟡 **In progress** | Taken out of order because it is the only remaining phase that needs no provider decision. Three suites: the organization hierarchy against a real database (#12), permission resolution against a real database (#16), and **the exhaustive authorization matrix** — every endpoint in the route table called with no credentials and then with a forged token, asserting 401 from each. That last one closes a gap nobody had named: an architecture test proves every endpoint *declares* a permission, which is a statement of intent that a misordered middleware or a group missing `RequireAuthorization` would leave entirely unhonoured, with both tests still green. The list comes from the running server's own route table, so an endpoint added next year is covered the day it is mapped. Then two more, added after the first CI run came back: the **outbox retention sweep**, whose four most important assertions are about rows it must *not* delete — a dead letter is an event that will never arrive, and a timer that quietly removed those would erase the evidence of the one failure the outbox exists to make visible — and **failure injection on readiness**, which proves that an unreachable document store degrades the Platform rather than stopping it. That last reproduces, deliberately, the shape of the Phase 10 outage: a storage check reporting *unhealthy* would take every instance out of rotation over a bucket. **The failure injection immediately found a live defect** (#73): readiness had been answering 503 to an unreachable bucket for three phases, because `failureStatus: Degraded` on the registration is ignored when a check catches its own exception and returns a result — so the Platform would have emptied itself out of the load balancer over object storage, exactly the outage Phase 10 taught it not to have. The matrix has a second column too: a signed-in account holding **nothing**, refused with 403 by every permission-gated endpoint — which catches a different mistake, since refusing an anonymous caller only proves the authentication middleware runs, and an endpoint mapped with a bare `RequireAuthorization()` would admit every employee in the company. The accessibility baseline moved to **WCAG 2.2 AA**, which is what the phase asks for. Load testing exists as an executable budget and has never been run against realistic data (#74); the index review (#67) and an external penetration test (#75) need the same environment or a person this project does not have.
 | 21 | Final Hardening & Go-Live | ⬜ Not started | |
 
-**Completed: 1 of 22 phases. Phases 1–15 in progress.**
+**11 of 22 phases complete** (phase 0 and ten others), **9 in progress**, **2 not started** — counted from the table above rather than remembered.
+
+This line read "Completed: 1 of 22 phases. Phases 1–15 in progress" while the table immediately above it showed eleven green rows and went up to twenty. A summary that contradicts the table it summarises is worse than no summary, because it is the part somebody quotes.
 
 Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
@@ -46,24 +48,44 @@ Legend: ✅ complete · 🟡 in progress · ⬜ not started · ⛔ blocked
 
 ## 2. Module status
 
-No capability module has been implemented — correct for Phase 1, which builds
-the foundation the modules sit on. All eleven are specified in
-[ARCHITECTURE.md §7.2](ARCHITECTURE.md).
+**This section was frozen at Phase 1 and opened with the sentence "No capability
+module has been implemented".** Eleven are built, deployed and have screens. Five
+were marked not implemented, not tested, not documented and without a UI while
+they were complete, and the table was the first thing in this document a reader
+would have taken a status from.
 
-| Module | Specified | Implemented | Tested | UI | Documented |
+Counted from the source and the test runs, not from memory. Integration figures
+are test methods; a `[Theory]` runs more cases than it is counted for here.
+
+| Module | Implemented | Unit tests | Integration | UI | Documented |
 |---|---|---|---|---|---|
-| Kernel (not a module) | ✅ | ✅ | ✅ | — | ✅ |
-| Identity | ✅ | ✅ | 🟡 116 unit / 37 integration unrun | ⬜ | ✅ |
-| Organization | ✅ | 🟡 Core | 🟡 48 unit tests | ⬜ | ✅ |
-| Authorization | ✅ | 🟡 Core | 🟡 63 unit tests | ⬜ | ✅ |
-| Security | ✅ | 🟡 Core | 🟡 56 unit / 15 integration unrun | ⬜ | ✅ |
-| Audit | ✅ | ✅ | ✅ 50 unit / 5 integration | ⬜ | ✅ |
-| Workflow | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Notifications | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Documents | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Integrations | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Configuration | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Monitoring | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Kernel (not a module) | ✅ | 101 | — (exercised through every module) | — | ✅ |
+| Identity | ✅ | 141 | 17 | ✅ Users | [`docs/identity/`](docs/identity/) |
+| Organization | ✅ | 74 | 12 | ✅ Organization, Employees | [`docs/identity/organization.md`](docs/identity/organization.md) |
+| Authorization | ✅ | 92 | 18 | ✅ Roles | [`docs/authorization/`](docs/authorization/) |
+| Security | ✅ | 80 | 24 | ✅ Security | [`docs/security/`](docs/security/) |
+| Audit | ✅ | 50 | 9 | ✅ Audit | [`docs/audit/`](docs/audit/) |
+| Workflow | ✅ | 46 | 3 | ✅ Workflow | [`docs/workflow/`](docs/workflow/) |
+| Notifications | ✅ | 27 | 13 | ✅ Notifications | [`docs/notifications/`](docs/notifications/) |
+| Documents | ✅ | 56 | 17 | ✅ Documents | [`docs/documents/`](docs/documents/) |
+| Integrations | ✅ | 84 | 11 | ✅ Integrations | [`docs/integrations/`](docs/integrations/) |
+| Configuration | ✅ | 52 | 5 | ✅ Configuration | [`docs/development/configuration.md`](docs/development/configuration.md) |
+| Operations | ✅ | — | 15 | ✅ Dashboard | [`docs/deployment/observability.md`](docs/deployment/observability.md) |
+| App Registry | ✅ | (in Identity) | 10 | ✅ Applications | [`docs/api/`](docs/api/) |
+
+**803 unit tests, 47 architecture tests, 187 integration test methods across 29
+files.** The integration suite runs on every push; running it on this machine is
+blocked (§4, B1).
+
+Two rows are not modules in the `src/Modules` sense and are listed because the
+table is read as an inventory. **Operations** owns no data at all — it lives in
+the host, reads the kernel's schema and reports what the Platform's own
+machinery is doing, which is why it has no context and no migrations. **App
+Registry** is the external-API surface, which Identity holds.
+
+The Phase 1 table also listed a **Monitoring** module. Nothing by that name was
+built: what it described became Observability (Phase 14, instrumentation) and
+Operations (Phase 16, the screen that reads it).
 
 ---
 
@@ -882,7 +904,7 @@ and reversing one is more expensive with every phase that builds on it.
 | Q5 | Is external SSO required? | Phase 2 | 18 overdue. Nothing has been built towards it, so the answer "yes" costs a module rather than a setting |
 | Q11 | Existing user/employee data to migrate? | Phase 2 | 18 overdue. Identity and Organization are built for data that arrives through their APIs |
 | Q10 | Bootstrap administrator: who and how? | Phase 4 | 16 overdue on *who*. The *how* was answered by building it: seeded from configuration, `MustChangePassword`, refuses to run once any user exists |
-| Q2 | One company, or several legal entities? | Phase 3 | 17 overdue, **and answered by default in code**: the repository method is `GetSingleCompanyAsync`, and every unit is created under the one company it returns. Unit *trees* may have several roots; companies may not. Several legal entities is not a configuration change |
+| Q2 | One company, or several legal entities? | Phase 3 | 17 overdue, **and answered by default in code**: the repository method is `GetSingleCompanyAsync`, and every unit is created under the one company it returns. ARCHITECTURE §27 predicted this would stay cheap because the `Company` entity exists — and the schema half did hold, since every unit, position and employee carries a `CompanyId`. The query half did not: **1 of 19 Organization repository methods takes a company**, the other 18 being correct only because there is exactly one. Several legal entities is 18 signatures and their callers, not a setting |
 | Q12 | Arabic typeface and brand blue? | Phase 7 | 13 overdue. The portal shipped with defaults, which are now in thirteen phases of screens |
 | Q9 | SMS in the first release? | Phase 9 | 11 overdue. Not built; the channel seam exists, so this one stays cheap to answer late |
 | Q7, Q8 | RPO/RTO and audit retention | Phase 17 | 3 overdue. RPO and RTO are what a backup plan is *for*, so #65 cannot be finished without them |
