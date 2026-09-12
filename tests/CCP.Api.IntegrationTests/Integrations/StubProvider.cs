@@ -61,6 +61,19 @@ public sealed class StubProvider : IAsyncDisposable
     public string SuccessBody { get; set; } = """{"status":"ok"}""";
 
     /// <summary>
+    /// The headers of the last request, so a test can ask what the Platform
+    /// actually sent.
+    /// <para>
+    /// Which is the only way to answer the question #56 asked: whether a trace
+    /// leaving the Platform carries the trace it arrived on. Everything else
+    /// about propagation can be asserted from the inside, where the code that
+    /// would be wrong is the code doing the asserting.
+    /// </para>
+    /// </summary>
+    public IReadOnlyDictionary<string, string> LastHeaders { get; private set; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Starts on a port the operating system chooses.
     /// <para>
     /// Port zero rather than a fixed number, so several tests can run at once
@@ -91,6 +104,11 @@ public sealed class StubProvider : IAsyncDisposable
             StubProvider stub = provider!;
 
             Interlocked.Increment(ref stub._requests);
+
+            stub.LastHeaders = context.Request.Headers.ToDictionary(
+                header => header.Key,
+                header => header.Value.ToString(),
+                StringComparer.OrdinalIgnoreCase);
 
             if (stub.Delay > TimeSpan.Zero)
             {
@@ -127,6 +145,7 @@ public sealed class StubProvider : IAsyncDisposable
         Volatile.Write(ref _requests, 0);
         FailuresRemaining = 0;
         Delay = TimeSpan.Zero;
+        LastHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 
     public async ValueTask DisposeAsync()
