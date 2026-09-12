@@ -122,6 +122,14 @@ jobs:
       - name: Documentation links resolve
         run: python scripts/check-doc-links.py
 
+      # Documentation drift is this project's most common defect. Four documents
+      # were once found describing a Platform that had stopped existing phases
+      # earlier, every one of them caught by a person reading rather than by the
+      # build. This checks the half a build can check: that an endpoint a
+      # document tells somebody to call is really there.
+      - name: Documented endpoints exist
+        run: python scripts/check-doc-endpoints.py
+
       - name: Unit tests
         run: >-
           dotnet test tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj

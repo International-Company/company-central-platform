@@ -420,7 +420,7 @@ Each module is specified below in the format the brief requires: Responsibility 
 - **Entities.** `AuditEvent` (partitioned by month), `AuditExportRequest`.
 - **Data.** Schema `audit`. The largest table in the Platform by orders of magnitude. Declaratively partitioned by `occurred_at`. Write-optimized; read paths go through purpose-built indexes only.
 - **Dependencies.** **None, by design.** Audit is a sink. It subscribes to events; it never calls a module.
-- **APIs.** `POST /api/v1/audit/events` (ingestion, used by business applications), `GET /api/v1/audit/events` (search), `POST /api/v1/audit/exports`.
+- **APIs.** `POST /api/v1/audit/events` (ingestion, used by business applications), `GET /api/v1/audit/events` (search), `POST /api/v1/audit/exports` — **the export is designed and not built** (Phase 6, task 7). Listed here because this document describes the intended architecture; a reader wanting what exists today should read `DEVELOPMENT_STATUS.md`.
 - **Events.** Consumes; does not publish (except `AuditExportCompleted`).
 - **Extension points.** Free-form `metadata` JSONB so any system can attach context without a schema change. Pluggable archival sink for aged partitions.
 - **Security rules.** **Append-only** — no UPDATE, no DELETE, enforced by database privileges (the application role is granted INSERT and SELECT only) as well as by the absence of any such code path. Reading audit requires `platform.audit.view`; exporting requires `platform.audit.export` and is itself audited. Old/new values are redacted for fields marked sensitive.
