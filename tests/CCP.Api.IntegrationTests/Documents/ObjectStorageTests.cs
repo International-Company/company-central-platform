@@ -160,6 +160,29 @@ public sealed class ObjectStorageTests : IAsyncLifetime, IDisposable
     // Pre-signed URLs
     // -----------------------------------------------------------------------
 
+    /// <summary>
+    /// The URL is built with the scheme the endpoint actually uses.
+    /// <para>
+    /// <b>The defect this suite found on its first run.</b> The SDK's
+    /// <c>GetPreSignedUrlRequest.Protocol</c> defaults to HTTPS whatever
+    /// <c>ServiceURL</c> says, so a deployment reaching its object storage over
+    /// plain HTTP issued download links that could not be fetched at all — while
+    /// every API call worked, because those honour the endpoint. Only the links
+    /// handed to browsers were wrong, which is the half no unit test touches.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task APreSignedUrlUsesTheSchemeTheEndpointUses()
+    {
+        await _storage.StoreAsync("aa/scheme", new MemoryStream([1]), "application/pdf");
+
+        Uri? url = await _storage.TryCreateReadUrlAsync(
+            "aa/scheme", "a.pdf", "application/pdf", TimeSpan.FromMinutes(5));
+
+        Assert.NotNull(url);
+        Assert.Equal(new Uri(ServiceUrl).Scheme, url.Scheme);
+    }
+
     [Fact]
     public async Task APreSignedUrlFetchesTheFile()
     {

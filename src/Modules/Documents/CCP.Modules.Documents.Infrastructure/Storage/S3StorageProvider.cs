@@ -71,6 +71,25 @@ public sealed class S3StorageProvider : IDocumentStorageProvider, IDisposable
     private readonly AmazonS3Client _client;
     private readonly string _bucketName;
 
+    /// <summary>
+    /// Which scheme a pre-signed URL is built with.
+    /// <para>
+    /// <b>Taken from the configured endpoint, because the SDK does not take it
+    /// from anywhere.</b> <c>GetPreSignedUrlRequest.Protocol</c> defaults to
+    /// HTTPS whatever <c>ServiceURL</c> says, so a deployment whose object
+    /// storage is reached over plain HTTP — a self-hosted MinIO, a development
+    /// stack, anything behind a proxy that terminates TLS elsewhere — issued
+    /// download links that could not be fetched at all.
+    /// </para>
+    /// <para>
+    /// Every API call worked, because those go through the client and honour
+    /// ServiceURL. Only the links handed to browsers were wrong, which is the
+    /// half no unit test touches. The object-storage suite found it on its
+    /// first run against a real bucket, which is what that suite is for.
+    /// </para>
+    /// </summary>
+    private readonly Protocol _protocol;
+
     public S3StorageProvider(IOptions<S3StorageOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -107,6 +126,13 @@ public sealed class S3StorageProvider : IDocumentStorageProvider, IDisposable
             settings.AccessKeyId, settings.SecretAccessKey, configuration);
 
         _bucketName = settings.BucketName!;
+
+        // Amazon itself is always HTTPS, and an endpoint that named no scheme is
+        // treated the same way: the secure default is the one to fall back to.
+        _protocol =
+            settings.ServiceUrl?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) == true
+                ? Protocol.HTTP
+                : Protocol.HTTPS;
     }
 
     public string Name => "s3";
@@ -181,6 +207,9 @@ public sealed class S3StorageProvider : IDocumentStorageProvider, IDisposable
             Key = objectKey,
             Verb = HttpVerb.GET,
             Expires = DateTime.UtcNow + lifetime,
+
+            // Not left to the SDK's default of HTTPS. See _protocol.
+            Protocol = _protocol,
             ResponseHeaderOverrides = new ResponseHeaderOverrides
             {
                 ContentType = contentType,
