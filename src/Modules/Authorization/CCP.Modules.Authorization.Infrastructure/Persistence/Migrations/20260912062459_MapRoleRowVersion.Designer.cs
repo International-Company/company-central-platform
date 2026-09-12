@@ -3,6 +3,7 @@ using System;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CCP.Modules.Authorization.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AuthorizationDbContext))]
-    partial class AuthorizationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260912062459_MapRoleRowVersion")]
+    partial class MapRoleRowVersion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
