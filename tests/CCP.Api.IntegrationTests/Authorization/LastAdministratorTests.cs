@@ -67,16 +67,28 @@ public sealed class LastAdministratorTests(PlatformApiFactory factory)
     }
 
     /// <summary>
-    /// Nor does one whose term has run out. An expiry is a revocation the
-    /// database performs by itself, and nothing rewrites the row when it passes.
+    /// Nor does one whose term has run out.
+    /// <para>
+    /// An expiry is a revocation the database performs by itself, and nothing
+    /// rewrites the row when it passes — so the filter is the only thing
+    /// standing between a lapsed grant and a guard that counts it.
+    /// </para>
+    /// <para>
+    /// Granted with a future expiry and then asked about later, because the
+    /// domain refuses to create a grant that has already expired. Moving the
+    /// clock is the honest way to reach the state; writing the row by hand would
+    /// be testing a row this Platform cannot produce.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task AnExpiredGrantCarriesNothing()
     {
-        (_, _, Guid assignmentId) =
-            await GrantAsync(expiresAt: DateTimeOffset.UtcNow.AddMinutes(-1));
+        DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        Assert.Null(await FindAsync(assignmentId));
+        (_, _, Guid assignmentId) = await GrantAsync(expiresAt: now.AddMinutes(5));
+
+        Assert.NotNull(await FindAsync(assignmentId, now));
+        Assert.Null(await FindAsync(assignmentId, now.AddMinutes(10)));
     }
 
     /// <summary>
@@ -151,14 +163,15 @@ public sealed class LastAdministratorTests(PlatformApiFactory factory)
     /// assertion about what every other test happened to be doing.
     /// </para>
     /// </summary>
-    private async Task<GrantingAssignment?> FindAsync(Guid assignmentId)
+    private async Task<GrantingAssignment?> FindAsync(Guid assignmentId, DateTimeOffset? asOf = null)
     {
         await using AuthorizationDbContext context = Authorization();
 
         var repository = new AuthorizationRepository(context);
 
         IReadOnlyList<GrantingAssignment> granting =
-            await repository.GetGrantingAssignmentsAsync(GrantPermission, DateTimeOffset.UtcNow);
+            await repository.GetGrantingAssignmentsAsync(
+                GrantPermission, asOf ?? DateTimeOffset.UtcNow);
 
         return granting.FirstOrDefault(assignment => assignment.AssignmentId == assignmentId);
     }
