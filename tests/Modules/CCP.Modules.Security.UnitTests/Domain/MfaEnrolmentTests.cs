@@ -168,4 +168,72 @@ public sealed class MfaEnrolmentTests
 
         Assert.True(enrolment.Disable(Now.AddHours(2)).IsFailure);
     }
+
+    [Fact]
+    public void RewrapSecret_ReplacesTheCiphertext()
+    {
+        MfaEnrolment enrolment = NewEnrolment();
+        enrolment.Activate(Now);
+
+        enrolment.RewrapSecret("encrypted-under-the-new-key");
+
+        Assert.Equal("encrypted-under-the-new-key", enrolment.EncryptedSecret);
+    }
+
+    /// <summary>
+    /// Re-encrypting is housekeeping, and housekeeping is not a use of the
+    /// factor.
+    /// <para>
+    /// <c>LastUsedAt</c> answers "when did this person last prove their second
+    /// factor". Moving it here would put an entry in somebody's security history
+    /// for something they did not do, and would make a dormant factor look
+    /// exercised on the day of a rotation.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void RewrapSecret_DoesNotCountAsUsingTheFactor()
+    {
+        MfaEnrolment enrolment = NewEnrolment();
+        enrolment.Activate(Now);
+        enrolment.RecordSuccess(Now);
+
+        enrolment.RewrapSecret("encrypted-under-the-new-key");
+
+        Assert.Equal(Now, enrolment.LastUsedAt);
+    }
+
+    /// <summary>
+    /// A disabled enrolment keeps whatever it had. Rewriting a secret nobody can
+    /// use would be work done to preserve something already gone — and it would
+    /// quietly carry a dead factor forward onto every future key.
+    /// </summary>
+    [Fact]
+    public void RewrapSecret_RefusedOnADisabledEnrolment()
+    {
+        MfaEnrolment enrolment = NewEnrolment();
+        enrolment.Activate(Now);
+        enrolment.Disable(Now.AddHours(1));
+
+        enrolment.RewrapSecret("encrypted-under-the-new-key");
+
+        Assert.Equal("encrypted", enrolment.EncryptedSecret);
+    }
+
+    /// <summary>
+    /// And nothing is never an improvement on something. A protector that failed
+    /// to produce a value must not be able to erase a working secret through
+    /// this door.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RewrapSecret_RefusesToReplaceASecretWithNothing(string replacement)
+    {
+        MfaEnrolment enrolment = NewEnrolment();
+        enrolment.Activate(Now);
+
+        enrolment.RewrapSecret(replacement);
+
+        Assert.Equal("encrypted", enrolment.EncryptedSecret);
+    }
 }

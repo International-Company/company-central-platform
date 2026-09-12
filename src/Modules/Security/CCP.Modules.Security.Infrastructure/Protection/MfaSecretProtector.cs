@@ -351,6 +351,28 @@ public sealed class MfaSecretProtector : IMfaSecretProtector, IDisposable
         return $"{VersionPrefix}.{_activeKeyId}.{Convert.ToBase64String(combined)}";
     }
 
+    public bool NeedsRewrap(string protectedSecret)
+    {
+        if (string.IsNullOrWhiteSpace(protectedSecret))
+        {
+            return false;
+        }
+
+        // Anything without a version predates key labels, so it was written by
+        // whatever key was in use then -- which may or may not still be active,
+        // and cannot be told apart. Rewriting it is always an improvement: after
+        // one pass every stored secret says which key wrote it.
+        if (!protectedSecret.StartsWith(VersionPrefix + ".", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        string[] parts = protectedSecret.Split('.', 3);
+
+        return parts.Length == 3
+            && !string.Equals(parts[1], _activeKeyId, StringComparison.Ordinal);
+    }
+
     public byte[]? Unprotect(string protectedSecret)
     {
         if (string.IsNullOrWhiteSpace(protectedSecret))

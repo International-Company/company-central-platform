@@ -167,6 +167,113 @@ public sealed class KeyRotationTests : IDisposable
             () => Build(path, "2", retired: [new RetiredMfaKey { KeyPath = path }]));
     }
 
+    /// <summary>
+    /// The part that lets a rotation actually finish.
+    /// <para>
+    /// Retiring a key is only half of it. Until every secret written under the
+    /// old key has been rewritten, the old key has to stay configured — and
+    /// removing it early denies the second factor to everyone whose secret still
+    /// needs it, which is the outage all of this exists to avoid, reached by a
+    /// different route. Recognising which secrets are still on an old key is
+    /// what lets that day arrive.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void SomethingJustWrittenNeedsNoRewrapping()
+    {
+        using MfaSecretProtector protector = Build(AKeyFile(out _), "2");
+
+        Assert.False(protector.NeedsRewrap(protector.Protect(RandomNumberGenerator.GetBytes(20))));
+    }
+
+    /// <summary>
+    /// A secret written under the previous key is recognised by its label,
+    /// without decrypting it.
+    /// </summary>
+    [Fact]
+    public void ASecretUnderARetiredKeyNeedsRewrapping()
+    {
+        string oldPath = AKeyFile(out _);
+        string newPath = AKeyFile(out _);
+
+        string stored;
+
+        using (MfaSecretProtector before = Build(oldPath, "1"))
+        {
+            stored = before.Protect(RandomNumberGenerator.GetBytes(20));
+        }
+
+        using MfaSecretProtector after = Build(
+            newPath, "2", retired: [new RetiredMfaKey { Id = "1", KeyPath = oldPath }]);
+
+        Assert.True(after.NeedsRewrap(stored));
+    }
+
+    /// <summary>
+    /// So does anything written before keys had names at all.
+    /// <para>
+    /// It may well be under the active key already, and there is no way to tell.
+    /// Rewriting it is the only answer that terminates: after one pass every
+    /// stored secret says which key wrote it, and the question stops being
+    /// unanswerable.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void ASecretStoredBeforeVersioningNeedsRewrapping()
+    {
+        string path = AKeyFile(out byte[] key);
+
+        using MfaSecretProtector protector = Build(path, "1");
+
+        Assert.True(
+            protector.NeedsRewrap(LegacyProtect(key, RandomNumberGenerator.GetBytes(20))));
+    }
+
+    /// <summary>
+    /// And the rewrite is a real one: the same secret comes back, under a value
+    /// that now names the active key and is not asked about again.
+    /// </summary>
+    [Fact]
+    public void RewrappingKeepsTheSecretAndChangesTheKey()
+    {
+        string oldPath = AKeyFile(out _);
+        string newPath = AKeyFile(out _);
+
+        byte[] secret = RandomNumberGenerator.GetBytes(20);
+        string stored;
+
+        using (MfaSecretProtector before = Build(oldPath, "1"))
+        {
+            stored = before.Protect(secret);
+        }
+
+        using MfaSecretProtector after = Build(
+            newPath, "2", retired: [new RetiredMfaKey { Id = "1", KeyPath = oldPath }]);
+
+        // What the verification path does: read with whichever key wrote it,
+        // then write back under the active one.
+        byte[] read = after.Unprotect(stored)!;
+        string rewrapped = after.Protect(read);
+
+        Assert.Equal(secret, read);
+        Assert.Equal(secret, after.Unprotect(rewrapped));
+        Assert.False(after.NeedsRewrap(rewrapped));
+    }
+
+    /// <summary>
+    /// An enrolment with nothing stored is not a rotation problem, and saying it
+    /// is would make the verification path try to re-encrypt nothing.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void NothingNeedsNoRewrapping(string stored)
+    {
+        using MfaSecretProtector protector = Build(AKeyFile(out _), "2");
+
+        Assert.False(protector.NeedsRewrap(stored));
+    }
+
     // --- Fixtures -----------------------------------------------------------
 
     private static MfaSecretProtector Build(

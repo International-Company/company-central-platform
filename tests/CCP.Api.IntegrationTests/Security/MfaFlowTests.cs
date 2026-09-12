@@ -239,6 +239,100 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    /// <summary>
+    /// A secret still under an older key is rewritten the next time its owner
+    /// uses it, and the rewrite is saved.
+    /// <para>
+    /// <b>This is what lets a key rotation end.</b> Retiring a key is only half
+    /// of it: until every secret written under the old one has been rewritten,
+    /// the old key must stay configured, and removing it early denies the second
+    /// factor to everyone it still protects. Without this, a rotation finishes
+    /// only when the last user happens to re-enrol, which is to say never.
+    /// </para>
+    /// <para>
+    /// The stored secret is pushed back to the form written before keys were
+    /// named — which is simply the payload without its prefix, so this needs no
+    /// access to the key material. It is also the case that actually exists in
+    /// the database today.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Verify_RewritesASecretLeftUnderAnOlderKey()
+    {
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+        using HttpClient _ = client;
+
+        JsonElement enrolment = await EnrolAsync(client);
+        await ConfirmAsync(client, enrolment);
+
+        string stored = await StoredSecretAsync(userId);
+
+        Assert.StartsWith("v2.", stored, StringComparison.Ordinal);
+
+        await using (SecurityDbContext setup = CreateSecurityContext())
+        {
+            await setup.MfaEnrolments
+                .Where(e => e.UserId == userId)
+                .ExecuteUpdateAsync(e => e.SetProperty(
+                    x => x.EncryptedSecret, stored.Split('.', 3)[2]));
+        }
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync(
+            new Uri("/api/v1/me/mfa/verify", UriKind.Relative),
+            new { code = CodeFor(enrolment) });
+
+        // The old form still reads, which is the promise that made versioning
+        // deployable in the first place.
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        string after = await StoredSecretAsync(userId);
+
+        Assert.StartsWith("v2.", after, StringComparison.Ordinal);
+
+        // And the same secret is still in there: the code generated from the
+        // original provisioning key is accepted against the rewritten value.
+        using HttpResponseMessage again = await client.PostAsJsonAsync(
+            new Uri("/api/v1/me/mfa/verify", UriKind.Relative),
+            new { code = CodeFor(enrolment) });
+
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+    }
+
+    /// <summary>
+    /// A recovery code never touches the secret, so it cannot rewrite it.
+    /// <para>
+    /// Worth stating rather than leaving to be noticed: someone who signs in
+    /// only with recovery codes is not moved off the old key, and a rotation
+    /// cannot be declared finished merely because everyone has verified
+    /// something.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Verify_WithARecoveryCode_LeavesTheSecretWhereItIs()
+    {
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+        using HttpClient _ = client;
+
+        JsonElement enrolment = await EnrolAsync(client);
+        JsonElement recovery = await ConfirmAsync(client, enrolment);
+
+        string legacy = (await StoredSecretAsync(userId)).Split('.', 3)[2];
+
+        await using (SecurityDbContext setup = CreateSecurityContext())
+        {
+            await setup.MfaEnrolments
+                .Where(e => e.UserId == userId)
+                .ExecuteUpdateAsync(e => e.SetProperty(x => x.EncryptedSecret, legacy));
+        }
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync(
+            new Uri("/api/v1/me/mfa/verify", UriKind.Relative),
+            new { code = recovery.GetProperty("codes")[0].GetString()!, isRecoveryCode = true });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(legacy, await StoredSecretAsync(userId));
+    }
+
     // -----------------------------------------------------------------------
     // Disabling
     // -----------------------------------------------------------------------
@@ -488,6 +582,13 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
         => new(new DbContextOptionsBuilder<IdentityDbContext>()
             .UseNpgsql(factory.TestConnectionString)
             .Options);
+
+    private async Task<string> StoredSecretAsync(Guid userId)
+    {
+        await using SecurityDbContext context = CreateSecurityContext();
+
+        return (await context.MfaEnrolments.SingleAsync(e => e.UserId == userId)).EncryptedSecret;
+    }
 
     private SecurityDbContext CreateSecurityContext()
         => new(new DbContextOptionsBuilder<SecurityDbContext>()

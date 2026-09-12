@@ -79,7 +79,7 @@ plainly that enrolments will not survive a restart.
 | Secret | Rotation |
 |---|---|
 | JWT signing key | JWKS publishes the current key by `kid`; a new key is added and the old one retained until every issued token has expired, then removed. Access tokens are short-lived, so the overlap is minutes. |
-| MFA protection key | A new key is made active under a new id and the old one is listed as retired; secrets written under either are readable throughout. See §5.1. **Re-encryption of existing secrets is still manual** — until each is rewritten, the retired key must stay configured. |
+| MFA protection key | A new key is made active under a new id and the old one is listed as retired; secrets written under either are readable throughout, and each is rewritten under the new key the next time its owner verifies. See §5.1. |
 | Database password | Rotated in the secret manager; the deployment is restarted to pick it up. |
 
 ### 5.1 Rotating the MFA protection key
@@ -117,18 +117,49 @@ To rotate:
    still read with the retired one.
 
 **The retired key must stay configured until every secret written under it has
-been rewritten.** Removing it early denies the second factor to everyone who has
-not re-enrolled since — which is the outage this whole mechanism exists to make
+been rewritten.** Removing it early denies the second factor to everyone whose
+secret still needs it — which is the outage this whole mechanism exists to make
 avoidable, arrived at by a different route.
 
 A secret naming a key the deployment does not hold is **denied**, not guessed
 at. Trying every key in turn would turn a configuration mistake into a silent
 success under the wrong assumption, and there is no good version of that.
 
-**What is not built: an automatic re-encryption pass.** Today a secret moves to
-the new key only when the person re-enrols. Rewriting each one on its next
-successful use would finish a rotation without anybody being asked to do
-anything, and is recorded as debt rather than implied here.
+### 5.2 When the old key can be removed
+
+Secrets move themselves. On a successful TOTP verification the plaintext is
+already in hand, so a secret written under a retired key — or under no named key
+at all, which is everything stored before versioning existed — is re-encrypted
+under the active key and saved with the rest of that verification. Nobody is
+asked to do anything, and nothing is logged: the secret has not changed, only the
+key protecting it, and an audit entry here would be a line about housekeeping in
+a trail people read to find out who did what.
+
+Two things it deliberately does not do:
+
+- **A recovery code does not move a secret.** It never decrypts one. Somebody who
+  signs in only with recovery codes stays on the old key, so a rotation is not
+  finished merely because everybody has verified *something*.
+- **A disabled enrolment is left alone.** Rewriting a secret nobody can use would
+  carry a dead factor forward onto every future key.
+
+So the old key comes out when the secrets under it are gone, not on a date:
+
+```sql
+-- 1 = pending, 2 = active; 3 = disabled, which nobody can use and which the
+-- rewrite deliberately skips. A pending enrolment counts: confirming it reads
+-- the secret too, so removing its key would strand somebody mid-enrolment.
+select count(*) from security.mfa_enrolments
+where status in (1, 2) and encrypted_secret not like 'v2.<new-key-id>.%';
+```
+
+At zero, remove the retired key from configuration and deploy. Until then it
+stays, and the only people it is still holding open for are those who have not
+signed in with their authenticator since the rotation. **There is no pass that
+forces this to finish** — a dormant account can sit on the old key indefinitely,
+and the query above is what says so rather than a guess about how long is long
+enough. Resetting such a user's factor (`POST /security/users/{id}/mfa/reset`)
+ends it for that account.
 
 ---
 

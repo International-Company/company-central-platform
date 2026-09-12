@@ -59,6 +59,37 @@ public sealed class MfaEnrolment : AggregateRoot
     /// </summary>
     public string EncryptedSecret { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Replaces the stored ciphertext with the same secret under a different
+    /// key.
+    /// <para>
+    /// <b>The secret does not change; only the key protecting it does.</b> That
+    /// is why this is not an enrolment and raises nothing: nobody has proved
+    /// anything new, no factor has been added or removed, and an audit entry
+    /// here would be a line about housekeeping in a trail people read to find
+    /// out who did what.
+    /// </para>
+    /// <para>
+    /// Refused on a disabled enrolment. Rewriting a secret nobody can use would
+    /// be work done to preserve something already gone.
+    /// </para>
+    /// <para>
+    /// It takes no timestamp and moves none. <c>LastUsedAt</c> answers "when did
+    /// this person last prove their factor", and housekeeping is not a use —
+    /// touching it here would put a line in somebody's security history for
+    /// something they did not do.
+    /// </para>
+    /// </summary>
+    public void RewrapSecret(string encryptedSecret)
+    {
+        if (string.IsNullOrWhiteSpace(encryptedSecret) || DisabledAt is not null)
+        {
+            return;
+        }
+
+        EncryptedSecret = encryptedSecret;
+    }
+
     public MfaEnrolmentStatus Status { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }

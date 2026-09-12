@@ -25,6 +25,22 @@ public interface IMfaSecretProtector
     string Protect(byte[] secret);
 
     /// <summary>
+    /// Whether this stored value was written by a key that is no longer the
+    /// active one.
+    /// <para>
+    /// Asked after a successful verification, when the plaintext is in hand and
+    /// re-encrypting costs nothing extra. It is what turns a key rotation from
+    /// something requiring every person to re-enrol into something that finishes
+    /// on its own as people sign in.
+    /// </para>
+    /// <para>
+    /// It answers from the value's own label; it does not decrypt, and it does
+    /// not say whether the value <i>can</i> be read.
+    /// </para>
+    /// </summary>
+    bool NeedsRewrap(string protectedSecret);
+
+    /// <summary>
     /// Decrypts a stored secret, or returns null if it cannot be authenticated.
     /// <para>
     /// Null rather than an exception, because the caller's correct response is

@@ -338,11 +338,43 @@ public sealed class VerifyMfaHandler(
             StepUpValidUntil: now.Add(_options.StepUpValidity)));
     }
 
+    /// <summary>
+    /// Checks the code, and takes the opportunity to move the secret onto the
+    /// current key if it is not already there.
+    /// <para>
+    /// <b>This is what finishes a key rotation.</b> Without it a secret moves to
+    /// the new key only when its owner re-enrols, so the retired key has to stay
+    /// configured indefinitely -- and removing it early denies the second factor
+    /// to everyone who has not, which is the outage key versioning exists to
+    /// avoid, reached by a different route.
+    /// </para>
+    /// <para>
+    /// Only on success, and only here, because this is the one moment the
+    /// plaintext is legitimately in hand. Re-encrypting costs one AES operation
+    /// on a value already decrypted; the alternative is a migration job that
+    /// needs the key and the whole table at once.
+    /// </para>
+    /// <para>
+    /// The caller saves. This method does not, because a failed verification
+    /// further down would then have committed a write on behalf of somebody who
+    /// proved nothing.
+    /// </para>
+    /// </summary>
     private bool VerifyTotp(MfaEnrolment enrolment, string code, DateTimeOffset now)
     {
         byte[]? secret = protector.Unprotect(enrolment.EncryptedSecret);
 
-        return secret is not null && Totp.Verify(secret, code, now);
+        if (secret is null || !Totp.Verify(secret, code, now))
+        {
+            return false;
+        }
+
+        if (protector.NeedsRewrap(enrolment.EncryptedSecret))
+        {
+            enrolment.RewrapSecret(protector.Protect(secret));
+        }
+
+        return true;
     }
 
     private bool TryRedeemRecoveryCode(MfaEnrolment enrolment, string code, DateTimeOffset now)
