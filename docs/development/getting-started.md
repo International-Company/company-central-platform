@@ -208,6 +208,25 @@ To point them at a PostgreSQL instance other than the Compose one:
 export CCP_TEST_POSTGRES="Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=..."
 ```
 
+**They also need the object storage from the Compose file.** One suite exercises
+the S3 provider against a real bucket — the one that holds a company's documents
+in production — because three of its claims cannot be checked any other way: that
+a pre-signed URL works, that it expires, and that **the bucket is unreadable
+without one**. The last matters most: a public bucket would make every access
+rule in the Documents module decorative, since anybody who learned a key could
+fetch the file without ever reaching the Platform.
+
+It defaults to the Compose service, and is pointed elsewhere the same way:
+
+```bash
+export CCP_TEST_S3_URL="http://localhost:9000"
+export CCP_TEST_S3_ACCESS_KEY="..."
+export CCP_TEST_S3_SECRET_KEY="..."
+```
+
+Each run creates its own bucket and removes it afterwards, so it never collides
+with your development one or with another run.
+
 ---
 
 ## 7. What exists
@@ -253,6 +272,10 @@ so put no real secret in it).
 **`/health/ready` returns 503**
 The database is unreachable. Check `docker compose ps` and that migrations have
 been applied. This is the readiness check working correctly, not a bug.
+
+**Object storage tests fail to connect**
+MinIO is not running, or `CCP_TEST_S3_URL` points somewhere else.
+`docker compose up -d minio` starts it.
 
 **Integration tests fail to connect**
 PostgreSQL is not running, or `CCP_TEST_POSTGRES` points somewhere else. The
