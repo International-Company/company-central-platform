@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using CCP.Modules.Documents.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -145,6 +146,51 @@ public sealed class LocalFileStorageProvider : IDocumentStorageProvider
         TimeSpan lifetime,
         CancellationToken cancellationToken = default)
         => Task.FromResult<Uri?>(null);
+
+    /// <summary>
+    /// Walks the directory, reporting each file under the key it is stored at.
+    /// <para>
+    /// A store that has never been written to has no directory, and that is not
+    /// an error — it is a Platform where nobody has uploaded anything, which
+    /// must reconcile to zero orphans rather than to a failure.
+    /// </para>
+    /// </summary>
+    public async IAsyncEnumerable<StoredObject> ListAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        string root = Path.GetFullPath(_rootPath);
+
+        if (!Directory.Exists(root))
+        {
+            yield break;
+        }
+
+        // Enumerate rather than collect: this is the same reason the interface
+        // streams, and a directory with a hundred thousand files behaves the
+        // same way a bucket with a hundred thousand objects does.
+        foreach (string path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var file = new FileInfo(path);
+
+            if (!file.Exists)
+            {
+                // Removed between the enumeration and the read. A purge running
+                // at the same time is the ordinary cause, and it is not this
+                // sweep's business to complain about it.
+                continue;
+            }
+
+            // Back to the form a version row holds: relative to the root, with
+            // the separator the key was written with.
+            string key = Path.GetRelativePath(root, path).Replace('\\', '/');
+
+            yield return new StoredObject(key, file.Length, file.LastWriteTimeUtc);
+
+            await Task.CompletedTask;
+        }
+    }
 
     /// <summary>
     /// Creates the root on first use, and says once that it is not durable.

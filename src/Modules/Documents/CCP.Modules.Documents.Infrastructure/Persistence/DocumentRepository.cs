@@ -108,6 +108,33 @@ public sealed class DocumentRepository(DocumentDbContext dbContext) : IDocumentR
             .Take(limit)
             .ToListAsync(cancellationToken);
 
+    /// <summary>
+    /// Asked in batches, so the <c>IN</c> list stays a size PostgreSQL plans
+    /// well and the sweep never holds the whole bucket in memory.
+    /// </summary>
+    public async Task<IReadOnlySet<string>> GetKnownObjectKeysAsync(
+        IReadOnlyCollection<string> objectKeys, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(objectKeys);
+
+        if (objectKeys.Count == 0)
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
+
+        // Versions, not documents. A key belongs to a version row, and a
+        // document whose content has been purged still has its versions — which
+        // is what keeps a purged document from reappearing as an orphan on every
+        // pass for the rest of the Platform's life.
+        List<string> known = await dbContext.Versions
+            .AsNoTracking()
+            .Where(version => objectKeys.Contains(version.ObjectKey))
+            .Select(version => version.ObjectKey)
+            .ToListAsync(cancellationToken);
+
+        return known.ToHashSet(StringComparer.Ordinal);
+    }
+
     // --- Access rules -------------------------------------------------------
 
     public async Task<IReadOnlyList<DocumentAccessRule>> GetRulesAsync(

@@ -197,6 +197,36 @@ Two stages exist because otherwise a misclick and a legal instruction look
 identical to the system, and only one of them should be able to destroy
 something.
 
+### The other direction: content nothing refers to
+
+There is no transaction spanning a bucket and a database. An upload writes the
+object and then the row, so a failure between them leaves content nothing refers
+to. That order is the right one — the reverse leaves a row pointing at nothing,
+which costs somebody their file, where this costs storage. ADR-014 accepted the
+trade and named a reconciliation job as its price.
+
+`documents.reconcile` runs daily, compares the store against the version rows,
+and reports what it finds in the job history — how many objects, how many bytes.
+
+**It never deletes.** An orphan is defined by the database never having heard of
+it, which is also exactly what every object looks like when the database is not
+the one that wrote the bucket: a restored backup, a connection string pointed at
+the wrong environment, a staging deployment sharing production storage. In each
+case a sweep with delete rights removes every document uploaded since,
+permanently, and the first anybody hears of it is a person who cannot open their
+file. The purge sweep destroys content because it is acting on a record that says
+to; this one has an absence, and an absence is not an instruction.
+
+**Objects written in the last hour are not judged at all.** Between the store and
+the commit, a perfectly good document is content with no row — indistinguishable
+from an orphan by every measure except its age. The count of those is reported
+separately, so a pass that judged nothing does not read as a pass that found
+nothing.
+
+Removing the objects is a decision with a name on it: read the count, satisfy
+yourself the database is the one that wrote the bucket, and delete them
+deliberately.
+
 ---
 
 ## 7. The access log
@@ -225,6 +255,8 @@ are exactly what somebody will need to reconstruct later.
   "DeletionGracePeriod": "30.00:00:00",
   "PurgeSweepInterval": "06:00:00",
   "PurgeBatchSize": 50,
+  "ReconciliationSweepInterval": "24:00:00",
+  "OrphanGracePeriod": "01:00:00",
   "DownloadUrlLifetime": "00:05:00",
   "RejectWhenScannerUnavailable": true
 }

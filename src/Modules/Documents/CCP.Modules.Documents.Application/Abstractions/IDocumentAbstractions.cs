@@ -85,7 +85,41 @@ public interface IDocumentStorageProvider
         string contentType,
         TimeSpan lifetime,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Everything the store holds, in whatever order it holds it.
+    /// <para>
+    /// <b>The only way to find an object nothing references.</b> An upload writes
+    /// the object and then the row, so a failure between them leaves content
+    /// with no record — which costs storage rather than correctness, and is the
+    /// right way round: the reverse order costs somebody their file. But an
+    /// orphan cannot be found by reading the database, because the whole of its
+    /// problem is that the database has never heard of it.
+    /// </para>
+    /// <para>
+    /// Streamed rather than returned as a list. A bucket has no upper bound, and
+    /// a method that materialised it would work for two years and then exhaust
+    /// the memory of whichever instance happened to run the sweep.
+    /// </para>
+    /// </summary>
+    IAsyncEnumerable<StoredObject> ListAsync(CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// One object as the store describes it.
+/// </summary>
+/// <param name="ObjectKey">What the version row would hold, if there were one.</param>
+/// <param name="Length">Its size, so a report can say what is being wasted.</param>
+/// <param name="LastModifiedAt">
+/// When it was written.
+/// <para>
+/// The field that keeps a reconciliation from destroying a file. An upload in
+/// flight has written its object and not yet committed its row, so it is
+/// indistinguishable from an orphan by every other measure — and a sweep that
+/// ignored age would delete documents out from under the people uploading them.
+/// </para>
+/// </param>
+public sealed record StoredObject(string ObjectKey, long Length, DateTimeOffset LastModifiedAt);
 
 /// <summary>
 /// Inspects content for malware before it is stored.
@@ -218,6 +252,24 @@ public interface IDocumentRepository
     /// </summary>
     Task<IReadOnlyList<Document>> GetDuePurgesAsync(
         DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Which of these object keys a version row still refers to.
+    /// <para>
+    /// Asked in batches by the reconciliation sweep, going from the store to the
+    /// database rather than the other way round. An orphan is defined by the
+    /// database never having heard of it, so it cannot be found by any query
+    /// that starts from the database.
+    /// </para>
+    /// <para>
+    /// <b>Every version row, including the ones whose content has been
+    /// purged.</b> A purged version keeps its key so that the record of what was
+    /// destroyed stays truthful; treating that key as unreferenced would make
+    /// every purged document reappear as an orphan for ever.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlySet<string>> GetKnownObjectKeysAsync(
+        IReadOnlyCollection<string> objectKeys, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

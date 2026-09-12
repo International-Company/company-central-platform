@@ -29,6 +29,16 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      The reconciliation sweep exposes SweepAsync as internal so a test can run
+      one pass instead of waiting a day for a timer. Internal rather than public
+      because driving the sweep by hand is not something the module offers
+      anybody - it is only its test surface.
+    -->
+    <InternalsVisibleTo Include="CCP.Modules.Documents.UnitTests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

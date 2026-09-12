@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Amazon.S3;
 using Amazon.S3.Model;
 using CCP.Modules.Documents.Application.Abstractions;
@@ -190,6 +191,49 @@ public sealed class S3StorageProvider : IDocumentStorageProvider, IDisposable
         string url = _client.GetPreSignedURL(request);
 
         return Task.FromResult<Uri?>(new Uri(url));
+    }
+
+    /// <summary>
+    /// Every object in the bucket, a page at a time.
+    /// <para>
+    /// S3 returns at most a thousand keys per call, and the continuation token is
+    /// the only way past that. A listing that stopped at the first page would
+    /// report a bucket of a million objects as a bucket of a thousand — and a
+    /// reconciliation built on it would call the other 999,000 accounted for.
+    /// </para>
+    /// </summary>
+    public async IAsyncEnumerable<StoredObject> ListAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        string? continuationToken = null;
+
+        do
+        {
+            ListObjectsV2Response page = await _client.ListObjectsV2Async(
+                new ListObjectsV2Request
+                {
+                    BucketName = _bucketName,
+                    ContinuationToken = continuationToken
+                },
+                cancellationToken);
+
+            foreach (S3Object item in page.S3Objects ?? [])
+            {
+                yield return new StoredObject(
+                    item.Key,
+                    item.Size ?? 0,
+
+                    // S3 reports this as a local DateTime. Read as UTC, because
+                    // the sweep compares it against a grace period and an hour's
+                    // error in the wrong direction is a deleted document.
+                    new DateTimeOffset(
+                        DateTime.SpecifyKind(
+                            item.LastModified ?? DateTime.UtcNow, DateTimeKind.Utc)));
+            }
+
+            continuationToken = page.IsTruncated == true ? page.NextContinuationToken : null;
+        }
+        while (continuationToken is not null);
     }
 
     /// <summary>

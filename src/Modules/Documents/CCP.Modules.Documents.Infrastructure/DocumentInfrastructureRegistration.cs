@@ -55,6 +55,12 @@ public static class DocumentInfrastructureRegistration
 
         services.AddHostedService<PurgeSweep>();
 
+        // The price of two stores with no transaction between them, counted
+        // daily. It reports and never deletes: an orphan is defined by the
+        // database not knowing about it, which is also what every object looks
+        // like when the database is not the one that wrote the bucket.
+        services.AddHostedService<ReconciliationSweep>();
+
         return services;
     }
 

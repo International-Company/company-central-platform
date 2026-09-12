@@ -146,5 +146,9 @@ public sealed class ReadinessDegradationTests(PlatformApiFactory factory)
             string objectKey, string fileName, string contentType, TimeSpan lifetime,
             CancellationToken cancellationToken = default)
             => throw new IOException("the bucket is unreachable");
+
+        public IAsyncEnumerable<StoredObject> ListAsync(
+            CancellationToken cancellationToken = default)
+            => throw new IOException("the bucket is unreachable");
     }
 }

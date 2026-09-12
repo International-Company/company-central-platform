@@ -143,6 +143,7 @@ have its wait cancelled and then serve requests against a half-migrated schema.
 | `audit.audit_events` | by partition | `audit.partitions` |
 | `integrations.calls` | configured | `integrations.retention` |
 | Documents marked for deletion | 30-day grace | `documents.purge` |
+| Stored objects no version refers to | Reported, never removed | `documents.reconcile` |
 
 **Dead-lettered outbox rows are never swept.** A dead letter means an event will
 never be delivered — an audit entry or a notification permanently missing — and a

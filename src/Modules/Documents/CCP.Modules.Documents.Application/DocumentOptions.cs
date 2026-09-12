@@ -41,6 +41,31 @@ public sealed class DocumentOptions
     public int PurgeBatchSize { get; set; } = 50;
 
     /// <summary>
+    /// How often the store is compared against the version rows.
+    /// <para>
+    /// Daily. There is no transaction spanning a bucket and a database, so an
+    /// upload that stored its object and failed before its row leaves content
+    /// nothing references — which costs storage rather than correctness, and is
+    /// therefore worth knowing about rather than worth interrupting anybody
+    /// over.
+    /// </para>
+    /// </summary>
+    public TimeSpan ReconciliationSweepInterval { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// How long an object must have existed before its absence from the database
+    /// means anything.
+    /// <para>
+    /// <b>This is what keeps the reconciliation from libelling an upload in
+    /// progress.</b> Between the store and the commit, a perfectly good document
+    /// is content with no row — indistinguishable from an orphan by every
+    /// measure except its age. An hour is far longer than any upload and far
+    /// shorter than anything anybody would call a leak.
+    /// </para>
+    /// </summary>
+    public TimeSpan OrphanGracePeriod { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>
     /// How long a pre-signed download URL stays valid. Five minutes by default.
     /// <para>
     /// Short because the URL <b>is</b> the authorization: anybody holding it can
