@@ -8,7 +8,7 @@ import { DataTable, type Column } from '@/components/shared/data-table';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { StepUpDialog, needsStepUp } from '@/components/shared/step-up-dialog';
+import { StepUpDialog, needsStepUp, needsMfaEnrolment } from '@/components/shared/step-up-dialog';
 import { ApplicationCredentials } from './application-credentials';
 import type { RegisteredApplicationDto } from '@/types/platform';
 
@@ -99,6 +99,13 @@ export function ApplicationsScreen() {
       if (needsStepUp(response.status, problem?.code)) {
         setAfterStepUp(() => () => void register());
         setStepUpOpen(true);
+
+        return;
+      }
+
+      // Nothing to confirm with; the remedy is the enrolment screen.
+      if (needsMfaEnrolment(response.status, problem?.code)) {
+        setFormError(tErrors('mfaEnrolmentRequired'));
 
         return;
       }

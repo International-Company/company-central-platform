@@ -5,7 +5,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { FormDialog } from '@/components/shared/form-dialog';
-import { StepUpDialog, needsStepUp } from '@/components/shared/step-up-dialog';
+import { StepUpDialog, needsStepUp, needsMfaEnrolment } from '@/components/shared/step-up-dialog';
 import type {
   OrganizationUnitTreeDto,
   ProblemResponse,
@@ -129,6 +129,14 @@ export function UserRolesDialog({
 
         if (needsStepUp(response.status, body.code)) {
           setPendingAfterStepUp(() => () => withStepUp(action));
+
+          return;
+        }
+
+        // Nothing to confirm with. Saying "confirm your identity" here sends
+        // somebody looking for a code they have never had.
+        if (needsMfaEnrolment(response.status, body.code)) {
+          setError(tErrors('mfaEnrolmentRequired'));
 
           return;
         }

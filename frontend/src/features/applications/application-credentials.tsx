@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Field, FormMessage } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/shared/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { StepUpDialog, needsStepUp } from '@/components/shared/step-up-dialog';
+import { StepUpDialog, needsStepUp, needsMfaEnrolment } from '@/components/shared/step-up-dialog';
 import type {
   ApplicationCredentialDto,
   ApplicationRoleDto,
@@ -102,6 +102,13 @@ export function ApplicationCredentials({
 
       if (needsStepUp(response.status, problem?.code)) {
         setStepUpOpen(true);
+
+        return;
+      }
+
+      // Nothing to confirm with; the remedy is the enrolment screen.
+      if (needsMfaEnrolment(response.status, problem?.code)) {
+        setError(tErrors('mfaEnrolmentRequired'));
 
         return;
       }

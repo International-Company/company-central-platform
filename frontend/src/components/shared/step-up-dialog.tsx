@@ -23,9 +23,24 @@ import { FormDialog } from '@/components/shared/form-dialog';
 /** The code the Platform returns when the caller must confirm a second factor. */
 export const StepUpRequiredCode = 'SECURITY.STEP_UP_REQUIRED';
 
+/**
+ * The code the Platform returns when the caller has no second factor at all.
+ *
+ * **A different refusal, and it has to be handled differently.** Opening the
+ * dialog for somebody with no enrolment asks them for a code they cannot
+ * produce; they would try, fail, and try again. The remedy is a screen, not a
+ * field.
+ */
+export const MfaEnrolmentRequiredCode = 'SECURITY.MFA_REQUIRED_BY_POLICY';
+
 /** Whether a failed response is asking for a second factor rather than refusing. */
 export function needsStepUp(status: number, code: string | undefined): boolean {
   return status === 403 && code === StepUpRequiredCode;
+}
+
+/** Whether the caller has nothing to confirm with and must enrol first. */
+export function needsMfaEnrolment(status: number, code: string | undefined): boolean {
+  return status === 403 && code === MfaEnrolmentRequiredCode;
 }
 
 export function StepUpDialog({

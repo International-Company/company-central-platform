@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { FormDialog } from '@/components/shared/form-dialog';
-import { StepUpDialog, needsStepUp } from '@/components/shared/step-up-dialog';
+import { StepUpDialog, needsStepUp, needsMfaEnrolment } from '@/components/shared/step-up-dialog';
 import type {
   PermissionDto,
   ProblemResponse,
@@ -125,6 +125,13 @@ export function RolePermissionsDialog({
 
         if (needsStepUp(response.status, body.code)) {
           setPendingAfterStepUp(() => save);
+
+          return;
+        }
+
+        // Nothing to confirm with; the remedy is the enrolment screen.
+        if (needsMfaEnrolment(response.status, body.code)) {
+          setError(tErrors('mfaEnrolmentRequired'));
 
           return;
         }

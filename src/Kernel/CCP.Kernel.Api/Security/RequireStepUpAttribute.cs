@@ -79,4 +79,20 @@ public sealed class StepUpRequirement : IAuthorizationRequirement
     /// </para>
     /// </summary>
     public const string FailureReason = "step-up-required";
+
+    /// <summary>
+    /// The caller has no second factor at all, so there is nothing to confirm.
+    /// <para>
+    /// <b>A different refusal from a lapsed elevation, and it has to be.</b>
+    /// Telling somebody with no enrolment to "verify your second factor and
+    /// retry" asks them for a code they cannot produce, and the only way out is
+    /// a screen they were not sent to. They would try, fail, and try again.
+    /// </para>
+    /// <para>
+    /// <c>SecurityErrors.MfaRequiredByPolicy</c> was written for exactly this
+    /// and was never raised by anything; its own comment described the
+    /// distinction as though it existed. This is what makes it true.
+    /// </para>
+    /// </summary>
+    public const string EnrolmentRequiredReason = "mfa-enrolment-required";
 }

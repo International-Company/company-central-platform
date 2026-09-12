@@ -34,6 +34,17 @@ public sealed class PlatformAuthorizationResultHandler : IAuthorizationMiddlewar
     /// <summary>The caller holds the permission but must confirm a second factor.</summary>
     public const string StepUpRequiredCode = "SECURITY.STEP_UP_REQUIRED";
 
+    /// <summary>
+    /// The caller has no second factor enrolled, so there is nothing to confirm.
+    /// <para>
+    /// The same string as <c>SecurityErrors.MfaRequiredByPolicy.Code</c>, which
+    /// the kernel cannot reference (§6.2). <c>StepUpRefusalCodesTests</c> fails
+    /// the build if the two ever stop matching, so the duplication is checked
+    /// rather than remembered.
+    /// </para>
+    /// </summary>
+    public const string MfaEnrolmentRequiredCode = "SECURITY.MFA_REQUIRED_BY_POLICY";
+
     /// <summary>The caller does not hold what this endpoint requires.</summary>
     public const string ForbiddenCode = "PLATFORM.FORBIDDEN";
 
@@ -58,8 +69,15 @@ public sealed class PlatformAuthorizationResultHandler : IAuthorizationMiddlewar
             return;
         }
 
-        bool stepUp = authorizeResult.AuthorizationFailure?.FailureReasons
-            .Any(reason => reason.Message == StepUpRequirement.FailureReason) == true;
+        IEnumerable<AuthorizationFailureReason> reasons =
+            authorizeResult.AuthorizationFailure?.FailureReasons ?? [];
+
+        // Materialised once: FailureReasons is an IEnumerable, and asking it
+        // twice would enumerate it twice.
+        string[] messages = [.. reasons.Select(reason => reason.Message)];
+
+        bool enrolmentRequired = messages.Contains(StepUpRequirement.EnrolmentRequiredReason);
+        bool stepUp = enrolmentRequired || messages.Contains(StepUpRequirement.FailureReason);
 
         // Populated by the request-context middleware, which runs before
         // authorization. It is the only diagnostic the caller gets, and the
@@ -67,11 +85,21 @@ public sealed class PlatformAuthorizationResultHandler : IAuthorizationMiddlewar
         var requestContext = context.RequestServices
             .GetRequiredService<RequestContextAccessor>();
 
+        // Three refusals, not two. "Confirm your second factor" is useless
+        // advice to somebody who has none, and it is the one case where the
+        // caller cannot work out what to do next from the message.
+        (string code, string detail) = (enrolmentRequired, stepUp) switch
+        {
+            (true, _) => (MfaEnrolmentRequiredCode,
+                "Your account requires two-factor authentication. Enrol before continuing."),
+            (_, true) => (StepUpRequiredCode,
+                "This action needs your identity confirmed again. Verify your second factor and retry."),
+            _ => (ForbiddenCode, "You do not hold the permission this action requires."),
+        };
+
         ProblemDetails problem = ProblemDetailsFactory.Forbidden(
-            stepUp ? StepUpRequiredCode : ForbiddenCode,
-            stepUp
-                ? "This action needs your identity confirmed again. Verify your second factor and retry."
-                : "You do not hold the permission this action requires.",
+            code,
+            detail,
             requestContext.CorrelationId,
             context.Request.Path.Value);
 

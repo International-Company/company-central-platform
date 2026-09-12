@@ -23,6 +23,8 @@
     <ProjectReference Include="..\..\..\src\Modules\Security\CCP.Modules.Security.Application\CCP.Modules.Security.Application.csproj" />
     <ProjectReference Include="..\..\..\src\Modules\Security\CCP.Modules.Security.Infrastructure\CCP.Modules.Security.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\src\Modules\Security\CCP.Modules.Security.Contracts\CCP.Modules.Security.Contracts.csproj" />
+    <!-- The step-up authorization handler lives in the Api project. -->
+    <ProjectReference Include="..\..\..\src\Modules\Security\CCP.Modules.Security.Api\CCP.Modules.Security.Api.csproj" />
   </ItemGroup>
 
 </Project>

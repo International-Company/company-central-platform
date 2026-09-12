@@ -120,6 +120,27 @@ Enforcing at the action also catches the case the door cannot see: a session
 stolen *after* a legitimate sign-in. The token is valid, the session is real, and
 step-up still stops it.
 
+### Two refusals, not one
+
+Both come back `403`, because a prober must not learn which it is. The body says
+which, because the person in front of the screen needs to know.
+
+| Code | Means | What the portal does |
+|---|---|---|
+| `SECURITY.STEP_UP_REQUIRED` | You have a second factor and your elevation has lapsed. | Opens the confirmation dialog and retries the action once you pass. |
+| `SECURITY.MFA_REQUIRED_BY_POLICY` | You have no second factor at all. | Says so, and sends you to enrol. |
+
+**The Platform said the first to both for as long as step-up has existed.**
+Somebody who had never enrolled was told to "verify your second factor and
+retry", and the portal opened a dialog asking for a code they could not produce.
+The way out was a screen nothing had sent them to. The error for the second case
+had been written, with a comment describing the distinction as though it were
+implemented, and nothing ever raised it.
+
+The enrolment is only looked up once the elevation check has already failed, so
+the ordinary path — a request from somebody whose elevation is valid — costs
+nothing extra.
+
 ### Where it applies
 
 | Endpoint | Why |

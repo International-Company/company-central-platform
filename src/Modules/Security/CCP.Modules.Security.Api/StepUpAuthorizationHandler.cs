@@ -66,7 +66,16 @@ public sealed class StepUpAuthorizationHandler(
             // Carrying a reason, so the response can say "confirm your identity"
             // rather than "you do not have permission". The status stays 403
             // either way.
-            context.Fail(new AuthorizationFailureReason(this, StepUpRequirement.FailureReason));
+            // Which refusal it is depends on whether there is anything to
+            // confirm. One extra query, on the failing path only: the success
+            // path above returns without asking.
+            bool enrolled = await repository.FindActiveEnrolmentAsync(userId) is not null;
+
+            context.Fail(new AuthorizationFailureReason(
+                this,
+                enrolled
+                    ? StepUpRequirement.FailureReason
+                    : StepUpRequirement.EnrolmentRequiredReason));
         }
     }
 

@@ -92,7 +92,8 @@
     "correlationId": "Reference: {id}",
     "fieldRequired": "This field is required.",
     "passwordsDoNotMatch": "The passwords do not match.",
-    "invalidCredentials": "The username or password is incorrect. Repeated failures delay further attempts."
+    "invalidCredentials": "The username or password is incorrect. Repeated failures delay further attempts.",
+    "mfaEnrolmentRequired": "This action needs two-factor authentication, and your account has none enrolled. Set it up under Security, then try again."
   },
   "users": {
     "title": "Users",
