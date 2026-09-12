@@ -26,6 +26,11 @@ namespace CCP.Modules.Integrations.Domain.Outbound;
 /// name on the list today can be pointed at <c>127.0.0.1</c> tomorrow by whoever
 /// controls its DNS, and the allow-list alone would not notice.
 /// </para>
+/// <para>
+/// And the checked addresses are what gets connected to. Checking a name and
+/// then dialling the name resolves twice, and whoever controls the name decides
+/// what the second answer is; see <see cref="OutboundRoute"/>.
+/// </para>
 /// </summary>
 public static class OutboundHostPolicy
 {
@@ -88,12 +93,12 @@ public static class OutboundHostPolicy
         // like "10.0.0.5" on somebody's allow-list should not be honoured.
         if (IPAddress.TryParse(uri.Host, out IPAddress? literal))
         {
-            return IsPublic(literal) && IsAllowed(uri.Host, allowedHosts)
+            return IsPublic(literal) && IsAllowedHost(uri.Host, allowedHosts)
                 ? Verdict.Allowed
                 : IsPublic(literal) ? Verdict.HostNotAllowed : Verdict.PrivateAddressLiteral;
         }
 
-        return IsAllowed(uri.Host, allowedHosts) ? Verdict.Allowed : Verdict.HostNotAllowed;
+        return IsAllowedHost(uri.Host, allowedHosts) ? Verdict.Allowed : Verdict.HostNotAllowed;
     }
 
     /// <summary>
@@ -104,11 +109,9 @@ public static class OutboundHostPolicy
     /// one, and checking only the first is a coin flip.
     /// </para>
     /// <para>
-    /// This does not close the gap between checking and connecting — the name
-    /// can be re-resolved to something else in between, which is the DNS
-    /// rebinding attack. Closing that means connecting to a checked address
-    /// rather than to a name, and is recorded as known debt rather than
-    /// pretended away.
+    /// The addresses this passed are the ones the connection is made to, so
+    /// there is no second lookup between the check and the socket. See
+    /// <see cref="OutboundRoute"/>.
     /// </para>
     /// </summary>
     public static Verdict InspectAddresses(IReadOnlyCollection<IPAddress> addresses)
@@ -134,8 +137,14 @@ public static class OutboundHostPolicy
     /// <c>example.com</c> matching <c>notexample.com</c> is an allow-list that
     /// allows a host somebody else registered.
     /// </para>
+    /// <para>
+    /// Public because the connection layer asks it again, on the host it is
+    /// actually about to dial. A redirect changes the host without changing the
+    /// request that was checked, so the last word has to be spoken at the socket
+    /// rather than at the URI somebody started from.
+    /// </para>
     /// </summary>
-    private static bool IsAllowed(string host, IReadOnlyCollection<string> allowedHosts)
+    public static bool IsAllowedHost(string host, IReadOnlyCollection<string> allowedHosts)
     {
         foreach (string allowed in allowedHosts)
         {

@@ -201,6 +201,17 @@ public sealed class HttpIntegrationConnector(
 
             throw;
         }
+        catch (Exception exception) when (OutboundRefusedException.Find(exception) is not null)
+        {
+            // Refused at the socket by the guard, not a failure of the provider.
+            // Logged as blocked for the same reason the pre-flight refusal is:
+            // "we would not connect" and "they did not answer" are different
+            // answers to the question an operator is asking.
+            OutboundRefusedException refused = OutboundRefusedException.Find(exception)!;
+
+            return await FinishAsync(
+                log, CallOutcome.Blocked, refused.Verdict.ToString(), attempts, cancellationToken);
+        }
         catch (HttpRequestException exception)
         {
             return await FinishAsync(

@@ -1,3 +1,4 @@
+using System.Net;
 using CCP.Modules.Integrations.Application.Abstractions;
 using CCP.Modules.Integrations.Domain.Logging;
 using CCP.Modules.Integrations.Domain.Outbound;
@@ -254,6 +255,55 @@ public sealed class OutboundCallTests(PlatformApiFactory factory)
         Assert.Equal(0, _stub.Requests);
     }
 
+    /// <summary>
+    /// The refusal at the socket is real, and it is the one that decides.
+    /// <para>
+    /// <b>This is the DNS rebinding defence being exercised.</b> Rebinding
+    /// cannot be staged here — it needs a resolver that answers differently the
+    /// second time — so what is checked is the property that closes it: the
+    /// connection is made only to an address the guard approved <i>at the
+    /// moment of connecting</i>, whatever the pre-flight check said about the
+    /// name.
+    /// </para>
+    /// <para>
+    /// The substitute says yes to the request and no to the socket. A connect
+    /// callback that was written but never wired into the handler would look
+    /// exactly like one that works — every other test here is allowed by both
+    /// checks and so could not tell them apart. This one can only pass if the
+    /// second check is actually running.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task AnAddressRefusedAtTheSocketIsNeverConnectedTo()
+    {
+        string code = await RegisterProviderAsync(maxRetries: 3);
+
+        using var host = new LoopbackFactory(
+            factory.TestConnectionString, new ApprovesNothingAtTheSocketGuard());
+
+        using IServiceScope scope = host.Services.CreateScope();
+
+        var connector = scope.ServiceProvider.GetRequiredService<IIntegrationConnector>();
+
+        IntegrationResponse response = await connector.SendAsync(
+            new IntegrationRequest(code, "call", Body: "{}"));
+
+        Assert.Equal(CallOutcome.Blocked, response.Outcome);
+
+        // The stub is listening and the pre-flight check said yes. Nothing
+        // arrived, because the socket was never opened.
+        Assert.Equal(0, _stub.Requests);
+
+        IntegrationCallLog log = await ReadLogAsync(response.CallLogId);
+
+        Assert.Equal(CallOutcome.Blocked, log.Outcome);
+
+        // Once. A policy refusal is not transient, so the provider is configured
+        // to retry three times and does not — retrying would waste the attempts
+        // and count four failures against a provider that is perfectly healthy.
+        Assert.Equal(1, response.Attempts);
+    }
+
     // -----------------------------------------------------------------------
     // Harness
     // -----------------------------------------------------------------------
@@ -340,8 +390,11 @@ public sealed class OutboundCallTests(PlatformApiFactory factory)
     /// real answer for <c>127.0.0.1</c> is no and must stay no.
     /// </para>
     /// </summary>
-    private sealed class LoopbackFactory(string connectionString) : PlatformApiFactory
+    private sealed class LoopbackFactory(string connectionString, IOutboundGuard? guard = null)
+        : PlatformApiFactory
     {
+        private readonly IOutboundGuard _guard = guard ?? new LoopbackOnlyGuard();
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             ArgumentNullException.ThrowIfNull(builder);
@@ -351,8 +404,7 @@ public sealed class OutboundCallTests(PlatformApiFactory factory)
 
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IOutboundGuard, LoopbackOnlyGuard>());
+            builder.ConfigureServices(services => services.AddSingleton(_guard));
         }
     }
 
@@ -376,5 +428,41 @@ public sealed class OutboundCallTests(PlatformApiFactory factory)
                     ? OutboundHostPolicy.Verdict.Allowed
                     : OutboundHostPolicy.Verdict.HostNotAllowed);
         }
+
+        /// <summary>
+        /// The same answer, at the socket. The address is handed back rather
+        /// than resolved again, which is the property the real guard exists to
+        /// hold.
+        /// </summary>
+        public Task<OutboundRoute> ApproveAsync(
+            string host, CancellationToken cancellationToken = default)
+            => Task.FromResult(
+                IPAddress.TryParse(host, out IPAddress? address) && IPAddress.IsLoopback(address)
+                    ? OutboundRoute.Allowed([address])
+                    : OutboundRoute.Refused(OutboundHostPolicy.Verdict.HostNotAllowed));
+    }
+
+    /// <summary>
+    /// Says yes to the request and no to the socket.
+    /// <para>
+    /// <b>It exists to prove the socket check is not decorative.</b> The
+    /// pre-flight check and the connection check are two different pieces of
+    /// code, and a connect callback that was written but never wired into the
+    /// handler would look exactly like one that works — every existing test
+    /// would still pass, because every existing test is allowed by both. This
+    /// double is allowed by one and refused by the other, so it fails loudly if
+    /// the second one is not running.
+    /// </para>
+    /// </summary>
+    private sealed class ApprovesNothingAtTheSocketGuard : IOutboundGuard
+    {
+        public Task<OutboundHostPolicy.Verdict> InspectAsync(
+            Uri destination, CancellationToken cancellationToken = default)
+            => Task.FromResult(OutboundHostPolicy.Verdict.Allowed);
+
+        public Task<OutboundRoute> ApproveAsync(
+            string host, CancellationToken cancellationToken = default)
+            => Task.FromResult(
+                OutboundRoute.Refused(OutboundHostPolicy.Verdict.ResolvesToPrivateAddress));
     }
 }

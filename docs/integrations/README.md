@@ -127,11 +127,44 @@ A caller is told only that the address was refused. Learning *which* check faile
 would let it map the internal network one probe at a time; the Platform's own log
 records exactly which.
 
-**The known gap:** between the check and the connection, a name can be
-re-resolved to a different address — DNS rebinding. Closing it means connecting
-to a checked address rather than to a name. Recorded as debt rather than
-pretended away; the allow-list means an attacker would first need control of a
-host somebody deliberately allowed.
+### And the check that has the last word
+
+Everything above works in names. The allow-list is a list of names, a provider's
+base address is a name, and the check before a call resolves that name and
+approves what it finds. **If the HTTP client then resolves the name a second time
+to connect, the approval and the connection are about different addresses** — because
+whoever runs that name's DNS chooses the second answer. That is DNS rebinding,
+and it turns a host somebody deliberately allowed into a route to the metadata
+service.
+
+The fix is not a better check. It is one lookup instead of two: the guard opens
+every outbound socket itself, resolves once, approves what it resolved, and
+connects to **those addresses**. There is no second lookup to poison.
+
+The same callback catches a destination nobody upstream ever saw. A redirect
+sends the client to a host the original URI never named, and the connection layer
+is the only place that learns where — so the allow-list is consulted there too.
+
+Two consequences worth knowing:
+
+- A connection refused this way is logged as **blocked**, not failed. "We would
+  not connect" and "they did not answer" are different answers to the question an
+  operator is asking.
+- It is **not retried** and does not count towards opening the provider's
+  circuit. A policy decision does not become truer on the third attempt, and a
+  provider that is perfectly healthy should not be marked down because somebody
+  pointed it somewhere it may not go.
+
+Pooled connections are given a two-minute lifetime for the same reason. The
+default is forever, which would mean a connection approved once is kept no matter
+what the name resolves to afterwards.
+
+**A forward proxy would defeat this**, and fails closed rather than quietly. If
+`HTTP_PROXY` is set in the environment, every connection is made to the proxy
+instead — and the proxy's own host is not on the allow-list, so calls are refused
+rather than sent unchecked. Routing outbound traffic through a proxy is a change
+to make deliberately, in this file, not by an environment variable nobody
+noticed.
 
 ---
 

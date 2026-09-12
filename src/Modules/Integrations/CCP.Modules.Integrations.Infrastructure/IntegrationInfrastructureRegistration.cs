@@ -1,3 +1,4 @@
+using System.Net.Http;
 using CCP.Modules.Integrations.Application;
 using CCP.Modules.Integrations.Application.Abstractions;
 using CCP.Modules.Integrations.Infrastructure.Outbound;
@@ -53,10 +54,28 @@ public static class IntegrationInfrastructureRegistration
         // expensive way of doing nothing.
         services.AddSingleton<ResiliencePipelineRegistry<string>>();
 
+        // Every socket this client opens is opened by the guard. Singleton for
+        // the same reason the guard is, and registered separately so the whole
+        // policy still hangs off one seam — replacing IOutboundGuard replaces
+        // what happens at the socket too, which is what a test doing so expects.
+        services.AddSingleton<GuardedConnect>();
+
         // The handler chain is left alone deliberately: retry, timeout and
         // breaking are the pipeline's, and configuring them here as well would
         // give every call two of each with no way to reason about the result.
-        services.AddHttpClient(HttpIntegrationConnector.HttpClientName);
+        //
+        // The primary handler is not left alone, because connecting is where the
+        // destination is finally decided. See GuardedConnect.
+        services.AddHttpClient(HttpIntegrationConnector.HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(sp => new SocketsHttpHandler
+            {
+                ConnectCallback = sp.GetRequiredService<GuardedConnect>().ConnectAsync,
+
+                // Without this a connection approved once is kept for the life
+                // of the process, so a host that later starts resolving
+                // somewhere else is never re-checked.
+                PooledConnectionLifetime = GuardedConnect.PooledConnectionLifetime
+            });
 
         services.AddScoped<IIntegrationConnector, HttpIntegrationConnector>();
 

@@ -18,13 +18,13 @@ namespace CCP.Modules.Integrations.Infrastructure.Outbound;
 /// instance's credentials to anything that asks.
 /// </para>
 /// <para>
-/// <b>The known gap, stated rather than hidden.</b> Between this check and the
-/// connection, the name can be re-resolved to a different address — DNS
-/// rebinding. Closing it means connecting to a checked address rather than to a
-/// name, which requires taking over socket connection in the HTTP handler.
-/// Recorded as debt; the allow-list means an attacker would first need control
-/// of a host somebody deliberately allowed, which is a much narrower position
-/// than the general case this defends against.
+/// <b>Neither check is the last word, and that is why <see cref="ApproveAsync"/>
+/// exists.</b> This one runs against the address somebody asked for, before the
+/// credential is resolved, so a provider pointed somewhere it may not go cannot
+/// leak a secret on the way to being refused. But between a check and a
+/// connection the name can be resolved again to something else — DNS rebinding —
+/// and a redirect can send the client to a host this method never saw at all.
+/// Both are settled at the socket, where the address stops being a question.
 /// </para>
 /// </summary>
 public sealed class OutboundGuard(
@@ -76,6 +76,65 @@ public sealed class OutboundGuard(
         }
 
         return verdict;
+    }
+
+    /// <summary>
+    /// The check at the socket: resolve once, approve, and hand back the very
+    /// addresses that were approved.
+    /// <para>
+    /// Returning the addresses rather than a yes is the substance of it. A
+    /// caller given permission to dial a <i>name</i> has to resolve it again,
+    /// and the answer to that second lookup is chosen by whoever runs the name's
+    /// DNS — so the approval would cover one address and the connection would go
+    /// to another. There is no second lookup here.
+    /// </para>
+    /// <para>
+    /// The host is checked against the allow-list again as well, because the
+    /// host arriving here is not always the one anybody checked: a redirect
+    /// changes it, and only the connection layer sees where to.
+    /// </para>
+    /// </summary>
+    public async Task<OutboundRoute> ApproveAsync(
+        string host, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+
+        if (IPAddress.TryParse(host, out IPAddress? literal))
+        {
+            if (!OutboundHostPolicy.IsPublic(literal))
+            {
+                return OutboundRoute.Refused(OutboundHostPolicy.Verdict.PrivateAddressLiteral);
+            }
+
+            return OutboundHostPolicy.IsAllowedHost(host, options.AllowedHosts)
+                ? OutboundRoute.Allowed([literal])
+                : OutboundRoute.Refused(OutboundHostPolicy.Verdict.HostNotAllowed);
+        }
+
+        if (!OutboundHostPolicy.IsAllowedHost(host, options.AllowedHosts))
+        {
+            return OutboundRoute.Refused(OutboundHostPolicy.Verdict.HostNotAllowed);
+        }
+
+        IPAddress[] addresses;
+
+        try
+        {
+            addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+        }
+        catch (SocketException)
+        {
+            // Refused, not allowed. A resolver failure must not be a way past
+            // the check, and a name that resolves to nothing cannot be reached
+            // anyway.
+            return OutboundRoute.Refused(OutboundHostPolicy.Verdict.ResolvesToPrivateAddress);
+        }
+
+        OutboundHostPolicy.Verdict verdict = OutboundHostPolicy.InspectAddresses(addresses);
+
+        return verdict == OutboundHostPolicy.Verdict.Allowed
+            ? OutboundRoute.Allowed(addresses)
+            : OutboundRoute.Refused(verdict);
     }
 
     /// <summary>

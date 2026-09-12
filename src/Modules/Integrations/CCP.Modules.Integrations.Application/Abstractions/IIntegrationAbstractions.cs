@@ -53,9 +53,36 @@ public interface IOutboundGuard
 {
     /// <summary>
     /// Checks scheme, host, allow-list, and every address the host resolves to.
+    /// <para>
+    /// Asked before the credential is resolved, so a provider pointed at a host
+    /// it was never allowed to reach cannot leak a secret to it. It is not the
+    /// last word: see <see cref="ApproveAsync"/>.
+    /// </para>
     /// </summary>
     Task<Domain.Outbound.OutboundHostPolicy.Verdict> InspectAsync(
         Uri destination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resolves a host and returns the addresses a connection may actually be
+    /// made to.
+    /// <para>
+    /// <b>This is the last word, and it is spoken at the socket.</b>
+    /// <see cref="InspectAsync"/> checks the address somebody asked for; this
+    /// checks the address about to be dialled, and hands back the very addresses
+    /// it checked so that nothing resolves the name a second time. Between two
+    /// lookups, whoever controls the name decides what the second one says —
+    /// which is DNS rebinding, and it turns an allowed host into a route to
+    /// whatever the Platform can reach.
+    /// </para>
+    /// <para>
+    /// It also catches the host nobody checked at all: a redirect sends the
+    /// client somewhere the original URI never named, and only the connection
+    /// layer sees where that is.
+    /// </para>
+    /// </summary>
+    /// <param name="host">The host about to be connected to.</param>
+    Task<Domain.Outbound.OutboundRoute> ApproveAsync(
+        string host, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

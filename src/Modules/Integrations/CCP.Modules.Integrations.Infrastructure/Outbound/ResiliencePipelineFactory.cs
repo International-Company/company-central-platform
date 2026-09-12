@@ -128,6 +128,17 @@ public static class ResiliencePipelineFactory
 
     private static bool IsTransient(Outcome<object> outcome)
     {
+        if (OutboundRefusedException.Find(outcome.Exception) is not null)
+        {
+            // A policy refusal, wearing an HttpRequestException because that is
+            // how the HTTP stack presents anything a connect callback threw.
+            // Neither retried nor held against the provider: the answer does not
+            // change on the third attempt, and a provider that is perfectly
+            // healthy should not be marked down because somebody pointed it at a
+            // host it may not reach.
+            return false;
+        }
+
         if (outcome.Exception is TimeoutRejectedException or HttpRequestException)
         {
             return true;
