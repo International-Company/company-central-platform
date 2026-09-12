@@ -15,6 +15,11 @@ document says
 
 the contract is asked whether that endpoint is really there, with that method.
 
+It also refuses an entry in ALLOWED_ABSENT that is no longer absent. An exception
+outlives the code it excuses: once the asynchronous export is built, that entry
+stops meaning "documented on purpose, not yet real" and starts meaning "this one
+route is never checked", silently, for whatever is written at that path next.
+
 What this cannot check is the opposite drift -- a document saying something is
 *not* built when it is. That is a claim about absence, and absence has no shape a
 scan can match. It stays a human job, which is the honest limit and the reason
@@ -66,6 +71,24 @@ ALLOWED_ABSENT = {
         'Recorded in DEVELOPMENT_STATUS.md and in docs/audit/README.md section 9, '
         'and marked as unbuilt at the point ARCHITECTURE.md names it.',
 }
+
+
+def stale_exceptions(routes):
+    """Entries in ALLOWED_ABSENT that are no longer absent.
+
+    An exception outlives the code it excuses. Once the asynchronous export is
+    built, this entry stops meaning "documented on purpose, not yet real" and
+    starts meaning "this one endpoint is never checked" -- silently, and for
+    whatever gets written at that path afterwards.
+
+    The sibling guard on outbound clients refuses a reviewed entry whose file no
+    longer builds one, for the same reason. This check was missing here, which
+    is what an exception list looks like when nobody writes the second half.
+    """
+    for (method, path), reason in ALLOWED_ABSENT.items():
+        if any(method == published_method and matches(path, published_path)
+               for published_method, published_path in routes):
+            yield method, path, reason
 
 
 def contract_routes():
@@ -155,6 +178,15 @@ def main():
     failures = 0
     checked = 0
 
+    stale = 0
+
+    for method, path, reason in stale_exceptions(routes):
+        print(f'  STALE EXCEPTION  {method} {path} is in ALLOWED_ABSENT and now exists in the '
+              f'contract. Remove the entry, so the endpoint is checked like every other one '
+              f'rather than excused for ever. The reason recorded was: {reason}',
+              file=sys.stderr)
+        stale += 1
+
     for path in sorted(markdown_files()):
         relative = os.path.relpath(path, ROOT).replace('\\', '/')
 
@@ -172,13 +204,20 @@ def main():
               file=sys.stderr)
         return 1
 
-    if failures == 0:
+    if failures == 0 and stale == 0:
         print(f'All {checked} documented endpoints exist in the contract.')
         return 0
 
-    print(f'\n{failures} documented endpoint(s) do not exist. Either the document is '
-          f'stale or the endpoint was renamed; if it names something deliberately '
-          f'absent, add it to ALLOWED_ABSENT with the reason.', file=sys.stderr)
+    if failures:
+        print(f'\n{failures} documented endpoint(s) do not exist. Either the document is '
+              f'stale or the endpoint was renamed; if it names something deliberately '
+              f'absent, add it to ALLOWED_ABSENT with the reason.', file=sys.stderr)
+
+    if stale:
+        print(f'\n{stale} ALLOWED_ABSENT entr(y/ies) name something that now exists. That is '
+              f'good news about the endpoint and bad news about the exception: it excuses a '
+              f'real route from being checked at all.', file=sys.stderr)
+
     return 1
 
 
