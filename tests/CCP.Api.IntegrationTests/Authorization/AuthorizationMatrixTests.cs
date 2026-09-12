@@ -411,6 +411,14 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
     /// </summary>
     private sealed class UnthrottledFactory(string connectionString) : PlatformApiFactory
     {
+        private const int Unlimited = 100_000;
+
+        // The base class turns this into the host's RateLimits:Authentication.
+        // Setting it here rather than in the loop below keeps one policy from
+        // being written twice with different numbers, where the winner would be
+        // whichever call happened to come last.
+        protected override int AuthenticationRateLimit => Unlimited;
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             ArgumentNullException.ThrowIfNull(builder);
@@ -424,15 +432,22 @@ public sealed partial class AuthorizationMatrixTests(PlatformApiFactory factory)
 
             // The limits go through UseSetting rather than the environment, and
             // that is not a stylistic choice. An environment variable is
-            // process-global: raising it here would raise it for every host
-            // built afterwards in this process, including RateLimitTests, whose
-            // entire subject is the limiter refusing. Test classes run in
-            // parallel and their order is not defined, so that would be an
-            // order-dependent failure -- a bug this project has already shipped
-            // once and does not intend to ship twice.
-            string unlimited = 100_000.ToString(CultureInfo.InvariantCulture);
+            // process-global and outlives the host that set it: raising one here
+            // would raise it for every host built afterwards in this process,
+            // including RateLimitTests, whose entire subject is the limiter
+            // refusing. xUnit does not define the order test classes run in, so
+            // that is an order-dependent failure -- a bug this project has
+            // already shipped once and does not intend to ship twice.
+            //
+            // This comment used to say the classes ran in parallel. They do not:
+            // AssemblyInfo.cs disables parallelization, for the connection
+            // string's sake. The conclusion survived the correction because it
+            // never depended on concurrency -- only on the order being nobody's
+            // choice -- but a justification citing a mechanism the repository
+            // has switched off is one somebody will eventually act on.
+            string unlimited = Unlimited.ToString(CultureInfo.InvariantCulture);
 
-            foreach (string policy in new[] { "Anonymous", "Read", "Write", "Authentication" })
+            foreach (string policy in new[] { "Anonymous", "Read", "Write" })
             {
                 builder.UseSetting($"RateLimits:{policy}", unlimited);
             }

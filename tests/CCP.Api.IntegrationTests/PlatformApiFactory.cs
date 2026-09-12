@@ -51,7 +51,24 @@ public class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             StringComparison.Ordinal);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
-        => builder.UseEnvironment("Development");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.UseEnvironment("Development");
+
+        // Per-host, not process-global. The limit used to travel with the
+        // connection string as a CCP_ environment variable, which outlives the
+        // host that set it: a class that does not set one inherits whatever the
+        // last class left behind. RateLimitTests drives this number down to
+        // three and is entirely about the limiter refusing, so inheriting a
+        // raised limit there is a green test that has stopped testing.
+        //
+        // The connection string below cannot move the same way, and that is not
+        // an oversight -- see PublishConfiguration.
+        builder.UseSetting(
+            "RateLimits:Authentication",
+            AuthenticationRateLimit.ToString(CultureInfo.InvariantCulture));
+    }
 
     /// <summary>
     /// Publishes this test's settings as environment variables.
@@ -76,6 +93,21 @@ public class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <c>ConfigureWebHost</c> so the ordering is unambiguous: it happens before
     /// any client, and therefore before any host, exists.
     /// </para>
+    /// <para>
+    /// <b>Only what genuinely cannot travel any other way is here.</b> An
+    /// environment variable outlives the host that set it, so everything set
+    /// this way is a value a later test class inherits without asking. The rate
+    /// limit used to be here and is now a <c>UseSetting</c> on the host
+    /// (<see cref="ConfigureWebHost"/>); what remains is the connection string,
+    /// which is read before <c>builder.Build()</c> and so cannot be — and the
+    /// poll interval, which is the same constant for every class in the suite.
+    /// </para>
+    /// <para>
+    /// That remainder is why <c>AssemblyInfo.cs</c> serializes the suite. It is
+    /// the price of the fail-fast read, and the fail-fast is worth more than the
+    /// wall-clock: a deployment pointed at no database should say so at startup
+    /// rather than at the first request.
+    /// </para>
     /// </summary>
     private void PublishConfiguration()
     {
@@ -83,10 +115,6 @@ public class PlatformApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         // A short poll keeps outbox tests fast without sleeping.
         Environment.SetEnvironmentVariable("CCP_Outbox__PollInterval", "00:00:01");
-
-        Environment.SetEnvironmentVariable(
-            "CCP_RateLimits__Authentication",
-            AuthenticationRateLimit.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
