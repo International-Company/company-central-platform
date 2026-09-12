@@ -22,24 +22,11 @@ public static class AuditErrors
         "The date range is too wide. Narrow it, or export instead.",
         "to");
 
-    public static readonly Error ApplicationRequired = Error.Validation(
-        "AUDIT.APPLICATION_REQUIRED", "An application is required.", "application");
-
     public static readonly Error ActionRequired = Error.Validation(
         "AUDIT.ACTION_REQUIRED", "An action is required.", "action");
 
     public static readonly Error ModuleRequired = Error.Validation(
         "AUDIT.MODULE_REQUIRED", "A module is required.", "module");
-
-    /// <summary>
-    /// A caller may only write events attributed to itself (ARCHITECTURE.md
-    /// §15.3). Otherwise any application holding an ingestion credential could
-    /// forge the trail of every other one, which would make the whole record
-    /// worthless as evidence.
-    /// </summary>
-    public static readonly Error ApplicationMismatch = Error.Forbidden(
-        "AUDIT.APPLICATION_MISMATCH",
-        "Events may only be written for the application making the request.");
 
     public static readonly Error BatchTooLarge = Error.Validation(
         "AUDIT.BATCH_TOO_LARGE", "Too many events in one request.", "events");

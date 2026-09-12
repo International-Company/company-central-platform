@@ -112,10 +112,6 @@ public static class DocumentErrors
     public static readonly Error AccessDenied = Error.Forbidden(
         "DOCUMENTS.ACCESS_DENIED", "You do not have access to this document.");
 
-    public static readonly Error AccessRuleExists = Error.Conflict(
-        "DOCUMENTS.ACCESS_RULE_EXISTS",
-        "This subject already has a rule on this document.");
-
     public static readonly Error AccessRuleNotFound = Error.NotFound(
         "DOCUMENTS.ACCESS_RULE_NOT_FOUND", "The access rule does not exist.");
 

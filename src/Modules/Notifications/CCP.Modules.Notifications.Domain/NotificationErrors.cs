@@ -15,15 +15,8 @@ public static class NotificationErrors
     public static readonly Error TemplateBodyRequired = Error.Validation(
         "NOTIFICATIONS.TEMPLATE_BODY_REQUIRED", "A template needs a body.", "body");
 
-    public static readonly Error TemplateNotFound = Error.NotFound(
-        "NOTIFICATIONS.TEMPLATE_NOT_FOUND", "The template does not exist.");
-
     public static readonly Error TemplateAlreadyInThatState = Error.Conflict(
         "NOTIFICATIONS.TEMPLATE_ALREADY_IN_STATE", "The template is already in that state.");
-
-    public static readonly Error TemplateVersionExists = Error.Conflict(
-        "NOTIFICATIONS.TEMPLATE_EXISTS",
-        "A template with this code already exists for this locale.");
 
     public static Error UnsupportedLocale(string locale) => Error.Validation(
         "NOTIFICATIONS.UNSUPPORTED_LOCALE",
@@ -80,10 +73,6 @@ public static class NotificationErrors
         "NOTIFICATIONS.ALREADY_DELIVERED", "This notification has already been delivered.");
 
     // --- Channels and preferences -------------------------------------------
-
-    public static Error NoProviderForChannel(string channel) => Error.Rule(
-        "NOTIFICATIONS.NO_PROVIDER",
-        $"Nothing is configured to deliver on the {channel} channel.");
 
     public static readonly Error SecurityNotificationsCannotBeDisabled = Error.Rule(
         "NOTIFICATIONS.SECURITY_CANNOT_BE_DISABLED",

@@ -59,11 +59,6 @@ public static class IntegrationErrors
         + "such as 'integrations/acme/api-key' — and the value lives in the secret store.",
         "credentialReference");
 
-    public static Error CredentialUnresolvable(string reference) => Error.Unexpected(
-        "INTEGRATIONS.CREDENTIAL_UNRESOLVABLE",
-        $"The secret '{reference}' could not be resolved. The provider is configured and its "
-        + "credential is not available.");
-
     // --- Webhook subscriptions ----------------------------------------------
 
     public static readonly Error SubscriptionApplicationRequired = Error.Validation(
@@ -137,9 +132,6 @@ public static class IntegrationErrors
     public static readonly Error EndpointKeyTaken = Error.Conflict(
         "INTEGRATIONS.ENDPOINT_KEY_TAKEN", "This provider already has an endpoint with that key.");
 
-    public static readonly Error EndpointNotFound = Error.NotFound(
-        "INTEGRATIONS.ENDPOINT_NOT_FOUND", "The provider has no endpoint with that key.");
-
     public static readonly Error MethodNotAllowed = Error.Validation(
         "INTEGRATIONS.METHOD_NOT_ALLOWED", "Use GET, POST, PUT, PATCH or DELETE.", "method");
 
@@ -164,28 +156,9 @@ public static class IntegrationErrors
 
     // --- Outbound policy ----------------------------------------------------
 
-    /// <summary>
-    /// The address was refused. One error for every reason, deliberately.
-    /// <para>
-    /// A caller learning <i>why</i> a host was refused learns the shape of the
-    /// internal network — which addresses are private, which names resolve
-    /// inside — one probe at a time. The Platform's own log records exactly
-    /// which check failed.
-    /// </para>
-    /// </summary>
-    public static readonly Error DestinationNotAllowed = Error.Forbidden(
-        "INTEGRATIONS.DESTINATION_NOT_ALLOWED",
-        "The Platform is not permitted to call that address.");
-
     public static readonly Error CircuitOpen = Error.Conflict(
         "INTEGRATIONS.CIRCUIT_OPEN",
         "This provider is failing and calls to it are suspended. It will be tried again shortly.");
-
-    public static readonly Error CallTimedOut = Error.Unexpected(
-        "INTEGRATIONS.CALL_TIMED_OUT", "The provider did not answer in time.");
-
-    public static Error CallFailed(string reason) => Error.Unexpected(
-        "INTEGRATIONS.CALL_FAILED", $"The call could not be completed: {reason}");
 
     // --- Inbound webhooks ---------------------------------------------------
 

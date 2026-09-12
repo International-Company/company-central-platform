@@ -39,9 +39,6 @@ public static class ConfigurationErrors
     public static readonly Error DefinitionNotFound = Error.NotFound(
         "CONFIG.DEFINITION_NOT_FOUND", "No setting is declared with that key.");
 
-    public static readonly Error KeyTaken = Error.Conflict(
-        "CONFIG.KEY_TAKEN", "A setting with that key is already declared.");
-
     public static readonly Error RangeInverted = Error.Validation(
         "CONFIG.RANGE_INVERTED", "The minimum is greater than the maximum.", "minimum");
 
@@ -104,18 +101,9 @@ public static class ConfigurationErrors
     public static readonly Error ValueNotFound = Error.NotFound(
         "CONFIG.VALUE_NOT_FOUND", "Nothing has been set at that scope.");
 
-    /// <summary>
-    /// An attempt to read a value that may be written and not read.
-    /// </summary>
-    public static readonly Error SensitiveValueNotReadable = Error.Forbidden(
-        "CONFIG.SENSITIVE_VALUE_NOT_READABLE",
-        "This setting is marked sensitive. It can be changed and not read back.");
-
     // --- Feature flags ------------------------------------------------------
 
     public static readonly Error FlagNotFound = Error.NotFound(
         "CONFIG.FLAG_NOT_FOUND", "No feature flag is declared with that key.");
 
-    public static readonly Error FlagKeyTaken = Error.Conflict(
-        "CONFIG.FLAG_KEY_TAKEN", "A feature flag with that key is already declared.");
 }

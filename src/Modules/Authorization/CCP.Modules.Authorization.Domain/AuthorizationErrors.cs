@@ -223,10 +223,6 @@ public static class AuthorizationErrors
         "AUTHZ.APPLICATION_ALREADY_GRANTED",
         "The application already holds this role at this scope.");
 
-    public static readonly Error ApplicationInactive = Error.Forbidden(
-        "AUTHZ.APPLICATION_INACTIVE",
-        "The application is disabled.");
-
     /// <summary>
     /// An application asked to act as somebody without being allowed to.
     /// </summary>

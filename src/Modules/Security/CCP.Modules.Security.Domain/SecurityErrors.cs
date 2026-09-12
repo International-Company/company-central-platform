@@ -81,10 +81,6 @@ public static class SecurityErrors
         "SECURITY.STEP_UP_REQUIRED",
         "This action requires you to confirm your identity again.");
 
-    public static readonly Error StepUpNotAvailable = Error.Forbidden(
-        "SECURITY.STEP_UP_NOT_AVAILABLE",
-        "This action requires two-factor authentication, which is not enabled on your account.");
-
     // --- Policy ------------------------------------------------------------
 
     /// <summary>
