@@ -262,6 +262,24 @@ Enabling an outbound call to a third party is the project owner's decision, not
 a default. **While it is off, no screening happens at all** — this is stated
 plainly so nobody believes a control is running when it is not.
 
+**And it goes through the governed door**, like every other outbound call
+([integrations §4](../integrations/README.md)). Turning screening on therefore
+means allow-listing `api.pwnedpasswords.com` as well — which is the point of
+deny-by-default, not an obstacle to it: reaching a third party becomes a
+deliberate act with a second signature on it. A host nobody allowed fails open
+like any other outage, loudly in the log.
+
+Every attempt lands in the shared call log. **Nothing about the password reaches
+it** — not the password, not its hash, not the five-character prefix that was
+sent. The log is read by administrators and exported, and a row hinting that
+somebody's chosen password was found in a breach corpus is the last thing that
+should be browsable.
+
+> This was not how it worked until recently. The checker called the range API
+> directly, outside the allow-list and absent from the log — the same gap the
+> email channel had, found a second time. Two is a class, so a test now fails
+> the build on an outbound client nobody has accounted for.
+
 ---
 
 ## 9. Password reset

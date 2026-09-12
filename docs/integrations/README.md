@@ -174,6 +174,28 @@ Pooled connections are given a two-minute lifetime for the same reason. The
 default is forever, which would mean a connection approved once is kept no matter
 what the name resolves to afterwards.
 
+### Everything that goes out, counted
+
+There are exactly three outbound clients in the Platform, and a test fails the
+build when a fourth appears without a reason recorded beside it
+(`OutboundCoverageTests`).
+
+| Client | How it is governed |
+|---|---|
+| The integration connector | The door itself. Its primary handler is the guard, so every socket it opens is checked and connected to the address that was checked. |
+| SMTP (notifications) | Asks `IOutboundGateway` to approve the mail host before dialling, and records every attempt in the call log. |
+| Breached-password screening (identity) | The same, before calling the range API. Off by default; enabling it means allow-listing the host too. |
+
+**The count exists because the rule was previously kept by memory.** Both the
+email channel and the breach checker were written before this layer existed, both
+reached third parties on the public internet, and both were found by reading the
+code rather than by anything failing. A second instance is what turns a defect
+into a class — and a class is closed by a guard, not by a correction.
+
+What the guard cannot check is whether a listed client actually asks the door:
+that is a call at the top of a method, not a shape a scan can see. Each client
+has its own test refusing at the door and then insisting nothing was sent.
+
 **A forward proxy would defeat this**, and fails closed rather than quietly. If
 `HTTP_PROXY` is set in the environment, every connection is made to the proxy
 instead — and the proxy's own host is not on the allow-list, so calls are refused

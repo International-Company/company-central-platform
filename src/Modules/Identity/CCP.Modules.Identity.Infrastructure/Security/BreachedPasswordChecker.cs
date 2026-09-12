@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using CCP.Kernel.Primitives;
 using CCP.Modules.Identity.Application.Abstractions;
+using CCP.Modules.Integrations.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -61,9 +63,20 @@ public sealed class BreachedPasswordOptions
 /// </summary>
 public sealed class BreachedPasswordChecker(
     HttpClient httpClient,
+    IOutboundGateway gateway,
     IOptions<BreachedPasswordOptions> options,
+    IClock clock,
     ILogger<BreachedPasswordChecker> logger) : IBreachedPasswordChecker
 {
+    /// <summary>
+    /// What the shared call log calls this.
+    /// <para>
+    /// A provider code, so screening appears beside the HTTP providers and the
+    /// mail server rather than in a category nobody thinks to open.
+    /// </para>
+    /// </summary>
+    private const string Channel = "breach-screening";
+
     private const int PrefixLength = 5;
 
     private readonly BreachedPasswordOptions _options = options.Value;
@@ -75,9 +88,36 @@ public sealed class BreachedPasswordChecker(
             return false;
         }
 
+        // The door this checker went round for longer than the email channel did.
+        //
+        // It reaches a third party on the public internet, which is precisely
+        // the kind of call the allow-list exists to make deliberate: an operator
+        // switching screening on has to allow the host too, and that is the
+        // visibility deny-by-default is for.
+        //
+        // Fails open like every other failure here. A screening outage must not
+        // stop somebody recovering their account -- and a host nobody allowed is
+        // an outage of exactly that kind, said in the log rather than silently.
+        OutboundApproval approval = await gateway.ApproveHostAsync(
+            _options.RangeApiBaseUrl.Host, cancellationToken);
+
+        if (!approval.IsAllowed)
+        {
+            logger.LogWarning(
+                "Breached-password screening is enabled but {Host} is refused by the outbound "
+                + "policy: {Reason}. Allowing the password.",
+                _options.RangeApiBaseUrl.Host, approval.Reason);
+
+            await RecordAsync(false, approval.Reason, TimeSpan.Zero, cancellationToken);
+
+            return false;
+        }
+
         string hash = Sha1Hex(password);
         string prefix = hash[..PrefixLength];
         string suffix = hash[PrefixLength..];
+
+        DateTimeOffset started = clock.UtcNow;
 
         try
         {
@@ -93,10 +133,18 @@ public sealed class BreachedPasswordChecker(
                     "Breached-password screening returned {StatusCode}. Allowing the password.",
                     (int)response.StatusCode);
 
+                await RecordAsync(
+                    false,
+                    $"The range API answered {(int)response.StatusCode}.",
+                    clock.UtcNow - started,
+                    cancellationToken);
+
                 return false;
             }
 
             string body = await response.Content.ReadAsStringAsync(timeout.Token);
+
+            await RecordAsync(true, null, clock.UtcNow - started, cancellationToken);
 
             return ContainsSuffix(body, suffix);
         }
@@ -107,6 +155,9 @@ public sealed class BreachedPasswordChecker(
             logger.LogWarning(
                 exception,
                 "Breached-password screening was unavailable. Allowing the password.");
+
+            await RecordAsync(
+                false, exception.Message, clock.UtcNow - started, CancellationToken.None);
 
             return false;
         }
@@ -143,4 +194,42 @@ public sealed class BreachedPasswordChecker(
 
     /// <summary>Formats a count for logging without pulling in current culture.</summary>
     internal static string FormatCount(int count) => count.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// One row in the shared call log, so "what has the Platform been sending"
+    /// covers screening too.
+    /// <para>
+    /// <b>The host, and nothing about the password.</b> Not the hash, not the
+    /// prefix sent, not whether the answer was yes. The call log is read by
+    /// administrators and exported, and a row saying somebody's chosen password
+    /// was found in a breach corpus is the last thing that should be browsable.
+    /// </para>
+    /// <para>
+    /// A failure to write the row never fails the check. Screening failing open
+    /// is the design; failing open because the log was unavailable would be the
+    /// same outcome reached for a worse reason.
+    /// </para>
+    /// </summary>
+    private async Task RecordAsync(
+        bool succeeded, string? detail, TimeSpan duration, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await gateway.RecordAttemptAsync(
+                new OutboundAttempt(
+                    Channel,
+                    "range",
+                    _options.RangeApiBaseUrl?.Host ?? "unknown",
+                    succeeded,
+                    detail,
+                    duration.TotalMilliseconds),
+                cancellationToken);
+        }
+#pragma warning disable CA1031 // A log row is not worth failing a sign-in over.
+        catch (Exception exception)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(exception, "The outbound call log entry could not be written.");
+        }
+    }
 }

@@ -1,6 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!--
+      Contracts only. Breached-password screening reaches a third party on the
+      public internet, and every outbound call passes one door: it asks the
+      gateway to approve the host and records the attempt, the same way SMTP
+      does. HTTPS to a fixed well-known endpoint cannot use the integration
+      connector, which is shaped around registered providers and their
+      endpoints.
+    -->
+    <ProjectReference Include="..\..\Integrations\CCP.Modules.Integrations.Contracts\CCP.Modules.Integrations.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Infrastructure\CCP.Kernel.Infrastructure.csproj" />
