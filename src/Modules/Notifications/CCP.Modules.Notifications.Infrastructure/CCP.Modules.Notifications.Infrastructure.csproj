@@ -1,6 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!--
+      Contracts only. The email channel goes through the governed door like
+      every other outbound call: the allow-list and the shared call log. SMTP is
+      not HTTP, so it cannot use the connector, but the allow-list is a
+      question about a host name and the call log is a row, and neither cares
+      what happens on the socket afterwards.
+    -->
+    <ProjectReference Include="..\..\Integrations\CCP.Modules.Integrations.Contracts\CCP.Modules.Integrations.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel\CCP.Kernel.csproj" />
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Application\CCP.Kernel.Application.csproj" />
     <ProjectReference Include="..\..\..\Kernel\CCP.Kernel.Infrastructure\CCP.Kernel.Infrastructure.csproj" />

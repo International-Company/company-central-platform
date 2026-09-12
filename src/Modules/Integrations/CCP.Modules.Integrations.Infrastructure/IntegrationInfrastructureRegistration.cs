@@ -80,6 +80,11 @@ public static class IntegrationInfrastructureRegistration
 
         services.AddScoped<IIntegrationConnector, HttpIntegrationConnector>();
 
+        // The governed door's protocol-independent half, for channels that do
+        // not speak HTTP. The email channel used it to stop being the one
+        // outbound call that passed no door at all.
+        services.AddScoped<Contracts.IOutboundGateway, OutboundGateway>();
+
         // Every Platform event is offered to the fan-out, which turns it into
         // one queued delivery per interested subscriber. Registered as an
         // observer rather than as handlers, because which events matter is

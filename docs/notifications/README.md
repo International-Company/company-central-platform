@@ -109,6 +109,35 @@ Email is off by default because a Platform that starts talking to a mail server
 the moment it boots is one that emails real people from somebody's laptop.
 Enabling an outbound channel is the owner's decision.
 
+### Email goes through the governed door
+
+**It was the one outbound call in the Platform that passed no door at all.** The
+channel opened a socket to a mail server directly: no allow-list, no entry in the
+call log, and no way for an operator to discover the Platform had been failing to
+send anything for a day. Recorded twice — as #33 and again as #45 — and the
+reason it stayed open is written in both: **SMTP is not HTTP**, so the
+integration connector cannot carry it.
+
+What can be carried is the part that was never about HTTP. An allow-list is a
+question about a host name; a call log is a row. So the mail host is checked
+against the same allow-list and the same private-address rules as every other
+outbound call ([integrations §4](../integrations/README.md)), and every attempt
+lands in the same call log under the provider code `smtp` — which puts the mail
+server in the health view beside the HTTP providers rather than in a category
+nobody thinks to open.
+
+A refused host is a **permanent** failure. Retrying a configuration fact for half
+an hour delays every message queued behind it and then reports the same answer.
+
+**The host is recorded, never the recipient.** The call log is read by
+administrators and exported; a list of who was emailed is not theirs to browse,
+and this would be the one place in the Platform where that list existed.
+
+**No second retry policy.** The dispatcher already retries with backoff and gives
+up after five attempts. A circuit breaker here as well would be two policies over
+the same failure with no way to reason about the result — the same argument that
+keeps the HTTP connector's handler chain free of retries.
+
 ### Adding one
 
 Implement `INotificationChannelProvider` and register it. That is the whole

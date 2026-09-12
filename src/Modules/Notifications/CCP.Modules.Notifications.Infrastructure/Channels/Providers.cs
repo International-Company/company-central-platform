@@ -1,4 +1,6 @@
 using System.Net.Mail;
+using CCP.Kernel.Primitives;
+using CCP.Modules.Integrations.Contracts;
 using CCP.Modules.Notifications.Application.Abstractions;
 using CCP.Modules.Notifications.Domain.Notifications;
 using Microsoft.Extensions.Logging;
@@ -90,13 +92,23 @@ public sealed class EmailOptions
 /// </summary>
 public sealed class EmailChannelProvider(
     IRecipientDirectory recipients,
+    IOutboundGateway gateway,
     IOptions<EmailOptions> options,
+    IClock clock,
     ILogger<EmailChannelProvider> logger) : INotificationChannelProvider
 {
     private readonly EmailOptions _options = options.Value;
 
     public NotificationChannel Channel => NotificationChannel.Email;
 
+    /// <summary>
+    /// What the call log calls this channel.
+    /// <para>
+    /// A provider code, so mail appears beside the HTTP providers in the log and
+    /// in the health view rather than in a category of its own that nobody
+    /// thinks to look in.
+    /// </para>
+    /// </summary>
     public string Name => "smtp";
 
     public async Task<DeliveryOutcome> SendAsync(
@@ -126,6 +138,32 @@ public sealed class EmailChannelProvider(
         {
             return DeliveryOutcome.Permanent("The recipient has no email address.");
         }
+
+        // The door this channel spent nine phases walking past.
+        //
+        // The same allow-list every other outbound call passes, asked before the
+        // socket rather than after it. A mail host nobody allowed is a host the
+        // Platform will not reach, and a permanent refusal is right: retrying
+        // a configuration fact for half an hour delays every message behind it.
+        OutboundApproval approval =
+            await gateway.ApproveHostAsync(_options.Host, cancellationToken);
+
+        if (!approval.IsAllowed)
+        {
+            // The reason goes to the log and not to the caller. Learning which
+            // check refused an address is how somebody maps a network one probe
+            // at a time.
+            logger.LogWarning(
+                "The mail host {Host} is refused by the outbound policy: {Reason}.",
+                _options.Host, approval.Reason);
+
+            await RecordAsync(false, approval.Reason, TimeSpan.Zero, cancellationToken);
+
+            return DeliveryOutcome.Permanent(
+                "The mail host is not on the outbound allow-list.");
+        }
+
+        DateTimeOffset started = clock.UtcNow;
 
         try
         {
@@ -157,6 +195,8 @@ public sealed class EmailChannelProvider(
 
             await client.SendMailAsync(message, cancellationToken);
 
+            await RecordAsync(true, null, clock.UtcNow - started, cancellationToken);
+
             return DeliveryOutcome.Delivered($"Accepted by {_options.Host}.");
         }
         catch (SmtpFailedRecipientException exception)
@@ -168,6 +208,8 @@ public sealed class EmailChannelProvider(
                 "Mail server refused the recipient of notification {Id}.",
                 notification.Id);
 
+            await RecordAsync(false, exception.Message, clock.UtcNow - started, cancellationToken);
+
             return DeliveryOutcome.Permanent(exception.Message);
         }
         catch (FormatException exception)
@@ -175,6 +217,8 @@ public sealed class EmailChannelProvider(
             // A malformed address. Also permanent, and worth distinguishing:
             // this one is the Platform's data being wrong rather than the
             // server's opinion.
+            await RecordAsync(false, exception.Message, clock.UtcNow - started, cancellationToken);
+
             return DeliveryOutcome.Permanent(exception.Message);
         }
         catch (SmtpException exception)
@@ -186,6 +230,8 @@ public sealed class EmailChannelProvider(
                 "Mail server was unavailable for notification {Id}. It will be retried.",
                 notification.Id);
 
+            await RecordAsync(false, exception.Message, clock.UtcNow - started, cancellationToken);
+
             return DeliveryOutcome.Transient(exception.Message);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -193,6 +239,40 @@ public sealed class EmailChannelProvider(
             // The Platform is shutting down, not the mail server failing. The
             // notification stays pending and the next process picks it up.
             return DeliveryOutcome.Transient("Cancelled during shutdown.");
+        }
+    }
+
+    /// <summary>
+    /// One row in the shared call log, so "what has the Platform been sending,
+    /// and did it arrive" has one answer covering every channel.
+    /// <para>
+    /// <b>The host, never the recipient.</b> The call log is read by
+    /// administrators and exported; a list of who was emailed is not theirs to
+    /// browse, and it would be the one place in the Platform where that list
+    /// existed.
+    /// </para>
+    /// <para>
+    /// A failure to write the row never fails the send. The message reaching
+    /// somebody matters more than the Platform's record of it, and the shutdown
+    /// path writes nothing at all: the Platform stopping is not a fact about the
+    /// mail server.
+    /// </para>
+    /// </summary>
+    private async Task RecordAsync(
+        bool succeeded, string? detail, TimeSpan duration, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await gateway.RecordAttemptAsync(
+                new OutboundAttempt(
+                    Name, "send", _options.Host, succeeded, detail, duration.TotalMilliseconds),
+                cancellationToken);
+        }
+#pragma warning disable CA1031 // A log row is not worth losing a delivery over.
+        catch (Exception exception)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(exception, "The outbound call log entry could not be written.");
         }
     }
 }
