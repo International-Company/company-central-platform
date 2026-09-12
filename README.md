@@ -80,6 +80,7 @@ dependency is on an interface the module owns rather than on a neighbour.
 | [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) | You want to know what is actually finished, what is not, and every open defect |
 | [docs/development/getting-started.md](docs/development/getting-started.md) | You are setting up |
 | [docs/development/integration-guide.md](docs/development/integration-guide.md) | You are building a business system against the Platform |
+| [docs/development/adding-a-module.md](docs/development/adding-a-module.md) | You are adding a twelfth module to the Platform itself |
 | [docs/deployment/observability.md](docs/deployment/observability.md) | Something is broken at three in the morning |
 | [docs/deployment/backup-and-recovery.md](docs/deployment/backup-and-recovery.md) | You are responsible for the data surviving |
 | [docs/architecture/adr/](docs/architecture/adr/) | You are about to change a decision somebody already made |

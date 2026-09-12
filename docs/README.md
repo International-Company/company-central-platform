@@ -27,7 +27,7 @@
 | [documents/](documents/) | Upload, access control, storage | Phase 10 |
 | [integrations/](integrations/) | Connectors, credentials, webhooks | Phase 12 |
 | [api/](api/) | REST conventions, versioning, errors, OpenAPI | Phases 1, 11 |
-| [development/](development/) | Getting started, configuration, and the integration guide | Phase 1 onward |
+| [development/](development/) | Getting started, adding a module, configuration, and the integration guide | Phase 1 onward |
 | [deployment/](deployment/) | Observability and the runbook, backup and recovery, the Railway deployment | Phases 14, 17 |
 
 ## For a developer building a business system
