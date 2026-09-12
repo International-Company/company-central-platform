@@ -253,6 +253,27 @@ public sealed class WorkflowDefinition : AggregateRoot, IAuditableEntity
             return Result.Failure(WorkflowErrors.StepUnreachable(orphan));
         }
 
+        // A step that asks the caller for its assignees can only be the first
+        // one. The caller supplies them when it starts the instance; a step
+        // reached later is reached by somebody acting, and the engine resolves
+        // it with an empty supplied list on purpose -- that is what keeps
+        // business-conditional routing outside the engine (ARCHITECTURE.md
+        // 16.3). Such a step therefore resolves to nobody and the transition
+        // into it fails.
+        //
+        // Refused here rather than there. "Nobody could be found for this step"
+        // arriving three weeks later, to the person who asked for something, is
+        // the same fact delivered at the worst possible moment: the definition
+        // could not have worked on the day it was written.
+        WorkflowStep? misplaced = _steps.FirstOrDefault(step =>
+            step.Assignee.Strategy == AssigneeStrategy.SuppliedByCaller
+            && !string.Equals(step.Key, InitialStepKey, StringComparison.Ordinal));
+
+        if (misplaced is not null)
+        {
+            return Result.Failure(WorkflowErrors.SuppliedByCallerOnLaterStep(misplaced.Key));
+        }
+
         Status = DefinitionStatus.Published;
         UpdatedAt = now;
 

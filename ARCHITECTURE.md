@@ -1109,6 +1109,8 @@ A workflow definition is a versioned, validated JSON document naming steps, allo
 
 Supported strategies: a specific user, any holder of a role, any holder of a position, the requester's direct manager, the head of a given department, or a dynamic list supplied by the calling application at start time.
 
+**The supplied list is available to the first step only, and publication refuses a definition that asks for it anywhere else.** The caller names those people when it starts the request; a step reached later is reached by somebody acting, so the engine enters it with an empty supplied list rather than carrying a start-time list forward as engine state. A later step asking for one would resolve to nobody and stall the request — three weeks after the definition was written, and in front of the person who filed it. It is refused on the day it is published instead.
+
 Note what is absent: there is no "if amount > X then route to Y". Conditional routing driven by business data is resolved by the **calling application**, which either supplies the next step explicitly or exposes a callback the engine invokes to ask "given this instance, what is next?". The engine holds no thresholds, and this is the boundary that keeps the workflow module reusable.
 
 ### 16.4 Instances and tasks

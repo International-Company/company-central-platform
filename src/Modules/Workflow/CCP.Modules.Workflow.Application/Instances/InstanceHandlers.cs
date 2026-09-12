@@ -89,6 +89,18 @@ public sealed class StartInstanceHandler(
                 WorkflowErrors.StepNotFound(definition.InitialStepKey!));
         }
 
+        // The first step may be the one that asks the application who should
+        // act. Saying so here is worth a branch: without it the caller gets
+        // "nobody could be found for this step -- check that the role, position
+        // or manager it names still exists", which is advice about a role this
+        // step does not have, sending somebody to look at the org chart for a
+        // field they forgot to send.
+        if (initial.Assignee.Strategy == AssigneeStrategy.SuppliedByCaller
+            && command.SuppliedAssignees.Count == 0)
+        {
+            return Result.Failure<WorkflowInstanceDto>(WorkflowErrors.SuppliedAssigneesRequired);
+        }
+
         repository.AddInstance(instance.Value);
 
         Result entered = await engine.EnterStepAsync(

@@ -113,6 +113,28 @@ public static class WorkflowErrors
         "This step expects the calling application to name its assignees.",
         "assignees");
 
+    /// <summary>
+    /// A step after the first one cannot ask the caller for its assignees.
+    /// <para>
+    /// The caller names assignees when it starts the instance, and a step
+    /// reached later is reached by somebody acting, not by the caller. The
+    /// engine therefore resolves later steps with an empty supplied list --
+    /// deliberately, so that routing which depends on business data stays
+    /// outside the engine -- and such a step would find nobody.
+    /// </para>
+    /// <para>
+    /// Refused at publication rather than when an instance arrives there,
+    /// because arriving there happens weeks later and happens to a user.
+    /// </para>
+    /// </summary>
+    public static Error SuppliedByCallerOnLaterStep(string stepKey)
+        => Error.Rule(
+            "WORKFLOW.SUPPLIED_BY_CALLER_ON_LATER_STEP",
+            $"Step '{stepKey}' asks the calling application for its assignees, but only the "
+            + "first step can: the caller names them when it starts the request, and this step "
+            + "is reached later. Assign it from the organization, or have the application start "
+            + "a second request when it knows who should act.");
+
     // --- Instances ----------------------------------------------------------
 
     public static readonly Error InstanceNotFound = Error.NotFound(

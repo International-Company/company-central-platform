@@ -129,6 +129,18 @@ POST /api/v1/workflow/instances
 }
 ```
 
+**`SuppliedByCaller` works on the first step of a definition, and nowhere else.**
+You name those people when you start the request, so the step that uses them has
+to be the one the request starts on. A step reached later is reached by somebody
+approving, not by you, and the engine enters it with no supplied list rather than
+carrying yours forward — which is what keeps your policy out of the engine.
+
+Publishing a definition that asks for a supplied list on a later step is refused,
+and the refusal names the step. If your decision only becomes clear part-way
+through — you learn who should sign once the first approver has classified the
+request — that is a second request, started by your application at the moment it
+knows the answer, rather than one process holding a decision it cannot make.
+
 ### If nobody resolves, the request is refused
 
 A step whose role, position or manager resolves to nobody would leave a request
