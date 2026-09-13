@@ -1,3 +1,4 @@
+using CCP.Modules.Authorization.Application;
 using CCP.Modules.Authorization.Infrastructure.Persistence;
 using CCP.Modules.Authorization.Infrastructure.Seeding;
 using Microsoft.AspNetCore.Builder;
@@ -38,6 +39,26 @@ public sealed class PermissionSeedingTests(PlatformApiFactory factory)
         // a failure says which capability went missing.
         Assert.Contains("platform.users.view", seeded);
         Assert.Contains("platform.roles.view", seeded);
+    }
+
+    /// <summary>
+    /// Permissions checked inside a handler are catalogued too.
+    /// <para>
+    /// The catalogue is derived from endpoints, so one evaluated in a handler is
+    /// otherwise never created and can never be held. The inspect permission
+    /// was exactly that: asking about another user's access answered 403 to
+    /// everybody, the first administrator included.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Permissions_checked_inside_handlers_are_catalogued()
+    {
+        List<string> seeded = await ReadAsync(dbContext => dbContext.Permissions
+            .Where(permission => permission.IsActive)
+            .Select(permission => permission.Name)
+            .ToListAsync());
+
+        Assert.Empty(HandlerPermissions.All.Except(seeded));
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Results;
+using CCP.Modules.Authorization.Application;
 using CCP.Modules.Authorization.Application.Abstractions;
 using CCP.Modules.Authorization.Application.Grants;
 using CCP.Modules.Authorization.Application.Roles;
@@ -89,7 +90,7 @@ public static class AuthorizationEndpoints
             if (subjectId != callerId)
             {
                 AccessDecision mayInspect = await resolver.EvaluateAsync(
-                    callerId, "platform.authorization.inspect", cancellationToken);
+                    callerId, HandlerPermissions.InspectOthersAccess, cancellationToken);
 
                 if (!mayInspect.IsGranted)
                 {

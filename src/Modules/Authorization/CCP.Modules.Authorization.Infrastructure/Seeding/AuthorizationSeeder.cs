@@ -1,5 +1,6 @@
 using CCP.Kernel.Api.Security;
 using CCP.Kernel.Primitives;
+using CCP.Modules.Authorization.Application;
 using CCP.Modules.Authorization.Application.Abstractions;
 using CCP.Modules.Authorization.Domain.Applications;
 using CCP.Modules.Authorization.Domain.Permissions;
@@ -89,7 +90,7 @@ public sealed class AuthorizationSeeder(
         // endpoints, so counting them would give the emptiness check something
         // to find on a source that read nothing — and that check exists because
         // the quiet version of that failure shipped once and cost a day.
-        declared = [.. declared.Concat(PermissionsWithNoEndpoint).Distinct(StringComparer.Ordinal)];
+        declared = [.. declared.Concat(HandlerPermissions.All).Distinct(StringComparer.Ordinal)];
 
         (int added, int deactivated) = await ReconcilePermissionsAsync(
             dbContext, platform, declared, now, cancellationToken);
@@ -122,26 +123,6 @@ public sealed class AuthorizationSeeder(
             }
         }
     }
-
-    /// <summary>
-    /// Permissions that gate something other than reaching a route.
-    /// <para>
-    /// <b>The exception to deriving the set from the endpoints, and it is worth
-    /// keeping short.</b> Everything else is discovered from what the running
-    /// application actually enforces, which is why the list cannot drift. These
-    /// cannot be: they are checked inside a handler rather than in front of a
-    /// route, so no endpoint declares them and nothing would ever create them.
-    /// </para>
-    /// </summary>
-    private static readonly string[] PermissionsWithNoEndpoint =
-    [
-        // Checked by the token endpoint before an application is allowed to act
-        // as a named person. Not on the endpoint itself, because that endpoint
-        // is anonymous — it is where a caller with no token gets one — so the
-        // requirement is evaluated against the application's own grants after
-        // its credentials have been verified.
-        "platform.applications.act-on-behalf"
-    ];
 
     /// <summary>
     /// Reads every permission declared by a mapped endpoint.

@@ -52,7 +52,7 @@ public sealed class MachineTokenHandler(
     /// difference between those two is worth a deliberate grant.
     /// </para>
     /// </summary>
-    public const string DelegationPermission = "platform.applications.act-on-behalf";
+    public const string DelegationPermission = HandlerPermissions.ActOnBehalf;
 
     public async Task<Result<MachineTokenDto>> HandleAsync(
         MachineTokenCommand command, CancellationToken cancellationToken = default)
