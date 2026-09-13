@@ -332,6 +332,26 @@ documents how to verify it.
 response lost on the way back is indistinguishable from one that never arrived,
 so the Platform tries again and the receiver needs something to deduplicate on.
 
+### Which event types exist
+
+```http
+GET /api/v1/integrations/event-types
+```
+
+Every type the running Platform can send, read from the event records it ships
+rather than from a list somebody keeps, so it cannot disagree with what is
+actually raised. The portal's subscription form offers this list as choices.
+
+**A subscription naming a type that is not on it is refused**, with
+`INTEGRATIONS.SUBSCRIPTION_EVENT_TYPES_UNKNOWN` and every unknown type named.
+That was not always so: the form was a comma-separated text box, nothing checked
+it, and a typo was accepted and then received nothing, silently and for ever.
+Five declared types could never be sent at all, and subscribing to one of those
+was accepted too (DEVELOPMENT_STATUS.md §7, #87).
+
+Matching is exact, because delivery is exact: `Workflow.Task.Assigned` is not
+`workflow.task.assigned`.
+
 ### Why event types are named one by one
 
 There is deliberately no way to subscribe to everything. A subscription that

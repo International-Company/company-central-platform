@@ -146,6 +146,11 @@ builder.Services.AddSingleton<JobRunner>();
 
 builder.Services.AddScoped<IOutbox, OutboxWriter>();
 builder.Services.AddScoped<IIntegrationEventDispatcher, IntegrationEventDispatcher>();
+
+// Read once from the event records the Platform ships, so a webhook subscription
+// can be checked against the types that exist rather than accepted on trust.
+builder.Services.AddSingleton<IEventTypeCatalogue>(
+    new ReflectedEventTypeCatalogue(typeof(Program).Assembly));
 builder.Services.AddHostedService<OutboxRelay>();
 
 // Delivered rows do not accumulate for ever. Dead-lettered ones are never

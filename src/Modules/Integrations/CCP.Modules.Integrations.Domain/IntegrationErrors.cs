@@ -87,6 +87,22 @@ public static class IntegrationErrors
         + "with no credentials in it.",
         "endpoint");
 
+    /// <summary>
+    /// A subscription names an event type the Platform does not send.
+    /// <para>
+    /// Refused, and every unknown type named, because the alternative is what
+    /// happened before this existed: a typo accepted without complaint and a
+    /// subscription that then receives nothing, with nothing to say why.
+    /// </para>
+    /// </summary>
+    public static Error SubscriptionEventTypesUnknown(IEnumerable<string> unknown)
+        => Error.Validation(
+            "INTEGRATIONS.SUBSCRIPTION_EVENT_TYPES_UNKNOWN",
+            "The Platform does not send these event types, so nothing would ever be delivered: "
+            + string.Join(", ", unknown)
+            + ". GET /api/v1/integrations/event-types lists the ones it does.",
+            "eventTypes");
+
     public static readonly Error SubscriptionEventsRequired = Error.Validation(
         "INTEGRATIONS.SUBSCRIPTION_EVENTS_REQUIRED",
         "Name at least one event type. There is deliberately no way to ask for everything: a "

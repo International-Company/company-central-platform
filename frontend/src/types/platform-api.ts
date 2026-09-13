@@ -602,6 +602,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every event type a webhook subscription can name.
+         * @description **Requires:** `platform.integrations.view`
+         */
+        get: operations["GetEventTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/features/{key}": {
         parameters: {
             query?: never;
@@ -4209,6 +4229,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedResultOfIntegrationCallDto"];
+                };
+            };
+        };
+    };
+    GetEventTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
         };

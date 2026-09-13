@@ -14,6 +14,11 @@ import type { RegisteredApplicationDto, WebhookSubscriptionDto } from '@/types/p
  * the subscribing application itself, and why the form asks for the application
  * by name rather than by identifier.
  *
+ * **Event types are chosen, not typed.** This was a comma-separated text box,
+ * and nothing checked what went into it: a typo was accepted and the
+ * subscription then received nothing, silently and for ever. The list now comes
+ * from the Platform, which also refuses a type it does not send.
+ *
  * **The secret field holds a name, never a value.** The Platform signs with a
  * secret it resolves at delivery time; there is no field anywhere in the module
  * that could carry one. The hint says so, and so does the refusal.
@@ -35,7 +40,8 @@ export function SubscriptionForm({
   const [applicationId, setApplicationId] = useState(editing?.applicationId ?? '');
   const [name, setName] = useState(editing?.name ?? '');
   const [endpoint, setEndpoint] = useState(editing?.endpoint ?? 'https://');
-  const [eventTypes, setEventTypes] = useState((editing?.eventTypes ?? []).join(', '));
+  const [eventTypes, setEventTypes] = useState<string[]>(editing?.eventTypes ?? []);
+  const [available, setAvailable] = useState<string[] | null>(null);
   const [secret, setSecret] = useState(editing?.secretReference ?? '');
 
   const [busy, setBusy] = useState(false);
@@ -43,11 +49,16 @@ export function SubscriptionForm({
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch('/api/applications');
+      const [applicationsResponse, typesResponse] = await Promise.all([
+        fetch('/api/applications'),
+        fetch('/api/integrations/event-types'),
+      ]);
 
-      if (response.ok) {
-        setApplications((await response.json()) as RegisteredApplicationDto[]);
+      if (applicationsResponse.ok) {
+        setApplications((await applicationsResponse.json()) as RegisteredApplicationDto[]);
       }
+
+      setAvailable(typesResponse.ok ? ((await typesResponse.json()) as string[]) : []);
     } catch {
       // The dialog stays usable for an edit, where the application is already
       // chosen. Refusing to open because a list did not load would be worse
@@ -70,12 +81,7 @@ export function SubscriptionForm({
         name: name.trim(),
         endpoint: endpoint.trim(),
 
-        // Split on commas and emptied of blanks. The Platform normalises,
-        // deduplicates and orders them; this only has to stop sending noise.
-        eventTypes: eventTypes
-          .split(',')
-          .map((type) => type.trim())
-          .filter((type) => type.length > 0),
+        eventTypes,
 
         secretReference: secret.trim(),
       });
@@ -123,6 +129,8 @@ export function SubscriptionForm({
         return t('subscriptionEndpointInvalid');
       case 'INTEGRATIONS.SUBSCRIPTION_EVENTS_REQUIRED':
         return t('subscriptionEventsRequired');
+      case 'INTEGRATIONS.SUBSCRIPTION_EVENT_TYPES_UNKNOWN':
+        return t('subscriptionEventTypesUnknown');
       case 'INTEGRATIONS.SUBSCRIPTION_SECRET_REQUIRED':
         return t('subscriptionSecretRequired');
       default:
@@ -185,15 +193,43 @@ export function SubscriptionForm({
         requiredLabel={tCommon('required')}
       />
 
-      <Field
-        label={t('subscriptionEvents')}
-        value={eventTypes}
-        onChange={(event) => setEventTypes(event.target.value)}
-        hint={t('subscriptionEventsHint')}
-        maxLength={1000}
-        required
-        requiredLabel={tCommon('required')}
-      />
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm font-medium text-text">
+          {t('subscriptionEvents')}{' '}
+          <span className="text-text-secondary">({tCommon('required')})</span>
+        </legend>
+
+        <p className="text-sm text-text-secondary">{t('subscriptionEventsHint')}</p>
+
+        {available === null ? (
+          <p className="text-sm text-text-secondary">{tCommon('loading')}</p>
+        ) : available.length === 0 ? (
+          <p className="text-sm text-text-secondary">{t('subscriptionNoEventTypes')}</p>
+        ) : (
+          <div className="flex max-h-64 flex-col gap-1.5 overflow-y-auto rounded-md border border-border p-3">
+            {choices(available, eventTypes).map((type) => (
+              <label key={type} className="flex items-center gap-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={eventTypes.includes(type)}
+                  onChange={() => setEventTypes(toggle(eventTypes, type))}
+                  className="size-4"
+                />
+                {/* Event types are identifiers, not prose, and stay
+                    left-to-right inside an Arabic layout. */}
+                <span dir="ltr" className="font-mono text-xs">
+                  {type}
+                </span>
+                {available.includes(type) ? null : (
+                  <span className="text-xs text-text-secondary">
+                    {t('subscriptionEventNoLongerSent')}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        )}
+      </fieldset>
 
       <Field
         label={t('subscriptionSecret')}
@@ -209,4 +245,22 @@ export function SubscriptionForm({
       />
     </FormDialog>
   );
+}
+
+/**
+ * The types to offer: everything the Platform sends, plus anything an existing
+ * subscription still names that it no longer does.
+ *
+ * Kept visible rather than dropped, so editing an old subscription shows what it
+ * was asking for and lets somebody remove it deliberately. Saving with it still
+ * ticked is refused by the Platform, which is the point.
+ */
+function choices(available: string[], selected: string[]): string[] {
+  const retired = selected.filter((type) => !available.includes(type));
+
+  return [...available, ...retired.sort()];
+}
+
+function toggle(values: string[], value: string): string[] {
+  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
 }

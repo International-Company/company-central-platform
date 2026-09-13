@@ -1,4 +1,5 @@
 using CCP.Kernel.Application.Auditing;
+using CCP.Kernel.Application.Events;
 using CCP.Kernel.Paging;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
@@ -106,6 +107,7 @@ public sealed class RegisterSubscriptionHandler(
     IIntegrationRepository repository,
     IIntegrationUnitOfWork unitOfWork,
     IOutboundGuard guard,
+    IEventTypeCatalogue catalogue,
     IAuditTrail auditTrail,
     IClock clock)
 {
@@ -122,6 +124,13 @@ public sealed class RegisterSubscriptionHandler(
         if (subscription.IsFailure)
         {
             return Result.Failure<WebhookSubscriptionDto>(subscription.Errors);
+        }
+
+        Result known = CheckEventTypes(catalogue, subscription.Value.EventTypes);
+
+        if (known.IsFailure)
+        {
+            return Result.Failure<WebhookSubscriptionDto>(known.Errors);
         }
 
         Result refused = await CheckAddressAsync(guard, command.Endpoint, cancellationToken);
@@ -151,6 +160,25 @@ public sealed class RegisterSubscriptionHandler(
         return Result.Success(SubscriptionMapper.ToDto(subscription.Value));
     }
 
+    /// <summary>
+    /// Refuses a subscription to an event type the Platform does not send.
+    /// <para>
+    /// Checked against the normalised list the aggregate kept, so whitespace
+    /// and duplicates are already gone and the error names what was meant.
+    /// The domain stays unaware of which types exist; that is the running
+    /// Platform's knowledge, not the subscription's.
+    /// </para>
+    /// </summary>
+    public static Result CheckEventTypes(
+        IEventTypeCatalogue catalogue, IReadOnlyList<string> eventTypes)
+    {
+        string[] unknown = [.. eventTypes.Where(type => !catalogue.IsKnown(type))];
+
+        return unknown.Length == 0
+            ? Result.Success()
+            : Result.Failure(IntegrationErrors.SubscriptionEventTypesUnknown(unknown));
+    }
+
     internal static async Task<Result> CheckAddressAsync(
         IOutboundGuard guard, string endpoint, CancellationToken cancellationToken)
     {
@@ -172,6 +200,7 @@ public sealed class ReconfigureSubscriptionHandler(
     IIntegrationRepository repository,
     IIntegrationUnitOfWork unitOfWork,
     IOutboundGuard guard,
+    IEventTypeCatalogue catalogue,
     IAuditTrail auditTrail,
     IClock clock)
 {
@@ -198,6 +227,14 @@ public sealed class ReconfigureSubscriptionHandler(
         if (changed.IsFailure)
         {
             return Result.Failure<WebhookSubscriptionDto>(changed.Errors);
+        }
+
+        Result known = RegisterSubscriptionHandler.CheckEventTypes(
+            catalogue, subscription.EventTypes);
+
+        if (known.IsFailure)
+        {
+            return Result.Failure<WebhookSubscriptionDto>(known.Errors);
         }
 
         Result refused = await RegisterSubscriptionHandler.CheckAddressAsync(

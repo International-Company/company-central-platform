@@ -664,7 +664,7 @@
     "subscriptionEndpoint": "العنوان",
     "subscriptionEndpointHint": "وجهة الإرسال. يجب أن يكون المضيف ضمن قائمة السماح الصادرة، ويُتحقق منه الآن لا عند وقوع الحدث.",
     "subscriptionEvents": "الأحداث",
-    "subscriptionEventsHint": "مفصولة بفواصل، مسمّاة واحداً واحداً. لا سبيل عمداً لطلب كل شيء: ستستقبل أحداثاً أُضيفت بعد سنوات وتعرف بها حين يفشل التحليل.",
+    "subscriptionEventsHint": "اختر كل حدث باسمه. لا توجد عمدًا طريقة لطلب كل شيء: ستصلك أحداث تُضاف بعد سنوات وتكتشف ذلك حين تفشل في قراءتها.",
     "subscriptionSecret": "مرجع سر التوقيع",
     "subscriptionSecretHint": "اسم السر، مثل integrations/acme/webhook-secret. القيمة تعيش في مخزن الأسرار، ولا يُرسل شيء دون توقيع.",
     "subscriptionSaved": "تم حفظ {name}.",
@@ -689,7 +689,10 @@
       "Pending": "بالانتظار",
       "Delivered": "وصل",
       "Abandoned": "توقفت المحاولة"
-    }
+    },
+    "subscriptionEventTypesUnknown": "المنصة لا ترسل نوعًا أو أكثر من أنواع الأحداث هذه، فلن يصل شيء أبدًا. اختر من القائمة.",
+    "subscriptionNoEventTypes": "تعذّر تحميل قائمة أنواع الأحداث.",
+    "subscriptionEventNoLongerSent": "لم يعد يُرسَل"
   },
   "configuration": {
     "title": "الإعدادات",

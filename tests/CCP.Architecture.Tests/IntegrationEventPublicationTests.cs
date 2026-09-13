@@ -112,6 +112,31 @@ public sealed partial class IntegrationEventPublicationTests
     }
 
     /// <summary>
+    /// The catalogue a subscription is checked against is exactly what the
+    /// source declares.
+    /// <para>
+    /// The catalogue reads event types by reflection from an uninitialised
+    /// instance, which only works while each type is a literal. A record whose
+    /// type became computed would drop out of the catalogue, and every
+    /// subscription to it would be refused as unknown. This makes that a build
+    /// failure instead.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TheCatalogueMatchesTheDeclaredEvents()
+    {
+        string[] declared =
+        [
+            .. Declared([.. SourceFiles()]).Select(e => e.Type).Distinct().Order(StringComparer.Ordinal),
+        ];
+
+        var catalogue = new CCP.Kernel.Infrastructure.Outbox.ReflectedEventTypeCatalogue(
+            typeof(Program).Assembly);
+
+        Assert.Equal(declared, catalogue.EventTypes);
+    }
+
+    /// <summary>
     /// Proves the scan still recognises the Platform's events.
     /// <para>
     /// There were thirty-five when this was written. A pattern that stops

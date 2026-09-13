@@ -664,7 +664,7 @@
     "subscriptionEndpoint": "Address",
     "subscriptionEndpointHint": "Where to post. The host must be on the outbound allow-list; it is checked now rather than when an event fires.",
     "subscriptionEvents": "Events",
-    "subscriptionEventsHint": "Comma separated, named one by one. There is deliberately no way to ask for everything: you would receive events added years later and find out by failing to parse them.",
+    "subscriptionEventsHint": "Choose each event by name. There is deliberately no way to ask for everything: you would receive events added years later and find out by failing to parse them.",
     "subscriptionSecret": "Signing secret reference",
     "subscriptionSecretHint": "The name of a secret, such as integrations/acme/webhook-secret. The value lives in the secret store, and nothing is ever sent unsigned.",
     "subscriptionSaved": "{name} saved.",
@@ -689,7 +689,10 @@
       "Pending": "Waiting",
       "Delivered": "Delivered",
       "Abandoned": "Given up on"
-    }
+    },
+    "subscriptionEventTypesUnknown": "The Platform does not send one or more of these event types, so nothing would ever be delivered. Choose from the list.",
+    "subscriptionNoEventTypes": "The list of event types could not be loaded.",
+    "subscriptionEventNoLongerSent": "no longer sent"
   },
   "configuration": {
     "title": "Configuration",

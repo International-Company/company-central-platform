@@ -2,6 +2,7 @@ using System.Globalization;
 using CCP.Kernel.Api.Context;
 using CCP.Kernel.Api.Errors;
 using CCP.Kernel.Api.Security;
+using CCP.Kernel.Application.Events;
 using CCP.Kernel.Paging;
 using CCP.Kernel.Results;
 using CCP.Modules.Integrations.Application;
@@ -281,6 +282,18 @@ public static class IntegrationEndpoints
     /// </summary>
     private static void MapSubscriptionEndpoints(IEndpointRouteBuilder versionGroup)
     {
+        // What a subscription may name. Read from the event records the running
+        // Platform ships, so it is the list the subscription is checked against
+        // and cannot disagree with it.
+        versionGroup.MapGet("/integrations/event-types", (
+            [FromServices] IEventTypeCatalogue catalogue) => Results.Ok(catalogue.EventTypes))
+            .WithTags("Integrations")
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.integrations.view"))
+            .Produces<IReadOnlyList<string>>(StatusCodes.Status200OK)
+            .WithName("GetEventTypes")
+            .WithSummary("Every event type a webhook subscription can name.");
+
         RouteGroupBuilder subscriptions = versionGroup
             .MapGroup("/integrations/subscriptions")
             .WithTags("Integrations");

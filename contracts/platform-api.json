@@ -1000,6 +1000,31 @@
         }
       }
     },
+    "/api/v1/integrations/event-types": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Every event type a webhook subscription can name.",
+        "description": "**Requires:** `platform.integrations.view`",
+        "operationId": "GetEventTypes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/features/{key}": {
       "get": {
         "tags": [
