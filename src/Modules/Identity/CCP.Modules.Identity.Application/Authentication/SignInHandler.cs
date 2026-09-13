@@ -103,6 +103,12 @@ public sealed class SignInHandler(
         {
             user.RecordFailedLogin(now, _options.Lockout);
 
+            // identity.user.locked is raised by the aggregate when this attempt
+            // is the one that locks the account. Every other user event is
+            // enqueued explicitly by its handler; this one was left to a
+            // mechanism that did not exist, so a lockout reached no subscriber.
+            await outbox.EnqueueRaisedEventsAsync(user, cancellationToken);
+
             await RecordFailureAsync(
                 user, command, LoginFailureReasons.WrongPassword, now, cancellationToken);
 

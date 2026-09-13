@@ -1,7 +1,9 @@
 using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Application.Abstractions;
+using CCP.Kernel.Application.Events;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
+using CCP.Modules.Authorization.Domain.Roles.Events;
 using CCP.Modules.Authorization.Application.Abstractions;
 using CCP.Modules.Authorization.Contracts.Dtos;
 using CCP.Modules.Authorization.Domain;
@@ -63,6 +65,7 @@ public sealed record SetRoleActiveCommand(Guid RoleId, bool IsActive);
 public sealed class CreateRoleHandler(
     IAuthorizationRepository repository,
     IAuthorizationUnitOfWork unitOfWork,
+    IAuthorizationOutbox outbox,
     IAuditTrail auditTrail,
     IClock clock)
 {
@@ -90,6 +93,13 @@ public sealed class CreateRoleHandler(
         }
 
         repository.AddRole(role.Value);
+
+        // authz.role.created was declared, documented by its own record, and
+        // raised by nothing. Staged here, in the transaction that creates the
+        // role, so a subscriber never hears about a role that was rolled back.
+        await outbox.EnqueueAsync(
+            new RoleCreatedEvent(role.Value.Id, role.Value.Code, role.Value.NameEn, clock.UtcNow),
+            cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -177,6 +187,7 @@ public sealed class SetRolePermissionsHandler(
     IPermissionResolver resolver,
     IPermissionVersionStore versionStore,
     IAuthorizationUnitOfWork unitOfWork,
+    IAuthorizationOutbox outbox,
     IAuditTrail auditTrail,
     IClock clock)
 {
@@ -283,6 +294,11 @@ public sealed class SetRolePermissionsHandler(
         {
             role.AddPermission(permissionId, permission.Name, now);
         }
+
+        // The role raised a granted or revoked event for every permission it
+        // gained or lost, and until this line nothing staged them: the widest
+        // single change to access the Platform allows reached no subscriber.
+        await outbox.EnqueueRaisedEventsAsync(role, cancellationToken);
 
         try
         {

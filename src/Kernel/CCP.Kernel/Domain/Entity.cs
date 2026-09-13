@@ -38,6 +38,13 @@ public abstract class AggregateRoot : Entity
 
     protected void Raise(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
 
-    /// <summary>Called by the unit of work once events have been collected.</summary>
+    /// <summary>
+    /// Called once the events have been staged in an outbox.
+    /// <para>
+    /// This used to say the unit of work collected them. Nothing did, and events
+    /// raised in two modules were silently discarded for it. Staging is explicit:
+    /// <c>IOutbox.EnqueueRaisedEventsAsync</c>, called by the handler.
+    /// </para>
+    /// </summary>
     public void ClearDomainEvents() => _domainEvents.Clear();
 }

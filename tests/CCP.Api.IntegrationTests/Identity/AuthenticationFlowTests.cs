@@ -174,6 +174,37 @@ public sealed class AuthenticationFlowTests(PlatformApiFactory factory) : IClass
         Assert.Equal("IDENTITY.INVALID_CREDENTIALS", body.GetProperty("code").GetString());
     }
 
+    /// <summary>
+    /// A lockout reaches the systems subscribed to it.
+    /// <para>
+    /// The aggregate raised <c>identity.user.locked</c> and nothing staged it:
+    /// every other user event is enqueued by its handler, and this one was left
+    /// to a collection step that did not exist. A security team subscribed to
+    /// lockouts would have heard about none of them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task SignIn_StagesTheLockoutEvent_WhenTheAccountLocks()
+    {
+        string username = await SeedUserAsync();
+
+        using HttpClient client = factory.CreateClient();
+
+        for (int i = 0; i < 6; i++)
+        {
+            using HttpResponseMessage _ = await client.PostAsJsonAsync(
+                new Uri("/api/v1/auth/login", UriKind.Relative),
+                new { username, password = "wrong" });
+        }
+
+        await using KernelDbContext kernel = factory.CreateDbContext();
+
+        bool staged = await kernel.OutboxMessages.AnyAsync(message =>
+            message.EventType == "identity.user.locked" && message.Payload.Contains(username));
+
+        Assert.True(staged, "The sign-in that locks an account must stage identity.user.locked.");
+    }
+
     [Fact]
     public async Task SignIn_WritesAnOutboxEventInTheSameTransaction()
     {

@@ -93,15 +93,10 @@ public sealed class CreateUnitHandler(
         IOrganizationOutbox outbox,
         CancellationToken cancellationToken)
     {
-        foreach (Kernel.Domain.IDomainEvent domainEvent in aggregate.DomainEvents)
-        {
-            if (domainEvent is Kernel.Domain.IIntegrationEvent integrationEvent)
-            {
-                await outbox.EnqueueAsync(integrationEvent, cancellationToken);
-            }
-        }
-
-        aggregate.ClearDomainEvents();
+        // The loop this module wrote for itself, and the only module that had
+        // one; it now lives in the kernel so the others use the same thing.
+        await Kernel.Application.Events.OutboxExtensions.EnqueueRaisedEventsAsync(
+            outbox, aggregate, cancellationToken);
     }
 }
 

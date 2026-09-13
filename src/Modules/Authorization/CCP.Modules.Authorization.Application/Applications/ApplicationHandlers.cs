@@ -1,6 +1,7 @@
 using CCP.Kernel.Application.Auditing;
 using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
+using CCP.Modules.Authorization.Domain.Roles.Events;
 using CCP.Modules.Authorization.Application.Abstractions;
 using CCP.Modules.Authorization.Contracts.Dtos;
 using CCP.Modules.Authorization.Domain;
@@ -61,6 +62,7 @@ public sealed class RegisterApplicationHandler(
     IAuthorizationRepository repository,
     IAuditTrail auditTrail,
     IAuthorizationUnitOfWork unitOfWork,
+    IAuthorizationOutbox outbox,
     IClock clock)
 {
     public async Task<Result<RegisteredApplicationDto>> HandleAsync(
@@ -87,6 +89,12 @@ public sealed class RegisterApplicationHandler(
         }
 
         repository.AddApplication(created.Value);
+
+        // Declared and raised by nothing, like authz.role.created.
+        await outbox.EnqueueAsync(
+            new ApplicationRegisteredEvent(
+                created.Value.Id, created.Value.Code, created.Value.Name, now),
+            cancellationToken);
 
         await auditTrail.RecordAsync(
             new AuditEntry(
