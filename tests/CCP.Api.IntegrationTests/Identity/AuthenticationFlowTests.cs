@@ -199,8 +199,14 @@ public sealed class AuthenticationFlowTests(PlatformApiFactory factory) : IClass
 
         await using KernelDbContext kernel = factory.CreateDbContext();
 
-        bool staged = await kernel.OutboxMessages.AnyAsync(message =>
-            message.EventType == "identity.user.locked" && message.Payload.Contains(username));
+        // The payload column is jsonb, which has no LIKE: filter on the type in
+        // SQL and look inside the payload here.
+        List<string> payloads = await kernel.OutboxMessages
+            .Where(message => message.EventType == "identity.user.locked")
+            .Select(message => message.Payload)
+            .ToListAsync();
+
+        bool staged = payloads.Any(payload => payload.Contains(username, StringComparison.Ordinal));
 
         Assert.True(staged, "The sign-in that locks an account must stage identity.user.locked.");
     }

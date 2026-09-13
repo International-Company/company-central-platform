@@ -151,7 +151,13 @@ public sealed class RoleEventPublicationTests(PlatformApiFactory factory)
     {
         await using KernelDbContext kernel = factory.CreateDbContext();
 
-        return await kernel.OutboxMessages.AnyAsync(message =>
-            message.EventType == eventType && message.Payload.Contains(payloadMarker));
+        // The payload column is jsonb, which has no LIKE: filter on the type in
+        // SQL and look inside the payload here.
+        List<string> payloads = await kernel.OutboxMessages
+            .Where(message => message.EventType == eventType)
+            .Select(message => message.Payload)
+            .ToListAsync();
+
+        return payloads.Any(payload => payload.Contains(payloadMarker, StringComparison.Ordinal));
     }
 }
