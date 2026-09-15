@@ -65,7 +65,8 @@ function pathOf(expression: string): string {
       // A trailing `${query}` directly after a segment carries the query
       // string, not a segment of its own.
       .replace(/([^/])\$\{[^}]*\}$/, '$1')
-      .split('?')[0]
+      .split('?', 1)
+      .join('')
       .replace(/\$\{[^}]*\}/g, '{param}')
   );
 }
@@ -76,8 +77,8 @@ function calls(): { method: string; path: string; file: string }[] {
 
     return [...code.matchAll(/callPlatform\s*(?:<[^(]*>)?\s*\(\s*\{([\s\S]*?)\}\s*\)/g)].flatMap(
       (call) => {
-        const body = call[1];
-        const path = /path:\s*((?:(?:'[^']*'|`[^`]*`)\s*\+?\s*)+)/.exec(body);
+        const body = call[1] ?? '';
+        const path = /path:\s*((?:(?:'[^']*'|`[^`]*`)\s*\+?\s*)+)/.exec(body)?.[1];
 
         if (!path) {
           return [];
@@ -86,7 +87,7 @@ function calls(): { method: string; path: string; file: string }[] {
         return [
           {
             method: /method:\s*'([A-Z]+)'/.exec(body)?.[1] ?? 'GET',
-            path: pathOf(path[1]),
+            path: pathOf(path),
             file: file.slice(sourceRoot.length + 1).replaceAll('\\', '/'),
           },
         ];
@@ -102,8 +103,11 @@ function sameShape(cited: string, published: string): boolean {
   return (
     mine.length === theirs.length
     && mine.every(
-      (segment, index) =>
-        segment.startsWith('{') || theirs[index].startsWith('{') || segment === theirs[index],
+      (segment, index) => {
+        const other = theirs[index] ?? '';
+
+        return segment.startsWith('{') || other.startsWith('{') || segment === other;
+      },
     )
   );
 }
