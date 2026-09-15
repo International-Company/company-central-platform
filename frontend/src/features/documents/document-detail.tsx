@@ -306,7 +306,7 @@ export function DocumentDetail({
             canManage ? (
               <button
                 type="button"
-                className="text-sm font-medium text-danger hover:underline"
+                className="text-sm font-medium text-attention hover:underline"
                 onClick={() => void revoke(rule)}
               >
                 {t('revoke')}
@@ -374,8 +374,7 @@ export function DocumentDetail({
             {links.map((link) => (
               <li key={link.id}>
                 <span className="font-medium text-text">{link.resourceType}</span>
-                {' · '}
-                <span className="font-mono text-xs">{link.resourceId}</span>
+                <span className="ms-3 font-mono text-xs">{link.resourceId}</span>
               </li>
             ))}
           </ul>

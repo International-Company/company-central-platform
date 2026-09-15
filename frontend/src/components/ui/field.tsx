@@ -47,7 +47,7 @@ export function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="text-sm font-medium text-text"
+        className="text-sm font-semibold text-text"
       >
         {label}
         {required && requiredLabel ? (
@@ -66,11 +66,14 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={
-          'h-10 rounded-md border bg-surface px-3 text-sm ' +
-          'text-text placeholder:text-text-muted ' +
+          'h-10 rounded-sm bg-surface px-3 text-sm text-text ' +
+          'placeholder:text-text-muted focus:border-primary-700 ' +
+          // A field in error is marked by weight, not by a second colour: a
+          // border twice as heavy in the deepest blue, and the message beneath
+          // it in bold. Red was the one place a third hue survived.
           (error
-            ? 'border-danger'
-            : 'border-border-strong') +
+            ? 'border-2 border-attention'
+            : 'border border-border-strong') +
           ` ${className}`
         }
         {...rest}
@@ -86,7 +89,7 @@ export function Field({
         <p
           id={errorId}
           role="alert"
-          className="text-xs font-medium text-danger"
+          className="text-sm font-semibold text-attention"
         >
           {error}
         </p>
@@ -109,19 +112,20 @@ export function FormMessage({
   tone: 'error' | 'success' | 'info';
   children: ReactNode;
 }) {
+  // A rule on the start edge, heavier for an error, instead of three tinted
+  // boxes in three colours. `border-s` is the start edge, so it moves to the
+  // right in Arabic without a second rule.
   const tones = {
-    error:
-      'border-danger bg-danger-surface text-danger',
-    success:
-      'border-success bg-success-surface text-success',
-    info: 'border-border-strong bg-surface-sunken text-text-secondary',
+    error: 'border-s-4 border-attention bg-attention-surface font-medium text-text',
+    success: 'border-s-4 border-primary-500 bg-positive-surface text-text',
+    info: 'border-s-4 border-border-strong bg-surface-sunken text-text-secondary',
   } as const;
 
   return (
     <div
       // Errors interrupt; confirmations wait their turn. Both are announced.
       role={tone === 'error' ? 'alert' : 'status'}
-      className={`rounded-md border px-3 py-2 text-sm ${tones[tone]}`}
+      className={`px-4 py-3 text-sm ${tones[tone]}`}
     >
       {children}
     </div>

@@ -184,14 +184,14 @@ export function EmployeeForm({
         >
           {units.map((unit) => (
             <option key={unit.id} value={unit.id}>
-              {'— '.repeat(Number(unit.depth))}
+              {'\u00A0\u00A0\u00A0'.repeat(Number(unit.depth))}
               {locale === 'ar' ? unit.name.ar : unit.name.en} ({unit.code})
             </option>
           ))}
         </select>
 
         {fields['unitId'] ? (
-          <p role="alert" className="text-xs text-danger">
+          <p role="alert" className="text-xs text-attention">
             {fields['unitId']}
           </p>
         ) : null}

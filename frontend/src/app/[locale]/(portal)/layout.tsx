@@ -73,23 +73,24 @@ export default async function PortalLayout({
         locale={isLocale(locale) ? locale : 'ar'}
         navigation={[
           { href: '/dashboard', label: t('dashboard') },
-
-          // Second, because it is the one item most people in the company will
-          // ever use. Everything below it is administration.
           { href: '/tasks', label: t('tasks') },
           { href: '/notifications', label: t('notifications') },
-          { href: '/users', label: t('users') },
-          { href: '/employees', label: t('employees') },
-          { href: '/organization', label: t('organization') },
-          { href: '/workflow', label: t('workflow') },
-          { href: '/documents', label: t('documents') },
-          { href: '/roles', label: t('roles') },
-          { href: '/applications', label: t('applications') },
-          { href: '/integrations', label: t('integrations') },
-          { href: '/configuration', label: t('configuration') },
-          { href: '/security', label: t('security') },
-          { href: '/operations', label: t('operations') },
-          { href: '/audit', label: t('audit') },
+
+          { href: '/users', label: t('users'), section: t('sectionPeople') },
+          { href: '/employees', label: t('employees'), section: t('sectionPeople') },
+          { href: '/organization', label: t('organization'), section: t('sectionPeople') },
+
+          { href: '/workflow', label: t('workflow'), section: t('sectionOperations') },
+          { href: '/documents', label: t('documents'), section: t('sectionOperations') },
+
+          { href: '/roles', label: t('roles'), section: t('sectionAccess') },
+          { href: '/security', label: t('security'), section: t('sectionAccess') },
+          { href: '/audit', label: t('audit'), section: t('sectionAccess') },
+
+          { href: '/applications', label: t('applications'), section: t('sectionPlatform') },
+          { href: '/integrations', label: t('integrations'), section: t('sectionPlatform') },
+          { href: '/configuration', label: t('configuration'), section: t('sectionPlatform') },
+          { href: '/operations', label: t('operations'), section: t('sectionPlatform') },
         ]}
         labels={{
           appName: (await getTranslations('app'))('shortName'),
@@ -98,7 +99,9 @@ export default async function PortalLayout({
           closeMenu: t('closeMenu'),
           signOut: tCommon('signOut'),
           language: tCommon('language'),
-          skipToContent: tCommon('search'),
+          // Was tCommon('search'), so the first thing a keyboard user heard
+          // on every page was the word for a search box that is not there.
+          skipToContent: tCommon('skipToContent'),
         }}
       >
         {children}

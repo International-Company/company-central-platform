@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Company Central Platform",
-    "shortName": "Platform"
+    "shortName": "Platform",
+    "description": "Identity, organization, access and workflow for every business system in the company."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -23,7 +24,12 @@
     "applications": "Applications",
     "integrations": "Integrations",
     "configuration": "Configuration",
-    "operations": "Operations"
+    "operations": "Operations",
+    "sectionWork": "My work",
+    "sectionPeople": "People and organization",
+    "sectionOperations": "Operations",
+    "sectionAccess": "Access and security",
+    "sectionPlatform": "Platform"
   },
   "common": {
     "search": "Search",
@@ -44,14 +50,15 @@
     "yes": "Yes",
     "no": "No",
     "required": "Required",
-    "none": "None"
+    "none": "None",
+    "skipToContent": "Skip to content"
   },
   "table": {
     "noResults": "No results",
     "noResultsDescription": "Nothing matches the current filters.",
     "empty": "Nothing here yet",
-    "sortAscending": "Sort ascending",
-    "sortDescending": "Sort descending",
+    "sortAscending": "Ascending",
+    "sortDescending": "Descending",
     "showing": "Showing {from}-{to} of {total}",
     "previous": "Previous",
     "next": "Next",
@@ -81,7 +88,8 @@
     "changeTitle": "Change your password",
     "changeDescription": "This account requires a new password before you continue.",
     "currentPassword": "Current password",
-    "changed": "Your password has been changed."
+    "changed": "Your password has been changed.",
+    "signInLead": "Use the account issued to you by your administrator."
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -155,7 +163,7 @@
     "linkedAccount": "Account",
     "notLinked": "Not linked",
     "createEmployee": "Create employee",
-    "createDescription": "An employee is an organizational record: their number, their name, and the unit they belong to. Salary, leave and contract are not here — those belong to the HR application.",
+    "createDescription": "An employee is an organizational record: their number, their name, and the unit they belong to. Salary, leave and contract are not here. Those belong to the HR application.",
     "employeeNumberHint": "A stable, unique number that other systems use to refer to this employee.",
     "fullNameAr": "Full name in Arabic",
     "fullNameEn": "Full name in English",
@@ -181,7 +189,7 @@
     "attributesFor": "What applications keep about {name}",
     "attributesHint": "An application's own notes about this person. The Platform stores them and never interprets them, which is why a key names the application that owns it.",
     "attributeKey": "Key",
-    "attributeKeyHint": "application.name — for example payroll.cost-centre. The namespace is what stops two systems colliding on the same word.",
+    "attributeKeyHint": "Written as application.name, for example payroll.cost-centre. The namespace is what stops two systems colliding on the same word.",
     "attributeValue": "Value",
     "attributeValueHint": "Metadata about a person, not a place to keep a document or a credential.",
     "attributeSetAt": "Set",
@@ -189,7 +197,7 @@
     "noAttributes": "Nothing is kept",
     "noAttributesDescription": "No application has recorded anything about this person.",
     "attributeLooksLikeASecret": "That looks like a credential, and it was not stored. An employee record is exported, backed up and broadly readable; secrets live in the secret store and are named by reference.",
-    "attributeKeyInvalid": "A key is 'application.name' — letters, digits, hyphens and underscores.",
+    "attributeKeyInvalid": "A key is written as application.name, using letters, digits, hyphens and underscores.",
     "attributeValueRequired": "An attribute needs a value. Remove it instead of emptying it.",
     "attributeLimitReached": "This person already carries fifty attributes. Remove one before adding another."
   },
@@ -256,7 +264,7 @@
     "nameAr": "Name in Arabic",
     "nameEn": "Name in English",
     "parent": "Parent unit",
-    "noParent": "None — a top-level unit",
+    "noParent": "None, a top-level unit",
     "depth": "Level",
     "status": "Status",
     "statusActive": "Active",
@@ -289,7 +297,7 @@
     "localeAr": "Arabic",
     "localeEn": "English",
     "positionsTitle": "Positions",
-    "positionsDescription": "The company's job titles. A position describes what someone does in the organization, not what they may do in the software — that is what roles are for.",
+    "positionsDescription": "The company's job titles. A position describes what someone does in the organization, not what they may do in the software. That is what roles are for.",
     "createPosition": "Create position",
     "editPosition": "Edit position",
     "positionCode": "Position code",
@@ -307,7 +315,7 @@
     "mfaTitle": "Two-factor authentication",
     "mfaEnrolled": "On",
     "mfaNotEnrolled": "Off",
-    "mfaWhy": "Some actions — granting roles above all — ask you to confirm your identity again before they run. That confirmation is not possible without two-factor authentication.",
+    "mfaWhy": "Some actions, granting roles above all, ask you to confirm your identity again before they run. That confirmation is not possible without two-factor authentication.",
     "enrol": "Turn on two-factor authentication",
     "enrolTitle": "Turn on two-factor authentication",
     "enrolStep1": "Open your authenticator app and add a new account using this key:",
@@ -319,7 +327,7 @@
     "disableTitle": "Turn off two-factor authentication",
     "disableDescription": "Enter a current code from your app. Without it, anyone holding a stolen session could remove the protection that would have stopped them.",
     "recoveryTitle": "Recovery codes",
-    "recoveryDescription": "Save these somewhere safe now. They will not be shown again — they are stored hashed, and this is the only moment they are readable. Each one works once.",
+    "recoveryDescription": "Save these somewhere safe now. They will not be shown again: they are stored hashed, and this is the only moment they are readable. Each one works once.",
     "recoveryRemaining": "Recovery codes remaining",
     "recoveryDone": "I have saved them",
     "stepUpTitle": "Confirm your identity",
@@ -329,7 +337,7 @@
     "verified": "Confirmed",
     "invalidCode": "That code is not right.",
     "sessionsTitle": "Active sessions",
-    "sessionsDescription": "Where this account is signed in right now. If you do not recognise a device, change your password — that ends every session but the one you are using.",
+    "sessionsDescription": "Where this account is signed in right now. If you do not recognise a device, change your password. That ends every session except the one you are using.",
     "sessionCurrent": "This session",
     "sessionDevice": "Device",
     "sessionAddress": "Address",
@@ -365,9 +373,9 @@
     "unavailable": "Not available",
     "unavailableHint": "You do not hold the permission to read this figure.",
     "nextSteps": "Next steps",
-    "stepOrganization": "Build the organizational structure — no employee can exist before a unit does.",
+    "stepOrganization": "Build the organizational structure. No employee can exist before a unit does.",
     "stepEmployees": "Add employees to their units.",
-    "stepSecurity": "Turn on two-factor authentication — without it you cannot grant roles.",
+    "stepSecurity": "Turn on two-factor authentication. Without it you cannot grant roles.",
     "stepUsers": "Create user accounts and grant them roles."
   },
   "workflow": {
@@ -434,7 +442,7 @@
     "read": "Read",
     "unread": "Unread",
     "preferencesTitle": "What you receive",
-    "preferencesDescription": "Turn off what you do not need. Security notifications cannot be turned off — they tell you your account may be at risk, and the person most likely to want them silenced is whoever took it.",
+    "preferencesDescription": "Turn off what you do not need. Security notifications cannot be turned off: they tell you your account may be at risk, and the person most likely to want them silenced is whoever took it.",
     "category": "Kind",
     "channel": "Channel",
     "enabled": "On",

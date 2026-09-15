@@ -162,7 +162,8 @@ export function TasksScreen() {
           {/* The type and id the application supplied. The Platform has no idea
               what they mean, so it shows them exactly as given rather than
               inventing a label it cannot justify. */}
-          {task.resourceType} · {task.resourceId}
+          {task.resourceType}
+          <span className="ms-3 font-normal text-text-secondary">{task.resourceId}</span>
         </span>
       ),
     },

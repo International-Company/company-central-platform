@@ -146,7 +146,7 @@ export function RolePermissionsDialog({
 
         setError(
           response.status === 403
-            ? // Not a missing permission on this screen — they reached it. It
+            ? // Not a missing permission on this screen: they reached it. It
               // is the escalation rule: a permission was chosen that the caller
               // does not hold themselves.
               (body.detail ?? t('cannotEscalate'))

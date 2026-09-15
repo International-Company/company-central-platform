@@ -12,6 +12,7 @@ import type {
   WorkflowDefinitionDto,
   WorkflowInstanceDto,
 } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * What is running, and what processes exist to run.
@@ -127,7 +128,8 @@ export function WorkflowScreen() {
       header: t('resource'),
       render: (instance) => (
         <span className="font-medium">
-          {instance.resourceType} · {instance.resourceId}
+          {instance.resourceType}
+          <span className="ms-3 font-normal text-text-secondary">{instance.resourceId}</span>
         </span>
       ),
     },
@@ -141,7 +143,7 @@ export function WorkflowScreen() {
     {
       key: 'step',
       header: t('step'),
-      render: (instance) => instance.currentStepKey ?? '—',
+      render: (instance) => instance.currentStepKey ?? <EmptyValue />,
     },
     {
       key: 'status',
@@ -196,7 +198,9 @@ export function WorkflowScreen() {
               (step) =>
                 `${locale === 'ar' ? step.nameAr : step.nameEn} (${assigneeLabel(step.assigneeStrategy)})`,
             )
-            .join(' → ')}
+            // Joined in words, not with an arrow: the order reads the same
+            // way in both languages, and there is no symbol to mirror.
+            .join(locale === 'ar' ? '، ثم ' : ', then ')}
         </span>
       ),
       secondary: true,

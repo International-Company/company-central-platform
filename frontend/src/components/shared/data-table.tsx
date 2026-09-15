@@ -79,7 +79,7 @@ export interface DataTableProps<TRow> {
  * They are simply large enough to hit.
  */
 const RowActions =
-  'flex flex-wrap items-center justify-end gap-3 ' +
+  'flex flex-wrap items-center justify-end gap-x-5 gap-y-2 ' +
   '[&_button]:inline-flex [&_button]:min-h-6 [&_button]:min-w-6 [&_button]:items-center ' +
   '[&_a]:inline-flex [&_a]:min-h-6 [&_a]:min-w-6 [&_a]:items-center';
 
@@ -107,7 +107,7 @@ export function DataTable<TRow>({
       {/* Wide screens: a real table. Bounded and scrollable on its own so the
           page never scrolls sideways. */}
       <div
-        className="hidden overflow-x-auto rounded-md border border-border bg-surface sm:block"
+        className="hidden overflow-x-auto border border-border bg-surface sm:block"
         // Focusable so the scroll region is reachable by keyboard — a scrollable
         // area that only a mouse can move is unusable without one.
         tabIndex={0}
@@ -118,7 +118,7 @@ export function DataTable<TRow>({
           <caption className="sr-only">{caption}</caption>
 
           <thead>
-            <tr className="border-b border-border bg-surface-sunken">
+            <tr className="border-b border-border-strong bg-surface-sunken">
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -133,7 +133,7 @@ export function DataTable<TRow>({
                       : undefined
                   }
                   className={
-                    'px-3 py-2.5 font-medium text-text-secondary ' +
+                    'px-4 py-3 text-xs font-semibold text-text-secondary ' +
                     (column.numeric ? 'text-end' : 'text-start') +
                     (column.secondary ? ' hidden md:table-cell' : '')
                   }
@@ -142,7 +142,10 @@ export function DataTable<TRow>({
                     <button
                       type="button"
                       onClick={() => onSortChange(column.key)}
-                      className="inline-flex items-center gap-1 hover:text-text"
+                      className={
+                        'inline-flex items-center gap-2 hover:text-primary-900 ' +
+                        (sort?.key === column.key ? 'text-primary-900' : '')
+                      }
                     >
                       {column.header}
                       <SortIndicator
@@ -158,7 +161,7 @@ export function DataTable<TRow>({
               ))}
 
               {rowActions ? (
-                <th scope="col" className="px-3 py-2.5 text-end font-medium text-text-secondary">
+                <th scope="col" className="px-4 py-3 text-end text-xs font-semibold text-text-secondary">
                   {labels.actions}
                 </th>
               ) : null}
@@ -169,14 +172,14 @@ export function DataTable<TRow>({
             {rows.map((row) => (
               <tr
                 key={rowKey(row)}
-                className="border-b border-border last:border-b-0 hover:bg-surface-sunken"
+                className="border-b border-border last:border-b-0 hover:bg-primary-50"
               >
                 {columns.map((column) => (
                   <td
                     key={column.key}
                     {...(column.numeric ? { 'data-numeric': true } : {})}
                     className={
-                      'px-3 py-2.5 text-text ' +
+                      'px-4 py-3 text-text ' +
                       (column.numeric ? 'text-end' : 'text-start') +
                       (column.secondary ? ' hidden md:table-cell' : '')
                     }
@@ -186,7 +189,7 @@ export function DataTable<TRow>({
                 ))}
 
                 {rowActions ? (
-                  <td className="px-3 py-2.5">
+                  <td className="px-4 py-3">
                     <div className={RowActions}>{rowActions(row)}</div>
                   </td>
                 ) : null}
@@ -202,7 +205,7 @@ export function DataTable<TRow>({
         {rows.map((row) => (
           <li
             key={rowKey(row)}
-            className="rounded-md border border-border bg-surface p-3"
+            className="border border-border bg-surface p-4"
           >
             <dl className="flex flex-col gap-1.5">
               {columns.map((column) => (
@@ -254,12 +257,14 @@ function SortIndicator({
 
   const ascending = direction === 'asc';
 
+  // The direction in words, small and quiet, where a triangle used to be. A
+  // glyph pointing up means ascending to some readers and "most recent first"
+  // to others, and it is one more symbol on a screen that is meant to have
+  // none; the word is unambiguous in both languages and a screen reader reads
+  // the same text everybody else sees.
   return (
-    <span aria-hidden="true" className="text-xs">
-      {ascending ? '▲' : '▼'}
-      <span className="sr-only">
-        {ascending ? labels.sortAscending : labels.sortDescending}
-      </span>
+    <span className="text-xs font-normal text-text-muted">
+      {ascending ? labels.sortAscending : labels.sortDescending}
     </span>
   );
 }
@@ -276,8 +281,8 @@ export function EmptyState({
   return (
     // No illustration. An empty state is a sentence explaining what is missing
     // and, where useful, the button that fixes it (§9.5).
-    <div className="rounded-md border border-border bg-surface px-6 py-10 text-center">
-      <p className="text-sm font-medium text-text">{title}</p>
+    <div className="border border-border bg-surface px-6 py-6">
+      <p className="text-sm font-semibold text-text">{title}</p>
 
       {description ? (
         <p className="mt-1 text-sm text-text-secondary">

@@ -87,7 +87,7 @@ export default function ChangePasswordPage() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
       <div>
-        <h2 className="text-sm font-medium text-text">
+        <h2 className="text-2xl font-semibold text-text">
           {t('changeTitle')}
         </h2>
 

@@ -8,6 +8,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
 import { usePermission } from '@/lib/permissions';
 import type { PagedResult, SecurityEventDto } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * What the Platform recorded about security.
@@ -103,12 +104,12 @@ export function SecurityEventsPanel() {
     {
       key: 'user',
       header: t('eventUser'),
-      render: (event) => event.username ?? '—',
+      render: (event) => event.username ?? <EmptyValue />,
     },
     {
       key: 'address',
       header: t('sessionAddress'),
-      render: (event) => event.ipAddress ?? '—',
+      render: (event) => event.ipAddress ?? <EmptyValue />,
       secondary: true,
     },
     {

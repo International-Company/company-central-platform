@@ -12,70 +12,76 @@
 
 @theme {
   /* --- Surfaces ---------------------------------------------------------- */
+  /* Content sits on white. The sunken surface is for the few things that are
+     genuinely behind something else: a table header, a dialog footer. The
+     page itself used to be grey, which put every panel on a tinted ground and
+     made the whole application read as cards floating on a template. */
   --color-surface: #ffffff;
-  --color-surface-sunken: #f7f8fa;
+  --color-surface-sunken: #f4f6f9;
   --color-surface-raised: #ffffff;
 
   /* --- Blue -------------------------------------------------------------- */
   /* Calm and desaturated. A saturated blue at this size reads as a consumer
-     app and tires the eye across a working day. */
-  --color-primary-50: #eef4fb;
-  --color-primary-100: #d7e5f5;
-  --color-primary-200: #b0cbe9;
-  --color-primary-300: #7fa9d8;
+     app and tires the eye across a working day. The deepest step is the
+     identity of the application: the top bar is set in it. */
+  --color-primary-50: #eef3f9;
+  --color-primary-100: #d9e4f1;
+  --color-primary-200: #b3c8e0;
+  --color-primary-300: #86a6ca;
   --color-primary-500: #2f6fb5;
   --color-primary-600: #275c96;
   --color-primary-700: #1f4a79;
-  --color-primary-900: #16334f;
+  --color-primary-800: #1a3d63;
+  --color-primary-900: #13304d;
 
   /* --- Text -------------------------------------------------------------- */
-  --color-text: #14181d;
-  --color-text-secondary: #52606d;
+  --color-text: #141a21;
+  --color-text-secondary: #4f5d6b;
 
   /* Was #7b8794, which reads 3.66:1 on white — below the 4.5:1 that WCAG AA
      requires for body text, and axe found it on the word "(Required)" beside
-     every field label. That word exists because the design refuses a red
-     asterisk: it says the rule in words so a screen reader announces it and a
-     first-time user is not decoding a convention. Setting it in a colour too
-     faint to read undid exactly the decision it was serving. #616e7c is
-     5.21:1 on white and 4.90:1 on the sunken surface. */
+     every field label. #616e7c is 5.21:1 on white. */
   --color-text-muted: #616e7c;
   --color-text-on-primary: #ffffff;
 
   /* --- Borders ----------------------------------------------------------- */
-  /* Visible but quiet. Whitespace does the work; borders only say where one
-     thing ends and another begins. */
-  --color-border: #dfe3e8;
-  --color-border-strong: #c3c9d1;
+  --color-border: #dde2e8;
+  --color-border-strong: #b9c1cb;
 
-  /* --- Status ------------------------------------------------------------ */
-  /* Present, but never the only carrier of meaning: every status also shows a
-     word (§9.8). Colour alone fails for a colour-blind reader and disappears
-     entirely in a printed report. */
-  --color-success: #1f7a4d;
-  --color-success-surface: #eef7f2;
-  --color-warning: #8a5a12;
-  --color-warning-surface: #fbf5ea;
-  --color-danger: #a32626;
-  --color-danger-surface: #fbefef;
+  /* --- Emphasis ---------------------------------------------------------- */
+  /* **White and blue only, including for state.** These were green, amber and
+     red, and a screen of status tags in three hues is exactly what makes an
+     internal system look assembled from a template. State is carried by the
+     word first (§9.8) and then by intensity along the same blue: a positive
+     state is light, something needing a look is outlined in the deepest blue,
+     and something blocked is set solid in it. That survives a colour-blind
+     reader and a black-and-white printout, which three hues never did. */
+  --color-positive: #1f4a79;
+  --color-positive-surface: #eef3f9;
+  --color-caution: #13304d;
+  --color-caution-surface: #ffffff;
+  --color-attention: #13304d;
+  --color-attention-surface: #eef1f5;
 
   /* --- Radius ------------------------------------------------------------ */
-  /* Moderate. Enterprise software, not a consumer mobile app. */
-  --radius-sm: 3px;
-  --radius-md: 5px;
-  --radius-lg: 7px;
+  /* Nearly square. Rounded corners at every size are the most recognisable
+     trait of generated interfaces; an instrument used all day does not need
+     its edges softened. */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
 
   /* --- Typography -------------------------------------------------------- */
-  /* Chosen for dense data: unambiguous digits, comfortable table rendering,
-     and an Arabic face of matching quality. No display or expressive faces. */
-  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-arabic: "IBM Plex Sans Arabic", "Segoe UI", "Tahoma", sans-serif;
+  /* The faces are loaded by the locale layout through next/font, which
+     self-hosts them at build time. They were named here and never loaded, so
+     every browser silently rendered Segoe UI or Tahoma instead. */
+  --font-sans: var(--font-plex-sans), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-arabic: var(--font-plex-arabic), "Segoe UI", "Tahoma", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
 
   /* --- Elevation --------------------------------------------------------- */
-  /* One shadow, barely there, for things that genuinely float: a dropdown, a
-     dialog. Nothing else is raised. */
-  --shadow-overlay: 0 2px 8px rgb(20 24 29 / 0.10);
+  /* One shadow, barely there, for things that genuinely float: a dialog. */
+  --shadow-overlay: 0 4px 16px rgb(19 48 77 / 0.14);
 }
 
 /* ==========================================================================
@@ -93,7 +99,7 @@ html[lang="ar"] body {
 }
 
 body {
-  background-color: var(--color-surface-sunken);
+  background-color: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

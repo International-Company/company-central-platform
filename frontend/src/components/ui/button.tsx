@@ -28,30 +28,44 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center rounded-md border font-medium ' +
-  'transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-55';
+  'inline-flex items-center justify-center gap-2 rounded-sm border font-medium ' +
+  'whitespace-nowrap transition-colors duration-100 ' +
+  'disabled:cursor-not-allowed disabled:opacity-50';
 
 const variants: Record<Variant, string> = {
   primary:
-    'border-transparent bg-primary-600 text-text-on-primary ' +
-    'hover:bg-primary-700',
+    'border-primary-700 bg-primary-700 text-text-on-primary ' +
+    'hover:border-primary-900 hover:bg-primary-900',
   secondary:
     'border-border-strong bg-surface text-text ' +
-    'hover:bg-surface-sunken',
-  quiet:
-    'border-transparent bg-transparent text-primary-700 underline ' +
-    'underline-offset-2 hover:text-primary-900',
+    'hover:border-primary-700 hover:text-primary-900',
 
-  // Destructive actions read as destructive in *words* as well as colour: the
-  // label says Delete and a confirmation states what will be removed. Colour
-  // alone fails a colour-blind reader and vanishes on paper (§9.8).
+  // A text action. Underlined on hover rather than always: a table row with
+  // two permanently underlined words in its last column reads as a web page
+  // from another decade, and the colour already says it can be pressed.
+  quiet:
+    'border-transparent bg-transparent text-primary-700 ' +
+    'hover:text-primary-900 hover:underline underline-offset-4',
+
+  // The deepest blue, not red. White and blue only holds for destructive
+  // actions too: what makes this one serious is the confirmation that names
+  // what will happen, and a colour change is no substitute for reading it.
   danger:
-    'border-transparent bg-danger text-white hover:brightness-95',
+    'border-primary-900 bg-primary-900 text-text-on-primary ' +
+    'hover:border-text hover:bg-text',
 };
 
 const sizes: Record<Size, string> = {
   sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
+  md: 'h-10 px-5 text-sm',
+};
+
+// No horizontal padding: a text action aligns with the text around it. Kept
+// apart rather than overridden, because two padding utilities on one element
+// resolve by stylesheet order, not by the order they are written in.
+const quietSizes: Record<Size, string> = {
+  sm: 'h-8 text-sm',
+  md: 'h-10 text-sm',
 };
 
 export function Button({
@@ -72,7 +86,7 @@ export function Button({
       // Announced to a screen reader, which otherwise has no way to know the
       // page is waiting on something.
       aria-busy={busy || undefined}
-      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${base} ${variants[variant]} ${variant === 'quiet' ? quietSizes[size] : sizes[size]} ${className}`}
       {...rest}
     >
       {busy && busyLabel ? busyLabel : children}

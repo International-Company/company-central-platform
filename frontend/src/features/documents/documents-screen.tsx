@@ -265,7 +265,7 @@ export function DocumentsScreen() {
                 {document.accessLevel === 'Manage' && document.status === 'Active' ? (
                   <button
                     type="button"
-                    className="text-sm font-medium text-danger hover:underline"
+                    className="text-sm font-medium text-attention hover:underline"
                     onClick={() => setDeleting(document)}
                   >
                     {tCommon('delete')}

@@ -6,6 +6,7 @@ import { FormMessage } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/shared/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import type { LoginAttemptDto, SessionDto } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * Where this account is signed in, and what has been tried against it.
@@ -68,7 +69,7 @@ export function SessionsPanel() {
               means a table of guesses that are wrong for anyone on something
               unusual — and the person recognising their own device does not
               need it prettified. */}
-          {session.userAgent ? session.userAgent.slice(0, 60) : '—'}
+          {session.userAgent ? session.userAgent.slice(0, 60) : <EmptyValue />}
           {session.isCurrent ? (
             <StatusBadge tone="success">{t('sessionCurrent')}</StatusBadge>
           ) : null}
@@ -78,7 +79,7 @@ export function SessionsPanel() {
     {
       key: 'address',
       header: t('sessionAddress'),
-      render: (session) => session.ipAddress ?? '—',
+      render: (session) => session.ipAddress ?? <EmptyValue />,
       secondary: true,
     },
     {
@@ -112,7 +113,7 @@ export function SessionsPanel() {
     {
       key: 'address',
       header: t('sessionAddress'),
-      render: (attempt) => attempt.ipAddress ?? '—',
+      render: (attempt) => attempt.ipAddress ?? <EmptyValue />,
       secondary: true,
     },
     {

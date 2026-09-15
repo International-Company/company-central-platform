@@ -428,7 +428,7 @@ export function ConfigurationScreen() {
                     type="button"
                     className={
                       flag.isEnabled
-                        ? 'text-sm font-medium text-danger hover:underline'
+                        ? 'text-sm font-medium text-attention hover:underline'
                         : 'text-sm font-medium text-primary-700 hover:underline'
                     }
                     onClick={() => void toggleFlag(flag)}
@@ -457,7 +457,7 @@ export function ConfigurationScreen() {
       <FormDialog
         open={editing !== null}
         title={t('editTitle')}
-        description={editing ? `${editing.key} — ${chosen.label}` : ''}
+        description={editing ? `${editing.key}: ${chosen.label}` : ''}
         submitLabel={tCommon('save')}
         cancelLabel={tCommon('cancel')}
         busy={busy}

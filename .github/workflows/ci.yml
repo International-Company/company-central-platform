@@ -463,6 +463,17 @@ jobs:
           tail -n 200 frontend.log || echo "no frontend log"
           echo "::endgroup::"
 
+      # Pictures of every screen in both languages, kept whether or not the run
+      # passed. A design change is judged by comparing these with the last run's.
+      - name: Upload screen gallery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screen-gallery
+          path: frontend/e2e-gallery/
+          retention-days: 30
+          if-no-files-found: warn
+
       - name: Upload traces
         if: failure()
         uses: actions/upload-artifact@v4

@@ -58,6 +58,10 @@ export function ConfirmDialog({
   }, [open]);
 
   return (
+    // m-auto restores the centring browsers give a modal dialog. Tailwind's
+    // reset sets every margin to zero, so every dialog in the portal opened
+    // pinned to the top corner of the screen, including in production;
+    // nobody saw it until the design was checked by looking at screenshots.
     <dialog
       ref={ref}
       // Escape closes it. Without this the browser would dismiss the dialog
@@ -66,13 +70,15 @@ export function ConfirmDialog({
         event.preventDefault();
         onCancel();
       }}
-      className="w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-5 text-text backdrop:bg-text/30"
+      className="w-[min(30rem,calc(100vw-2rem))] m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto border border-border-strong bg-surface p-0 text-text shadow-overlay backdrop:bg-text/40"
     >
-      <h2 className="text-sm font-semibold">{title}</h2>
+      <div className="border-b border-border px-6 py-4">
+        <h2 className="text-lg font-semibold">{title}</h2>
+      </div>
 
-      <p className="mt-2 text-sm text-text-secondary">{description}</p>
+      <p className="px-6 py-5 text-sm leading-relaxed text-text-secondary">{description}</p>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="flex justify-end gap-3 border-t border-border bg-surface-sunken px-6 py-4">
         <Button onClick={onCancel} disabled={busy}>
           {cancelLabel}
         </Button>

@@ -283,7 +283,7 @@ export function IntegrationsScreen() {
             than a click away.
           */}
           {subscription.suspendedAt ? (
-            <p className="mt-1 text-xs text-danger">{subscription.suspendedReason}</p>
+            <p className="mt-1 text-xs text-attention">{subscription.suspendedReason}</p>
           ) : null}
         </div>
       ),
@@ -374,7 +374,7 @@ export function IntegrationsScreen() {
                 type="button"
                 className={
                   provider.isEnabled
-                    ? 'text-sm font-medium text-danger hover:underline'
+                    ? 'text-sm font-medium text-attention hover:underline'
                     : 'text-sm font-medium text-primary-700 hover:underline'
                 }
                 onClick={() => void setEnabled(provider, !provider.isEnabled)}
@@ -479,7 +479,7 @@ export function IntegrationsScreen() {
                     type="button"
                     className={
                       subscription.isEnabled
-                        ? 'text-sm font-medium text-danger hover:underline'
+                        ? 'text-sm font-medium text-attention hover:underline'
                         : 'text-sm font-medium text-primary-700 hover:underline'
                     }
                     onClick={() =>

@@ -10,6 +10,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
 import type { AuditEventDto, PagedResult } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * Audit search.
@@ -106,7 +107,7 @@ export function AuditScreen() {
       header: t('actor'),
       // The username, which is stored beside the id precisely so this column
       // stays readable after someone's record changes.
-      render: (event) => event.actorUsername ?? '—',
+      render: (event) => event.actorUsername ?? <EmptyValue />,
     },
     {
       key: 'action',
@@ -125,7 +126,7 @@ export function AuditScreen() {
       key: 'resource',
       header: t('resource'),
       render: (event) =>
-        event.resourceType ? `${event.resourceType} ${event.resourceId ?? ''}` : '—',
+        event.resourceType ? `${event.resourceType} ${event.resourceId ?? ''}` : <EmptyValue />,
       secondary: true,
     },
     {

@@ -8,6 +8,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { StatusBadge, type StatusTone } from '@/components/shared/status-badge';
 import { usePermission } from '@/lib/permissions';
 import type { NotificationDto, PagedResult } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * What was sent, and how it went.
@@ -140,7 +141,7 @@ export function DeliveryLogPanel() {
         return last?.providerResponse ? (
           <span className="text-xs text-text-secondary">{last.providerResponse}</span>
         ) : (
-          '—'
+          <EmptyValue />
         );
       },
       secondary: true,

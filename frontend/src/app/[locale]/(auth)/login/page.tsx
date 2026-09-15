@@ -108,10 +108,14 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-      <h2 className="text-sm font-medium text-text-secondary">
-        {t('signInTitle')}
-      </h2>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+      <div>
+        <h2 className="text-2xl font-semibold text-text">
+          {t('signInTitle')}
+        </h2>
+
+        <p className="mt-2 text-sm text-text-secondary">{t('signInLead')}</p>
+      </div>
 
       {error ? (
         <FormMessage tone="error">
@@ -159,7 +163,7 @@ export default function LoginPage() {
 
       <a
         href="forgot-password"
-        className="text-center text-sm text-primary-700 underline underline-offset-2"
+        className="text-sm text-primary-700 hover:text-primary-900 hover:underline underline-offset-4"
       >
         {t('forgotPassword')}
       </a>

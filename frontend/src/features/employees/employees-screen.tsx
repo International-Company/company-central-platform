@@ -22,6 +22,7 @@ import type {
   PositionDto,
   UserDto,
 } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * The Employees list.
@@ -170,7 +171,7 @@ export function EmployeesScreen() {
     {
       key: 'position',
       header: t('position'),
-      render: (employee) => employee.positionCode ?? '—',
+      render: (employee) => employee.positionCode ?? <EmptyValue />,
       secondary: true,
     },
     {

@@ -128,7 +128,7 @@ export function OperationsScreen() {
             is noise.
           */}
           {job.instances.length > 1 && Number(job.failingInstances) > 0 ? (
-            <p className="mt-1 text-xs font-medium text-danger">
+            <p className="mt-1 text-xs font-medium text-attention">
               {t('failingOnInstances', {
                 failing: Number(job.failingInstances),
                 total: job.instances.length,

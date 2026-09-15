@@ -30,6 +30,7 @@ export function RoleForm({
   onSaved: () => void;
 }) {
   const t = useTranslations('roles');
+  const tOrganization = useTranslations('organization');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
 
@@ -129,7 +130,7 @@ export function RoleForm({
       )}
 
       <Field
-        label={t('name') + ' — AR'}
+        label={tOrganization('nameAr')}
         value={nameAr}
         onChange={(event) => setNameAr(event.target.value)}
         error={fields['nameAr']}
@@ -140,7 +141,7 @@ export function RoleForm({
       />
 
       <Field
-        label={t('name') + ' — EN'}
+        label={tOrganization('nameEn')}
         value={nameEn}
         onChange={(event) => setNameEn(event.target.value)}
         error={fields['nameEn']}

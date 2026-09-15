@@ -115,7 +115,7 @@ export function MoveUnitDialog({
               {/* The code as well as the name: two units can reasonably share a
                   name — "Finance" in two branches — and the code is what tells
                   them apart. */}
-              {'— '.repeat(Number(candidate.depth))}
+              {'\u00A0\u00A0\u00A0'.repeat(Number(candidate.depth))}
               {locale === 'ar' ? candidate.name.ar : candidate.name.en} (
               {candidate.code})
             </option>

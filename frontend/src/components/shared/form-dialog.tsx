@@ -66,6 +66,10 @@ export function FormDialog({
   }
 
   return (
+    // m-auto restores the centring browsers give a modal dialog. Tailwind's
+    // reset sets every margin to zero, so every dialog in the portal opened
+    // pinned to the top corner of the screen, including in production;
+    // nobody saw it until the design was checked by looking at screenshots.
     <dialog
       ref={ref}
       onCancel={(event) => {
@@ -77,24 +81,24 @@ export function FormDialog({
           onCancel();
         }
       }}
-      className="w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-5 text-text backdrop:bg-text/30"
+      className="w-[min(34rem,calc(100vw-2rem))] m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto border border-border-strong bg-surface p-0 text-text shadow-overlay backdrop:bg-text/40"
     >
       <form onSubmit={handleSubmit} noValidate>
-        <h2 className="text-sm font-semibold">{title}</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
 
-        {description ? (
-          <p className="mt-1 text-sm text-text-secondary">{description}</p>
-        ) : null}
+          {description ? (
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">{description}</p>
+          ) : null}
+        </div>
 
-        {error ? (
-          <div className="mt-3">
-            <FormMessage tone="error">{error}</FormMessage>
-          </div>
-        ) : null}
+        <div className="flex flex-col gap-4 px-6 py-5">
+          {error ? <FormMessage tone="error">{error}</FormMessage> : null}
 
-        <div className="mt-4 flex flex-col gap-3">{children}</div>
+          {children}
+        </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="flex justify-end gap-3 border-t border-border bg-surface-sunken px-6 py-4">
           <Button type="button" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </Button>

@@ -9,6 +9,7 @@ import { FormDialog, fieldErrors } from '@/components/shared/form-dialog';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { IfPermitted } from '@/lib/permissions';
 import type { PositionDto, ProblemResponse } from '@/types/platform';
+import { EmptyValue } from '@/components/shared/empty-value';
 
 /**
  * The company's job titles.
@@ -181,7 +182,7 @@ export function PositionsPanel({ enabled }: { enabled: boolean }) {
     {
       key: 'level',
       header: t('level'),
-      render: (position) => (position.level === null ? '—' : String(position.level)),
+      render: (position) => (position.level === null ? <EmptyValue /> : String(position.level)),
       numeric: true,
       secondary: true,
     },

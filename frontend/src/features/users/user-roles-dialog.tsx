@@ -222,8 +222,8 @@ export function UserRolesDialog({
           : (assignment.scopeUnitId ?? '');
 
         return assignment.scopeType === 'Unit'
-          ? `${t('scopeUnit')} — ${name}`
-          : `${t('scopeUnitAndBelow')} — ${name}`;
+          ? `${t('scopeUnit')}: ${name}`
+          : `${t('scopeUnitAndBelow')}: ${name}`;
       }
       default:
         return assignment.scopeType;
@@ -264,11 +264,13 @@ export function UserRolesDialog({
                     {roleName(assignment.roleId)}
                   </p>
 
-                  <p className="text-text-secondary">
-                    {scopeLabel(assignment)} ·{' '}
-                    {format.dateTime(new Date(assignment.grantedAt), {
-                      dateStyle: 'medium',
-                    })}
+                  <p className="flex flex-wrap gap-x-4 text-text-secondary">
+                    <span>{scopeLabel(assignment)}</span>
+                    <span>
+                      {format.dateTime(new Date(assignment.grantedAt), {
+                        dateStyle: 'medium',
+                      })}
+                    </span>
                   </p>
                 </div>
 
@@ -340,7 +342,7 @@ export function UserRolesDialog({
             >
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id}>
-                  {'— '.repeat(Number(unit.depth))}
+                  {'\u00A0\u00A0\u00A0'.repeat(Number(unit.depth))}
                   {locale === 'ar' ? unit.name.ar : unit.name.en} ({unit.code})
                 </option>
               ))}

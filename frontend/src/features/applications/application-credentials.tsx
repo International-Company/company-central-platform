@@ -230,8 +230,8 @@ export function ApplicationCredentials({
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
 
       {issued ? (
-        <div className="rounded-md border border-warning bg-warning-surface p-4">
-          <p className="text-sm font-semibold text-warning">{t('secretShownOnce')}</p>
+        <div className="rounded-md border border-caution bg-caution-surface p-4">
+          <p className="text-sm font-semibold text-caution">{t('secretShownOnce')}</p>
 
           <p className="mt-1 text-sm text-text">{t('secretShownOnceDetail')}</p>
 
@@ -270,7 +270,7 @@ export function ApplicationCredentials({
             credential.isLive ? (
               <button
                 type="button"
-                className="text-sm font-medium text-danger hover:underline"
+                className="text-sm font-medium text-attention hover:underline"
                 onClick={() => void revoke(credential)}
               >
                 {t('revoke')}

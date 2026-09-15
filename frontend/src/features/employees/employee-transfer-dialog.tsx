@@ -135,7 +135,7 @@ export function EmployeeTransferDialog({
         >
           {units.map((unit) => (
             <option key={unit.id} value={unit.id}>
-              {'— '.repeat(Number(unit.depth))}
+              {'\u00A0\u00A0\u00A0'.repeat(Number(unit.depth))}
               {name(unit.name)} ({unit.code})
             </option>
           ))}

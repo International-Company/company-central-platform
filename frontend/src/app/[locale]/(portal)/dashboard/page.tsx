@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/shared/page-header';
+import { DashboardSummary } from '@/features/dashboard/dashboard-summary';
 import { callPlatform } from '@/lib/platform-client';
 import type {
   EmployeeDto,
@@ -94,57 +94,22 @@ export default async function DashboardPage({
     <>
       <PageHeader title={tNav('dashboard')} description={t('description')} />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card) => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="rounded-md border border-border bg-surface p-4 hover:border-border-strong"
-          >
-            <p className="text-sm text-text-secondary">{card.label}</p>
-
-            {card.value === null ? (
-              <>
-                <p className="mt-1 text-lg font-semibold text-text-muted">
-                  {t('unavailable')}
-                </p>
-
-                <p className="mt-0.5 text-xs text-text-secondary">
-                  {t('unavailableHint')}
-                </p>
-              </>
-            ) : (
-              // Formatted through next-intl, so the numerals follow the
-              // reader's locale rather than the server's.
-              <p className="mt-1 text-2xl font-semibold text-text">
-                {format.number(card.value)}
-              </p>
-            )}
-          </Link>
-        ))}
-      </div>
-
-      <section className="mt-6 rounded-md border border-border bg-surface p-4">
-        <h2 className="text-sm font-semibold text-text">{t('nextSteps')}</h2>
-
-        <ol className="mt-2 flex list-decimal flex-col gap-1.5 ps-5 text-sm">
-          {steps.map((step) => (
-            <li key={step.href} className="text-text-secondary">
-              <Link
-                href={step.href}
-                className="text-primary-700 underline underline-offset-2"
-              >
-                {step.text}
-              </Link>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <DashboardSummary
+        heading={tNav('dashboard')}
+        nextStepsHeading={t('nextSteps')}
+        unavailable={t('unavailable')}
+        unavailableHint={t('unavailableHint')}
+        figures={cards.map((card) => ({
+          href: card.href,
+          label: card.label,
+          value: card.value === null ? null : format.number(card.value),
+        }))}
+        steps={steps.map((step, index) => ({ ...step, number: format.number(index + 1) }))}
+      />
     </>
   );
 }
 
-/** Every unit in the structure, at every depth. */
 function countUnits(units: readonly OrganizationUnitTreeDto[]): number {
   return units.reduce(
     (total, unit) => total + 1 + countUnits(unit.children),

@@ -112,11 +112,41 @@ describe('white and blue only', () => {
   it('defines no third hue in the token set', () => {
     const css = codeOf(join(sourceRoot, 'styles', 'globals.css'));
 
-    // Everything permitted: white, the blue ramp, neutrals, and the three
-    // status colours that always appear with a word beside them (§9.8).
-    const forbidden = /--color-(?:purple|pink|orange|teal|indigo|violet|fuchsia|lime|emerald|cyan)/;
+    // Measured rather than listed by name. The earlier version forbade a list
+    // of colour words and explicitly allowed green, amber and red for status,
+    // so a token called --color-success could be any hue at all and pass.
+    // Every colour is now converted to hue and saturation: it must be a neutral
+    // (barely saturated) or a blue.
+    const offenders = [...css.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})/gi)]
+      .map((match) => ({ name: match[1] ?? '', hex: match[2] ?? '' }))
+      .filter(({ hex }) => {
+        const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255) as [
+          number,
+          number,
+          number,
+        ];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const lightness = (max + min) / 2;
+        const delta = max - min;
 
-    expect(forbidden.test(css)).toBe(false);
+        if (delta === 0) {
+          return false;
+        }
+
+        const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+        const hue =
+          (max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4) * 60;
+        const degrees = (hue + 360) % 360;
+
+        const neutral = saturation < 0.2;
+        const blue = degrees >= 195 && degrees <= 235;
+
+        return !(neutral || blue);
+      })
+      .map(({ name, hex }) => `--color-${name}: ${hex}`);
+
+    expect(offenders).toEqual([]);
   });
 
   it('uses no gradients, glow or glassmorphism', () => {
@@ -281,5 +311,57 @@ describe('text is readable', () => {
     }
 
     expect(failures).toEqual([]);
+  });
+});
+
+describe('no symbols stand in for words', () => {
+  // Dashes, dots, arrows, triangles, checks, crosses, bullets, ellipses and
+  // guillemets. Each one was in the portal: an em dash in every empty table
+  // cell and between clauses in the catalogue, a middle dot between two facts,
+  // an arrow joining workflow steps, a triangle beside a sorted column. Each
+  // asks the reader to decode a convention the words would have stated.
+  const symbols = /[\u2013\u2014\u2022\u00b7\u2026\u00d7\u00ab\u00bb\u2190-\u21ff\u25a0-\u25ff\u2713-\u2718]/u;
+
+  it('uses none in the code people see', () => {
+    // Comments are stripped by codeOf, so an explanation may still use an
+    // em dash; what renders may not.
+    const offenders = sourceFiles()
+      .filter((file) => !file.endsWith('.css') && !file.endsWith('platform-api.ts'))
+      .filter((file) => symbols.test(codeOf(file)));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('uses none in either message catalogue', () => {
+    const offenders: string[] = [];
+
+    for (const [language, catalogue] of [['ar', readFileSync(join(sourceRoot, 'i18n', 'messages', 'ar.json'), 'utf8')], ['en', readFileSync(join(sourceRoot, 'i18n', 'messages', 'en.json'), 'utf8')]] as const) {
+      (function walk(node: unknown, key: string) {
+        if (typeof node === 'string') {
+          if (symbols.test(node)) {
+            offenders.push(`${language}:${key}`);
+          }
+        } else if (node && typeof node === 'object') {
+          for (const [child, value] of Object.entries(node)) {
+            walk(value, key ? `${key}.${child}` : child);
+          }
+        }
+      })(JSON.parse(catalogue), '');
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('corners stay square', () => {
+  it('uses no large or pill-shaped radius', () => {
+    // Heavily rounded corners on every surface are the most recognisable
+    // trait of a generated interface. The token radii are two and three
+    // pixels; nothing reaches past them.
+    const forbidden = /\brounded-(?:xl|2xl|3xl|full)\b/;
+
+    const offenders = sourceFiles().filter((file) => forbidden.test(codeOf(file)));
+
+    expect(offenders).toEqual([]);
   });
 });

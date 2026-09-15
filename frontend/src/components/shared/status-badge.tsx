@@ -2,24 +2,30 @@
  * A status, said in words.
  *
  * **Colour is never the only carrier of meaning** (ARCHITECTURE.md §9.8). The
- * badge always contains the status as text; the tint is a second, redundant
- * signal. A colour-only status fails for a colour-blind reader, disappears in a
- * printed report, and tells a screen reader nothing at all.
+ * badge always contains the status as text. What distinguishes one tone from
+ * another is intensity along a single blue, not a change of hue:
  *
- * The border is what carries the distinction when colour is unavailable — solid
- * for neutral, and the tinted background is genuinely decoration here.
+ *   neutral   a grey outline        inactive, archived, nothing to act on
+ *   success   a light blue tint     active, delivered, in good order
+ *   warning   a deep blue outline   waiting, pending, worth a look
+ *   danger    solid deep blue       locked, failed, blocked
+ *
+ * These were grey, green, amber and red. A table whose last column is a row of
+ * four colours is the signature of an interface assembled from a kit; the same
+ * four states in one blue read as one designed system, still sort by urgency at
+ * a glance, and survive a black-and-white printout and a colour-blind reader,
+ * which the hues did not.
+ *
+ * The tone names stay as they were, because they describe meaning and every
+ * screen already chooses by meaning.
  */
 export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger';
 
 const tones: Record<StatusTone, string> = {
-  neutral:
-    'border-border-strong bg-surface-sunken text-text-secondary',
-  success:
-    'border-success bg-success-surface text-success',
-  warning:
-    'border-warning bg-warning-surface text-warning',
-  danger:
-    'border-danger bg-danger-surface text-danger',
+  neutral: 'border-border-strong bg-surface text-text-secondary',
+  success: 'border-primary-200 bg-positive-surface text-positive',
+  warning: 'border-caution bg-caution-surface font-semibold text-caution',
+  danger: 'border-attention bg-attention font-semibold text-text-on-primary',
 };
 
 export function StatusBadge({
@@ -31,7 +37,7 @@ export function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-sm border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
+      className={`inline-block whitespace-nowrap rounded-sm border px-2 py-0.5 text-xs ${tones[tone]}`}
     >
       {children}
     </span>

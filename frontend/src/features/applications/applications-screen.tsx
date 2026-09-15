@@ -236,7 +236,7 @@ export function ApplicationsScreen() {
                   type="button"
                   className={
                     application.isActive
-                      ? 'text-sm font-medium text-danger hover:underline'
+                      ? 'text-sm font-medium text-attention hover:underline'
                       : 'text-sm font-medium text-primary-700 hover:underline'
                   }
                   onClick={() => void setActive(application, !application.isActive)}
