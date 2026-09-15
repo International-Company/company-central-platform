@@ -93,7 +93,11 @@ echo "Checking the restored database"
 # until somebody uses the module that is missing.
 # The schema is 'authz', not 'authorization' -- the latter is a reserved word in
 # SQL and quoting it everywhere for ever was not worth the four saved characters.
-check "all eleven module schemas plus the kernel restored" "12" "
+# Eleven: ten module schemas and the kernel's. This said twelve, against a list
+# naming eleven, so it could not pass -- and nothing noticed, because the script
+# had never been run. A backup check that fails every good backup would have been
+# discovered in the middle of the incident it exists for.
+check "all ten module schemas plus the kernel restored" "11" "
   SELECT count(*) FROM information_schema.schemata
   WHERE schema_name IN (
     'kernel','identity','organization','authz','security','audit',
@@ -132,7 +136,9 @@ check_at_least "at least one role assignment survived" 1 "
 # --- The schema and the binary can agree on where they are ------------------
 # Without these the application tries to re-apply migrations onto a schema that
 # already has them.
-check_at_least "every module's migration history is present" 12 "
+# One history table per context, and there are eleven: the Operations module
+# owns no data and has none. This also said twelve.
+check_at_least "every module's migration history is present" 11 "
   SELECT count(*) FROM information_schema.tables
   WHERE table_name = '__ef_migrations_history';"
 

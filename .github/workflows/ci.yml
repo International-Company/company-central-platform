@@ -360,7 +360,7 @@ jobs:
       # trace explaining it was written to a stream nothing was reading.
       - name: Start the API
         run: |
-          dotnet run --project src/Host/CCP.Api.Host --configuration Release --urls http://localhost:5080             > api.log 2>&1 &
+          dotnet run --project src/Host/CCP.Api.Host --configuration Release --urls http://localhost:5080 > api.log 2>&1 &
           for _ in $(seq 1 60); do
             if curl -sf http://localhost:5080/health/ready > /dev/null; then
               echo "API ready."
@@ -402,6 +402,26 @@ jobs:
       - name: Run end-to-end tests
         working-directory: frontend
         run: npx playwright test
+
+      # A backup that has never been restored is a belief, not a backup (debt
+      # #66). This database is the most realistic one CI has: migrated by the
+      # real API, seeded with an administrator, and just used through a browser.
+      # It is dumped and restored with scripts/verify-restore.sh -- the script
+      # the runbook tells an operator to run -- so the procedure is exercised on
+      # every push rather than read and trusted.
+      #
+      # The tools come from the postgres:17 image because pg_dump refuses a
+      # server newer than itself, and the runner's client is not guaranteed to
+      # match the service. Wiring this up found the script expecting twelve
+      # schemas and twelve migration histories where there are eleven of each:
+      # it could never have passed, and had never been run to find out.
+      - name: A backup of this database restores and is usable
+        env:
+          PGPASSWORD: ci_only_not_a_real_secret
+        run: |
+          tools="docker run --rm --network host -e PGPASSWORD -v $PWD:/work -w /work postgres:17"
+          $tools pg_dump --format=custom --file=/work/ccp_e2e.dump "postgresql://postgres@localhost:5432/ccp_e2e"
+          $tools bash scripts/verify-restore.sh /work/ccp_e2e.dump "postgresql://postgres@localhost:5432/postgres"
 
       # The half of the story Playwright cannot see. A route handler that
       # throws answers 500 with an empty body; the reason is in these logs and
