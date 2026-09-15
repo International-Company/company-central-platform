@@ -10,8 +10,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    // Typed rather than left as `any`. An untyped catalogue import means a
-    // missing key is a runtime surprise instead of a build error.
+    // Typed rather than left as `any`. On its own that did not make a missing
+    // key a build error, though this comment said it did: tsc checked nothing
+    // about keys, and six calls across six screens asked for messages that
+    // did not exist, rendering "common.none" and "organization.activateRole"
+    // to the people using them. The keys are checked because next-intl.d.ts
+    // declares the catalogue's type to next-intl; this cast is not what does it.
     messages: (
       (await import(`./messages/${locale}.json`)) as {
         default: Record<string, unknown>;

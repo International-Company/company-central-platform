@@ -252,7 +252,7 @@ export function PositionsPanel({ enabled }: { enabled: boolean }) {
                   size="sm"
                   onClick={() => void setActive(position, !position.isActive)}
                 >
-                  {position.isActive ? t('deactivate') : t('activateRole')}
+                  {position.isActive ? t('deactivate') : t('activate')}
                 </Button>
               </div>
             </IfPermitted>

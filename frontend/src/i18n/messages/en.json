@@ -43,7 +43,8 @@
     "language": "Language",
     "yes": "Yes",
     "no": "No",
-    "required": "Required"
+    "required": "Required",
+    "none": "None"
   },
   "table": {
     "noResults": "No results",
@@ -297,7 +298,8 @@
     "level": "Level",
     "levelHint": "An optional number for ordering positions in the structure. Not a permission level.",
     "noPositions": "No positions yet",
-    "noPositionsDescription": "Create job titles to attach to employees, and to route work by later."
+    "noPositionsDescription": "Create job titles to attach to employees, and to route work by later.",
+    "activate": "Activate"
   },
   "security": {
     "title": "Security",
