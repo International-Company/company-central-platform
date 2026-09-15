@@ -4,6 +4,7 @@ using CCP.Modules.Identity.Contracts.Events;
 using CCP.Modules.Notifications.Application.Sending;
 using CCP.Modules.Notifications.Domain.Notifications;
 using CCP.Modules.Notifications.Domain.Preferences;
+using CCP.Modules.Security.Contracts.Events;
 using Microsoft.Extensions.Logging;
 
 namespace CCP.Modules.Notifications.Infrastructure.Listeners;
@@ -109,6 +110,55 @@ public sealed class PasswordChangedListener(
         {
             logger.LogWarning(
                 "Could not notify {User} that their password changed: {Error}",
+                integrationEvent.UserId,
+                result.Errors[0].Message);
+        }
+    }
+}
+
+/// <summary>
+/// Tells somebody that two-factor authentication was turned on for their account.
+/// <para>
+/// <b>The template for this was seeded and never sent.</b> Security published no
+/// integration events at all, so nothing outside it learned that an enrolment
+/// happened. It is the notification that exposes a takeover: an intruder with a
+/// stolen session enrols an authenticator of their own to keep access after the
+/// password is reset, and the real owner is who needs to know.
+/// </para>
+/// <para>
+/// In the security category, like the password-changed notice, so it is not
+/// something a person can switch off and then fail to hear about.
+/// </para>
+/// </summary>
+public sealed class MfaEnrolledListener(
+    NotificationSender sender,
+    ILogger<MfaEnrolledListener> logger)
+    : IIntegrationEventHandler<MfaEnrolledEvent>
+{
+    public async Task HandleAsync(
+        MfaEnrolledEvent integrationEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var result = await sender.SendAsync(
+            new SendRequest(
+                integrationEvent.UserId,
+                "security.mfa.enrolled",
+                NotificationPreference.SecurityCategory,
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["occurredAt"] = integrationEvent.At.ToString(
+                        "d MMMM yyyy HH:mm", CultureInfo.InvariantCulture)
+                },
+                    Channels: null,
+                    CausedBy: integrationEvent.EventId),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            logger.LogWarning(
+                "Could not notify {User} that two-factor authentication was turned on: {Error}",
                 integrationEvent.UserId,
                 result.Errors[0].Message);
         }

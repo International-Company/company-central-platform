@@ -3,6 +3,7 @@ using CCP.Kernel.Primitives;
 using CCP.Kernel.Results;
 using CCP.Modules.Security.Application.Abstractions;
 using CCP.Modules.Security.Contracts.Dtos;
+using CCP.Modules.Security.Contracts.Events;
 using CCP.Modules.Security.Domain;
 using CCP.Modules.Security.Domain.Events;
 using CCP.Modules.Security.Domain.Mfa;
@@ -132,6 +133,7 @@ public sealed class ConfirmMfaEnrolmentHandler(
     IRecoveryCodeGenerator recoveryCodeGenerator,
     ISecurityEventRecorder eventRecorder,
     ISecurityUnitOfWork unitOfWork,
+    ISecurityOutbox outbox,
     IAuditTrail auditTrail,
     IClock clock,
     IOptions<SecurityOptions> options)
@@ -193,6 +195,16 @@ public sealed class ConfirmMfaEnrolmentHandler(
                 now,
                 command.UserId,
                 command.Username),
+            cancellationToken);
+
+        // Published, so the account's owner is told. The security event above
+        // stays inside this module; until this line nothing outside it learned
+        // that an enrolment happened, and the notification written for exactly
+        // this moment -- seeded in both languages -- could never be sent.
+        // Staged in the same transaction, so nobody is told about an enrolment
+        // that was rolled back.
+        await outbox.EnqueueAsync(
+            new MfaEnrolledEvent(command.UserId, command.Username, now),
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

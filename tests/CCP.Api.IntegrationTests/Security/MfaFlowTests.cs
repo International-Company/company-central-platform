@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using CCP.Kernel.Infrastructure.Persistence;
 using CCP.Modules.Identity.Domain.Credentials;
 using CCP.Modules.Identity.Domain.Users;
 using CCP.Modules.Identity.Infrastructure.Persistence;
@@ -107,6 +108,42 @@ public sealed class MfaFlowTests(PlatformApiFactory factory) : IClassFixture<Pla
 
         Assert.Equal(10, body.GetProperty("count").GetInt32());
         Assert.Equal(10, body.GetProperty("codes").GetArrayLength());
+    }
+
+    /// <summary>
+    /// Turning a second factor on tells the account's owner.
+    /// <para>
+    /// The template was seeded in both languages and nothing could send it: the
+    /// Security module published no integration events, so no listener ever
+    /// learned an enrolment happened. It is the message that exposes an intruder
+    /// enrolling an authenticator of their own.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Confirm_StagesTheEnrolmentEventForTheOwnersNotification()
+    {
+        (HttpClient client, Guid userId) = await SignedInClientWithIdAsync();
+
+        using (client)
+        {
+            JsonElement enrolment = await EnrolAsync(client);
+
+            using HttpResponseMessage response = await client.PostAsJsonAsync(
+                new Uri("/api/v1/me/mfa/confirm", UriKind.Relative), new { code = CodeFor(enrolment) });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        await using KernelDbContext kernel = factory.CreateDbContext();
+
+        // The payload column is jsonb, which has no LIKE: filter on the type in
+        // SQL and look inside the payload here.
+        List<string> payloads = await kernel.OutboxMessages
+            .Where(message => message.EventType == "security.mfa.enrolled")
+            .Select(message => message.Payload)
+            .ToListAsync();
+
+        Assert.Contains(payloads, payload => payload.Contains(userId.ToString(), StringComparison.Ordinal));
     }
 
     [Fact]

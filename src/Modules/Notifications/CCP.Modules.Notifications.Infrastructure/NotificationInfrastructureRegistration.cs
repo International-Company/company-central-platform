@@ -85,6 +85,11 @@ public static class NotificationInfrastructureRegistration
                 Modules.Identity.Contracts.Events.UserPasswordChangedEvent>,
             Listeners.PasswordChangedListener>();
 
+        services.AddScoped<
+            CCP.Kernel.Application.Events.IIntegrationEventHandler<
+                Modules.Security.Contracts.Events.MfaEnrolledEvent>,
+            Listeners.MfaEnrolledListener>();
+
         return services;
     }
 }
