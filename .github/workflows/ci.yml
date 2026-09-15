@@ -140,12 +140,31 @@ jobs:
       - name: Status document agrees with itself
         run: python scripts/check-status-consistency.py
 
+      # Every unit test project, found rather than listed.
+      #
+      # This step named one project -- the kernel's -- for the whole life of the
+      # repository, while the ten module projects beside it were compiled and
+      # never run: 101 unit tests executed in CI out of 812 written.
+      # Every module's domain rules, the Argon2 and lockout tests, the step-up
+      # refusal, the subscription and workflow checks: all green locally, none of
+      # them able to turn this pipeline red. Found by reading the test-results
+      # artifact during a phase review, not by anything failing.
+      #
+      # The glob picks up a new module's tests the day they are added. The floor
+      # is there because a glob that stops matching runs nothing and passes.
       - name: Unit tests
-        run: >-
-          dotnet test tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj
-          --no-build --configuration Release
-          --logger "trx;LogFileName=unit.trx"
-          --collect:"XPlat Code Coverage"
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          projects=(tests/CCP.Kernel.UnitTests/CCP.Kernel.UnitTests.csproj tests/Modules/*/*.csproj)
+          if [ "${#projects[@]}" -lt 11 ]; then
+            echo "Only ${#projects[@]} unit test projects were found; the glob has broken." >&2
+            exit 1
+          fi
+          for project in "${projects[@]}"; do
+            name="$(basename "$project" .csproj)"
+            dotnet test "$project" --no-build --configuration Release --logger "trx;LogFileName=$name.trx" --collect:"XPlat Code Coverage"
+          done
 
       # The architecture rules of ARCHITECTURE.md §6, as executable assertions.
       # A violation fails the build rather than being noticed in review, or not.

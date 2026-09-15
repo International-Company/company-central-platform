@@ -179,7 +179,7 @@ Kernel and host only. No module contains behaviour yet. Empty module projects ma
 - [x] Every error response conforms to RFC 9457 with `code` and `correlationId` — verified over HTTP for all six error categories
 - [x] Correlation IDs appear in every log line and propagate through the request — including sanitisation of caller-supplied values
 - [x] Architecture tests pass and **fail** when a deliberate violation is introduced — verified by introducing `Api → Infrastructure` and reverting it
-- [ ] CI is green on a pull request and fails on a planted test secret — **pipeline written, not yet run** (no remote repository)
+- [ ] CI is green on a pull request and fails on a planted test secret — CI now runs on every push and pull request and is green; gitleaks scans **every pushed commit** (verified in the job logs: a two-commit push reports two scanned). **That it fails on a planted secret has never been demonstrated** *(reviewed 2026-09-15)*
 - [x] No secret exists anywhere in the repository or its history — `.gitignore` written before the first file
 - [x] Code coverage collection configured in CI
 
@@ -236,14 +236,14 @@ Full Identity module: Contracts, Domain, Application, Infrastructure, Api. **MFA
 - API: every endpoint's contract and error shape
 
 ### Acceptance Criteria
-- [ ] A user can log in, refresh and log out; logout invalidates the refresh token **server-side**
-- [ ] A replayed refresh token revokes the entire session family and raises a security event
-- [ ] Passwords are Argon2id; no plaintext or reversible storage anywhere
-- [ ] Password reset cannot be used to discover whether an account exists
-- [ ] Lockout works and cannot be used to lock out an arbitrary user indefinitely
-- [ ] A user can list and revoke their own sessions
-- [ ] Test coverage on this module ≥ 85%, with every security test passing
-- [ ] The bootstrap administrator procedure is documented and produces no hardcoded credential
+- [x] A user can log in, refresh and log out; logout invalidates the refresh token **server-side** — `SignOut_RevokesTheSessionServerSide`, `Refresh_RotatesTheToken` *(reviewed 2026-09-15)*
+- [x] A replayed refresh token revokes the entire session family and raises a security event — `Refresh_RejectsAnAlreadyUsedToken_AndRevokesTheWholeFamily`; the handler stages `RefreshTokenReusedEvent` (the test asserts the revocation, not the event) *(reviewed 2026-09-15)*
+- [x] Passwords are Argon2id; no plaintext or reversible storage anywhere — `Hash_NeverContainsThePlaintext`, `Hash_IsSelfDescribing`, `RefreshTokens_AreStoredHashed` *(reviewed 2026-09-15)*
+- [x] Password reset cannot be used to discover whether an account exists — the request handler returns success for an unknown, disabled or pending account and delivers the token only by email; true by construction, **no HTTP test covers it** *(reviewed 2026-09-15)*
+- [x] Lockout works and cannot be used to lock out an arbitrary user indefinitely — `SignIn_LocksTheAccount_AfterRepeatedFailures`, `Lockout_LapsesOnItsOwn` *(reviewed 2026-09-15)*
+- [ ] A user can list and revoke their own sessions — **listing is built (`GET /me/sessions`); revoking one is not.** A user who suspects a stolen session can end only the one they are signed in with *(reviewed 2026-09-15)*
+- [ ] Test coverage on this module ≥ 85%, with every security test passing — **82.2% measured** (line coverage, local unit runs merged with CI's integration run): Domain 94%, Infrastructure 90%, Api 78%, **Application 47%**. Just short, and the gap is the handlers *(reviewed 2026-09-15)*
+- [x] The bootstrap administrator procedure is documented and produces no hardcoded credential — `docs/identity/bootstrap-administrator.md`; missing settings are a fatal startup error *(reviewed 2026-09-15)*
 
 ### Status
 🟡 **Feature-complete against the phase plan; not yet verified.**
@@ -316,12 +316,12 @@ Full Organization module.
 - API: filtering, paging, sorting; bilingual fields returned correctly
 
 ### Acceptance Criteria
-- [ ] Arbitrary nesting depth works; no fixed limit on departments, sections or centers
-- [ ] Moving a department correctly updates all descendants in one transaction
-- [ ] A cycle in the hierarchy or in manager relationships is impossible
-- [ ] An employee may exist without a user account, and a user without an employee record
-- [ ] Tree query for a 5,000-node organization returns within the performance budget
-- [ ] Coverage ≥ 80%
+- [x] Arbitrary nesting depth works; no fixed limit on departments, sections or centers — `ArbitraryDepth_IsSupported` *(reviewed 2026-09-15)*
+- [x] Moving a department correctly updates all descendants in one transaction — `HierarchyPersistenceTests` through the real handler, `Move_RepointsTheParentAndRebuildsThePath` *(reviewed 2026-09-15)*
+- [x] A cycle in the hierarchy or in manager relationships is impossible — `MovingAUnitUnderItsOwnDescendant_ChangesNothing`, `ManagementChain` tests *(reviewed 2026-09-15)*
+- [x] An employee may exist without a user account, and a user without an employee record — `AnEmployeeWithNoAccountContributesNothing`; the manager strategy tolerates a user with no record *(reviewed 2026-09-15)*
+- [ ] Tree query for a 5,000-node organization returns within the performance budget — **never measured** (needs realistic data, #74) *(reviewed 2026-09-15)*
+- [ ] Coverage ≥ 80% — **67.8% measured** (line coverage, local unit runs merged with CI's integration run): Infrastructure 90%, Domain 69%, Api 61%, **Application 12%** *(reviewed 2026-09-15)*
 
 ### Status
 🟡 **Core complete.** Unit hierarchy with materialized path and arbitrary
@@ -387,12 +387,12 @@ Full Authorization module, plus a sweep of earlier modules to attach permissions
 - Architecture: a test fails the build if any endpoint lacks a permission declaration or an explicit anonymous marker
 
 ### Acceptance Criteria
-- [ ] Every endpoint in the Platform declares a permission or is explicitly anonymous — enforced by a build-failing test
-- [ ] Revoking a role takes effect on the very next request (no stale-cache window)
-- [ ] A user cannot grant a permission they do not hold, and cannot modify their own roles
-- [ ] Scope restricts data, not merely access — verified by asserting returned rows, not status codes
-- [ ] A simulated business application registers permissions and receives correct decisions
-- [ ] Coverage ≥ 85%
+- [x] Every endpoint in the Platform declares a permission or is explicitly anonymous — enforced by a build-failing test, and **exercised** by `AuthorizationMatrixTests` against every route *(reviewed 2026-09-15)*
+- [x] Revoking a role takes effect on the very next request (no stale-cache window) — `RevokingARoleTakesEffectOnTheNextResolution` *(reviewed 2026-09-15)*
+- [x] A user cannot grant a permission they do not hold, and cannot modify their own roles — `SetRolePermissionsHandler` refuses and audits the attempt, and `SelfManagement_IsRejected` covers the second half; **the refusal to grant an unheld permission had no test until this review added `GrantingAPermissionTheCallerDoesNotHoldIsRefused`** *(reviewed 2026-09-15)*
+- [x] Scope restricts data, not merely access — verified by asserting returned rows, not status codes — `UserPlacementTests` assert who is and is not under a unit *(reviewed 2026-09-15)*
+- [x] A simulated business application registers permissions and receives correct decisions — `MachineAccessTests` (ten scenarios) and `samples/reference-client` *(reviewed 2026-09-15)*
+- [ ] Coverage ≥ 85% — **76.0% measured** (line coverage, local unit runs merged with CI's integration run): Infrastructure 92%, Domain 84%, Api 70%, **Application 28%** *(reviewed 2026-09-15)*
 
 ### Status
 🟡 **Core complete.** RBAC with organizational scope, enforcement wired
@@ -457,13 +457,13 @@ Full Security module, plus MFA integration into the Phase 2 authentication flow.
 - Security: MFA cannot be bypassed by calling a later endpoint directly; recovery codes cannot be reused; rate limits cannot be evaded by header manipulation
 
 ### Acceptance Criteria
-- [ ] MFA can be enrolled, challenged, recovered and disabled — with every step audited
-- [ ] MFA is not bypassable by any endpoint ordering
-- [ ] Rate limiting is effective and returns the correct status and headers
-- [ ] All required security headers present; verified by an automated scan
-- [ ] No secret in source control; CI fails on a planted secret
-- [ ] Dependency and container scans pass with no high or critical findings
-- [ ] Coverage ≥ 85%
+- [x] MFA can be enrolled, challenged, recovered and disabled — with every step audited — `MfaFlowTests` *(reviewed 2026-09-15)*
+- [x] MFA is not bypassable by any endpoint ordering — `StepUpCoverageTests` pins the set in both directions; `MfaFlowTests` runs against PostgreSQL on every push *(reviewed 2026-09-15)*
+- [x] Rate limiting is effective and returns the correct status and headers — `RateLimitTests` asserts the 429 and `Retry-After` over HTTP *(reviewed 2026-09-15)*
+- [x] All required security headers present; verified by an automated scan — `Response_CarriesSecurityHeaders`, `ErrorResponses_AlsoCarrySecurityHeaders` *(reviewed 2026-09-15)*
+- [ ] No secret in source control; CI fails on a planted secret — every pushed commit is scanned; **failing on a planted one has never been demonstrated** *(reviewed 2026-09-15)*
+- [x] Dependency and container scans pass with no high or critical findings — `dotnet list package --vulnerable` and Trivy both fail the build on HIGH or CRITICAL, on every push *(reviewed 2026-09-15)*
+- [x] Coverage ≥ 85% — **87.6% measured** (line coverage, local unit runs merged with CI's integration run): Domain 98%, Infrastructure 91%, Api 83%, Application 70% *(reviewed 2026-09-15)*
 
 ### Status
 🟡 **Core complete.** Tasks 1, 2, 4, 5, 7, 8 (partly) and 11 delivered.
@@ -487,12 +487,12 @@ Full Security module, plus MFA integration into the Phase 2 authentication flow.
 | Criterion | Result |
 |---|---|
 | MFA enrolled, challenged, recovered, disabled | ✅ Built; every step writes a security event |
-| MFA not bypassable by endpoint ordering | 🟡 Enforced by design — verification requires an active enrolment and elevation is server-side — but **unverified against a database** |
-| Rate limiting effective, correct status and headers | 🟡 Policies applied and guarded by an architecture test; the 429 and `Retry-After` behaviour has not been exercised over HTTP |
+| MFA not bypassable by endpoint ordering | ✅ **Updated 2026-09-15.** Was "unverified against a database"; `MfaFlowTests` now runs against PostgreSQL on every push, and `StepUpCoverageTests` pins the protected set |
+| Rate limiting effective, correct status and headers | ✅ **Updated 2026-09-15.** `RateLimitTests` exercises the 429 and its `Retry-After` over HTTP |
 | Security headers present | ✅ With a regression test covering error responses |
-| No secret in source control; CI fails on a planted secret | ✅ gitleaks over full history |
-| Dependency and container scans clean | ✅ Configured in CI; never executed (no push) |
-| Coverage ≥ 85% | ⬜ Not measured |
+| No secret in source control; CI fails on a planted secret | 🟡 **Corrected 2026-09-15.** This said "gitleaks over full history". It scans every *pushed* commit, which the job logs confirm, not the history as a whole; and failing on a planted secret has never been demonstrated |
+| Dependency and container scans clean | ✅ Executed on every push and gating on HIGH or CRITICAL |
+| Coverage ≥ 85% | ✅ **Measured 2026-09-15: 87.6%** (line coverage, local unit runs merged with CI's integration run) |
 
 ### Known Issues
 1. **Nothing in this module has run against a real database** (blocker B1). The 15 integration tests are written and unexecuted.
@@ -504,7 +504,7 @@ Full Security module, plus MFA integration into the Phase 2 authentication flow.
 ### Risks
 | Risk | Impact | Mitigation | Outcome |
 |---|---|---|---|
-| MFA locks out legitimate users | High operational | Recovery codes + a documented, audited administrative reset procedure | 🟡 Recovery codes built; **the administrative reset procedure is not** — this risk is only half mitigated |
+| MFA locks out legitimate users | High operational | Recovery codes + a documented, audited administrative reset procedure | ✅ **Updated 2026-09-15.** The administrative reset shipped (`POST /api/v1/security/users/{userId}/mfa/reset`, step-up, written reason, audited) |
 | Rate limits too aggressive for real usage | Medium | Tunable configuration; monitor rejections in staging before production | 🟡 Configurable per class; no staging environment exists to monitor |
 | Secret manager unavailable at startup | High | Fail fast and loudly with a clear message; document the recovery path | ✅ Startup fails outside Development with a message naming the setting; documented in `docs/security/secrets-management.md` |
 
@@ -540,13 +540,13 @@ Full Audit module, plus an audit sweep of all earlier modules.
 - Security: an application cannot write events attributed to another application; audit export requires its permission and is itself audited
 
 ### Acceptance Criteria
-- [ ] Every security-relevant action in Phases 2–5 produces an audit event
-- [ ] Audit rows cannot be modified or deleted — proven by an integration test that attempts it and fails
-- [ ] A rolled-back transaction produces no audit event; a committed one always does
-- [ ] Search over 10 million seeded events returns within the 2 s budget
-- [ ] No password, token or secret appears in any audit record, including in old/new values
-- [ ] A simulated external application successfully ingests events
-- [ ] Coverage ≥ 80%
+- [ ] Every security-relevant action in Phases 2–5 produces an audit event — every state-changing handler records, and a build-failing test holds that; **sign-in and refresh go only to the security event log**, a deliberate split recorded in the actual-result table, so "every" is not literally true *(reviewed 2026-09-15)*
+- [x] Audit rows cannot be modified or deleted — proven by an integration test that attempts it and fails — `AnUpdateIsRefusedForAnOrdinaryRole`, `ADeleteIsRefusedForAnOrdinaryRole`, `ATruncateIsRefusedForAnOrdinaryRole` *(reviewed 2026-09-15)*
+- [ ] A rolled-back transaction produces no audit event; a committed one always does — **not how audit is built**: the recorder commits on its own context by design, so an audit entry can survive a rolled-back change. Needs the outbox-based ingestion (task 3) to become true *(reviewed 2026-09-15)*
+- [ ] Search over 10 million seeded events returns within the 2 s budget — **never measured** (#74) *(reviewed 2026-09-15)*
+- [x] No password, token or secret appears in any audit record, including in old/new values — the redaction suite *(reviewed 2026-09-15)*
+- [ ] A simulated external application successfully ingests events — `POST /api/v1/audit/events` and `/events/batch` exist and are unit-tested; **no end-to-end test drives them with a machine token** *(reviewed 2026-09-15)*
+- [ ] Coverage ≥ 80% — **79.6% measured** (line coverage, local unit runs merged with CI's integration run): Domain 99%, Infrastructure 92%, Api 47%, **Application 41%**. Just short *(reviewed 2026-09-15)*
 
 ### Status
 🟡 **Core complete.** Tasks 1, 2, 4, 5, 6, 8 and 11 delivered.
@@ -570,12 +570,12 @@ Full Audit module, plus an audit sweep of all earlier modules.
 | Criterion | Result |
 |---|---|
 | Every security-relevant action in Phases 2–5 produces an audit event | 🟡 Every state-changing handler records, and a test fails the build if one stops. Sign-in and refresh still go only to the security event log — a deliberate split, but it means "every security-relevant action" is not literally true |
-| Audit rows cannot be modified or deleted | 🟡 Enforced in code and by privilege; **the integration test that attempts an UPDATE and expects failure is not written** |
+| Audit rows cannot be modified or deleted | ✅ **Updated 2026-09-15.** The integration tests exist and run on every push: an UPDATE, a DELETE and a TRUNCATE are each refused for an ordinary role |
 | A rolled-back transaction produces no audit event | 🟡 True of the outbox path, which does not exist yet; direct writes commit independently by design |
 | Search over 10 million events within 2 s | ⬜ Unmeasured |
 | No password, token or secret in any record | ✅ 30 redaction tests, including nested objects, arrays and whole subtrees |
 | A simulated external application ingests events | 🟡 Endpoints built and unit-tested; no end-to-end simulation |
-| Coverage ≥ 80% | ⬜ Not measured |
+| Coverage ≥ 80% | 🟡 **Measured 2026-09-15: 79.6%** (line coverage, local unit runs merged with CI's integration run); Application 41% |
 
 ### Known Issues
 1. **Append-only is unproven at the database.** The privilege revocation runs, but no test yet attempts an UPDATE and asserts it fails.
@@ -686,7 +686,7 @@ Full Workflow module plus its frontend screens.
 - [ ] An action by a non-assignee is rejected and recorded
 - [ ] SLA escalation fires correctly
 - [ ] A simulated business application registers a definition, starts an instance and receives the completion callback
-- [ ] Coverage ≥ 80%
+- [ ] Coverage ≥ 80% — **collected in CI on every push and never read** *(reviewed 2026-09-15)*
 
 ### Status
 ⬜ Not started
@@ -737,7 +737,7 @@ Full Notifications module plus screens.
 - [ ] A new channel can be added by implementing one interface and registering it — demonstrated with a stub provider
 - [ ] Failures retry and then surface in administration rather than disappearing
 - [ ] Security notifications cannot be disabled by preference
-- [ ] Coverage ≥ 80%
+- [ ] Coverage ≥ 80% — **collected in CI on every push and never read** *(reviewed 2026-09-15)*
 
 ### Status
 ⬜ Not started
@@ -789,7 +789,7 @@ Full Documents module plus screens.
 - [ ] Every download is logged with actor, time and IP
 - [ ] Binary content never enters PostgreSQL
 - [ ] Deletion is recoverable within the grace period
-- [ ] Coverage ≥ 80%
+- [ ] Coverage ≥ 80% — **collected in CI on every push and never read** *(reviewed 2026-09-15)*
 
 ### Status
 ⬜ Not started
@@ -840,7 +840,7 @@ Kernel and Authorization extensions plus a small API-platform surface; no new mo
 - [ ] Per-application rate limits are enforced
 - [ ] OpenAPI documents every endpoint with its permission and error codes
 - [ ] The reference client runs successfully against a live instance
-- [ ] Coverage ≥ 80%
+- [ ] Coverage ≥ 80% — **collected in CI on every push and never read** *(reviewed 2026-09-15)*
 
 ### Status
 ⬜ Not started
@@ -892,7 +892,7 @@ Full Integrations module plus screens. **Connectors for specific providers are b
 - [ ] Every call is logged with sensitive fields redacted
 - [ ] A provider outage degrades one capability, not the Platform
 - [ ] Inbound webhooks verify signatures and reject replays
-- [ ] Coverage ≥ 80%
+- [ ] Coverage ≥ 80% — **collected in CI on every push and never read** *(reviewed 2026-09-15)*
 
 ### Status
 ⬜ Not started
@@ -940,7 +940,7 @@ Full Configuration module plus screens.
 - [ ] Every change records old value, new value, actor and time
 - [ ] Feature flags can be toggled without deployment
 - [ ] No secret is stored as a configuration value
-- [ ] Coverage ≥ 80%
+- [ ] Coverage ≥ 80% — **collected in CI on every push and never read** *(reviewed 2026-09-15)*
 
 ### Status
 ⬜ Not started
