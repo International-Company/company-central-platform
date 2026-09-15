@@ -80,8 +80,6 @@ public sealed class PasswordCostReport(
     /// </summary>
     public void Report()
     {
-        Argon2Options settings = options.Value;
-
         TimeSpan cost;
 
         try
@@ -99,6 +97,24 @@ public sealed class PasswordCostReport(
 
             return;
         }
+
+        Report(cost);
+    }
+
+    /// <summary>
+    /// Decides what to say about a measured cost.
+    /// <para>
+    /// Separate from the measurement so the decision can be tested without the
+    /// hardware deciding the outcome. It was not, and the test that checked
+    /// "cheap parameters are warned about" passed on a developer laptop and
+    /// failed on the CI runner, where the deliberately cheap parameters took
+    /// longer than the floor — the first time the module unit tests ran in CI at
+    /// all, and the first thing they found.
+    /// </para>
+    /// </summary>
+    public void Report(TimeSpan cost)
+    {
+        Argon2Options settings = options.Value;
 
         string parameters = string.Create(
             CultureInfo.InvariantCulture,

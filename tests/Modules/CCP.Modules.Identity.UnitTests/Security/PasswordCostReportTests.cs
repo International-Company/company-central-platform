@@ -50,15 +50,33 @@ public sealed class PasswordCostReportTests
     /// the numbers that must never reach a deployment by being copied.
     /// </para>
     /// </summary>
+    /// <para>
+    /// Given a measured cost rather than measuring one. This test used to hash
+    /// with deliberately cheap parameters and expect the warning, which let the
+    /// machine decide the result: on the CI runner those parameters took longer
+    /// than the floor, no warning was logged, and the test failed the first time
+    /// it ever ran there.
+    /// </para>
     [Fact]
     public void CheapParametersAreWarnedAbout()
     {
         var log = new RecordingLogger();
 
         Build(new Argon2Options { MemoryKib = 8192, Iterations = 1, Parallelism = 1 }, log)
-            .Report();
+            .Report(TimeSpan.FromMilliseconds(20));
 
         Assert.Contains(log.Warnings, message => message.Contains("floor", StringComparison.Ordinal));
+    }
+
+    /// <summary>A cost over the ceiling is said out loud too, as slow rather than unsafe.</summary>
+    [Fact]
+    public void ExpensiveParametersAreWarnedAbout()
+    {
+        var log = new RecordingLogger();
+
+        Build(new Argon2Options(), log).Report(TimeSpan.FromMilliseconds(2500));
+
+        Assert.Contains(log.Warnings, message => message.Contains("slow", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -69,7 +87,9 @@ public sealed class PasswordCostReportTests
     {
         var log = new RecordingLogger();
 
-        Build(new Argon2Options(), log).Report();
+        // Between the floor and the ceiling, given rather than measured: a busy
+        // runner could otherwise push the real defaults past the ceiling.
+        Build(new Argon2Options(), log).Report(TimeSpan.FromMilliseconds(300));
 
         Assert.Empty(log.Warnings);
     }

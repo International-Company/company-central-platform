@@ -161,10 +161,18 @@ jobs:
             echo "Only ${#projects[@]} unit test projects were found; the glob has broken." >&2
             exit 1
           fi
+          # Every project runs even when one fails, so a single failure cannot
+          # hide whether the rest pass. The first run of this loop stopped at the
+          # first red project and left five others unrun.
+          failed=()
           for project in "${projects[@]}"; do
             name="$(basename "$project" .csproj)"
-            dotnet test "$project" --no-build --configuration Release --logger "trx;LogFileName=$name.trx" --collect:"XPlat Code Coverage"
+            dotnet test "$project" --no-build --configuration Release --logger "trx;LogFileName=$name.trx" --collect:"XPlat Code Coverage" || failed+=("$name")
           done
+          if [ "${#failed[@]}" -gt 0 ]; then
+            echo "Unit test projects with failures: ${failed[*]}" >&2
+            exit 1
+          fi
 
       # The architecture rules of ARCHITECTURE.md §6, as executable assertions.
       # A violation fails the build rather than being noticed in review, or not.
