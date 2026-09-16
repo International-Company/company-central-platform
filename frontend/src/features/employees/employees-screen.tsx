@@ -276,43 +276,43 @@ export function EmployeesScreen() {
               actions: tCommon('actions'),
             }}
             rowActions={(employee) => (
-              <div className="flex flex-wrap justify-end gap-2">
-                {/*
-                  Outside the manage guard on purpose: reading what is held
-                  about somebody is a view permission, and the panel guards its
-                  own editing.
-                */}
-                <Button
-                  variant="quiet"
-                  size="sm"
-                  onClick={() =>
-                    setShowingAttributes(
-                      showingAttributes?.id === employee.id ? null : employee)
-                  }
-                >
-                  {t('attributes')}
-                </Button>
+              <>
+              {/*
+                Outside the manage guard on purpose: reading what is held
+                about somebody is a view permission, and the panel guards its
+                own editing.
+              */}
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() =>
+                  setShowingAttributes(
+                    showingAttributes?.id === employee.id ? null : employee)
+                }
+              >
+                {t('attributes')}
+              </Button>
 
-                <IfPermitted permission="platform.employees.manage">
-                  <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    variant="quiet"
-                    size="sm"
-                    onClick={() => setTransferring(employee)}
-                  >
-                    {t('transfer')}
-                  </Button>
+              <IfPermitted permission="platform.employees.manage">
+                <>
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() => setTransferring(employee)}
+              >
+                {t('transfer')}
+              </Button>
 
-                  <Button
-                    variant="quiet"
-                    size="sm"
-                    onClick={() => setLinking(employee)}
-                  >
-                    {employee.userId ? t('account') : t('linkAccount')}
-                  </Button>
-                  </div>
-                </IfPermitted>
-              </div>
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() => setLinking(employee)}
+              >
+                {employee.userId ? t('account') : t('linkAccount')}
+              </Button>
+              </>
+              </IfPermitted>
+            </>
             )}
           />
 

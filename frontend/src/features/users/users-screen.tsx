@@ -340,53 +340,53 @@ export function UsersScreen() {
               // account that is not locked is a button that does nothing, and a
               // button that does nothing teaches people to distrust the others.
               <IfPermitted permission="platform.users.edit">
-                <div className="flex flex-wrap justify-end gap-2">
+                <>
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  onClick={() => setForm({ editing: user })}
+                >
+                  {tCommon('edit')}
+                </Button>
+
+                <IfPermitted permission="platform.roles.assign">
                   <Button
                     variant="quiet"
                     size="sm"
-                    onClick={() => setForm({ editing: user })}
+                    onClick={() => setManagingRoles(user)}
                   >
-                    {tCommon('edit')}
+                    {tRoles('manageRoles')}
                   </Button>
+                </IfPermitted>
 
-                  <IfPermitted permission="platform.roles.assign">
-                    <Button
-                      variant="quiet"
-                      size="sm"
-                      onClick={() => setManagingRoles(user)}
-                    >
-                      {tRoles('manageRoles')}
-                    </Button>
-                  </IfPermitted>
+                {user.status === 'Locked' ? (
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setPending({ user, action: 'unlock' })}
+                  >
+                    {t('unlock')}
+                  </Button>
+                ) : null}
 
-                  {user.status === 'Locked' ? (
-                    <Button
-                      variant="quiet"
-                      size="sm"
-                      onClick={() => setPending({ user, action: 'unlock' })}
-                    >
-                      {t('unlock')}
-                    </Button>
-                  ) : null}
-
-                  {user.status === 'Disabled' ? (
-                    <Button
-                      variant="quiet"
-                      size="sm"
-                      onClick={() => setPending({ user, action: 'enable' })}
-                    >
-                      {t('enable')}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="quiet"
-                      size="sm"
-                      onClick={() => setPending({ user, action: 'disable' })}
-                    >
-                      {t('disable')}
-                    </Button>
-                  )}
-                </div>
+                {user.status === 'Disabled' ? (
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setPending({ user, action: 'enable' })}
+                  >
+                    {t('enable')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setPending({ user, action: 'disable' })}
+                  >
+                    {t('disable')}
+                  </Button>
+                )}
+              </>
               </IfPermitted>
             )}
           />

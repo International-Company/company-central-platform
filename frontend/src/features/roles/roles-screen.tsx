@@ -165,48 +165,48 @@ export function RolesScreen() {
           }}
           rowActions={(role) => (
             <IfPermitted permission="platform.roles.manage">
-              <div className="flex flex-wrap justify-end gap-2">
-                {/* A system role is maintained by the Platform from its own
-                    endpoints. Editing it would be overwritten on the next
-                    startup, so the controls are not offered. */}
-                {role.isSystem ? null : (
-                  <>
+              <>
+              {/* A system role is maintained by the Platform from its own
+                  endpoints. Editing it would be overwritten on the next
+                  startup, so the controls are not offered. */}
+              {role.isSystem ? null : (
+                <>
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setForm({ editing: role })}
+                  >
+                    {tCommon('edit')}
+                  </Button>
+
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={() => setPermissionsFor(role)}
+                  >
+                    {t('editPermissions')}
+                  </Button>
+
+                  {role.isActive ? (
                     <Button
                       variant="quiet"
                       size="sm"
-                      onClick={() => setForm({ editing: role })}
+                      onClick={() => setDeactivating(role)}
                     >
-                      {tCommon('edit')}
+                      {t('deactivateRole')}
                     </Button>
-
+                  ) : (
                     <Button
                       variant="quiet"
                       size="sm"
-                      onClick={() => setPermissionsFor(role)}
+                      onClick={() => void setActive(role, true)}
                     >
-                      {t('editPermissions')}
+                      {t('activateRole')}
                     </Button>
-
-                    {role.isActive ? (
-                      <Button
-                        variant="quiet"
-                        size="sm"
-                        onClick={() => setDeactivating(role)}
-                      >
-                        {t('deactivateRole')}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="quiet"
-                        size="sm"
-                        onClick={() => void setActive(role, true)}
-                      >
-                        {t('activateRole')}
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
+                  )}
+                </>
+              )}
+            </>
             </IfPermitted>
           )}
         />

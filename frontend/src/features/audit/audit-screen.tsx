@@ -268,8 +268,8 @@ export function AuditScreen() {
       ) : (
         !error && (
           <EmptyState
-            title={t('dateRangeRequired')}
-            description={t('description')}
+            title={t('notSearchedYet')}
+            description={t('notSearchedYetDescription')}
           />
         )
       )}

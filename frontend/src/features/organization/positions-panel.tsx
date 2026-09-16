@@ -239,23 +239,23 @@ export function PositionsPanel({ enabled }: { enabled: boolean }) {
           }}
           rowActions={(position) => (
             <IfPermitted permission="platform.organization.manage">
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  variant="quiet"
-                  size="sm"
-                  onClick={() => setForm({ editing: position })}
-                >
-                  {tCommon('edit')}
-                </Button>
+              <>
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() => setForm({ editing: position })}
+              >
+                {tCommon('edit')}
+              </Button>
 
-                <Button
-                  variant="quiet"
-                  size="sm"
-                  onClick={() => void setActive(position, !position.isActive)}
-                >
-                  {position.isActive ? t('deactivate') : t('activate')}
-                </Button>
-              </div>
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() => void setActive(position, !position.isActive)}
+              >
+                {position.isActive ? t('deactivate') : t('activate')}
+              </Button>
+            </>
             </IfPermitted>
           )}
         />

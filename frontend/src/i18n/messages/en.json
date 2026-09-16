@@ -151,7 +151,9 @@
     "resultFailure": "Failure",
     "resultDenied": "Denied",
     "dateRangeRequired": "Choose a date range to search.",
-    "dateRangeTooWide": "The range is too wide. Narrow it to 90 days or fewer."
+    "dateRangeTooWide": "The range is too wide. Narrow it to 90 days or fewer.",
+    "notSearchedYet": "Nothing has been searched yet.",
+    "notSearchedYetDescription": "The range above is the last seven days. Change it if you need to, then press search."
   },
   "employees": {
     "title": "Employees",

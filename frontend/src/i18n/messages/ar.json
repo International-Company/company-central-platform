@@ -151,7 +151,9 @@
     "resultFailure": "فشل",
     "resultDenied": "رفض",
     "dateRangeRequired": "اختر نطاقًا زمنيًا للبحث.",
-    "dateRangeTooWide": "النطاق واسع. ضيّقه إلى 90 يومًا أو أقل."
+    "dateRangeTooWide": "النطاق واسع. ضيّقه إلى 90 يومًا أو أقل.",
+    "notSearchedYet": "لم يُبحث بعد.",
+    "notSearchedYetDescription": "النطاق أعلاه هو آخر سبعة أيام. غيّره إن شئت، ثم اضغط بحث."
   },
   "employees": {
     "title": "الموظفون",

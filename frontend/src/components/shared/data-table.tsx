@@ -1,6 +1,5 @@
 'use client';
 
-import { Children, Fragment, isValidElement } from 'react';
 import type { ReactNode } from 'react';
 
 /**
@@ -80,58 +79,32 @@ export interface DataTableProps<TRow> {
  * They are simply large enough to hit.
  */
 const RowActions =
-  'flex flex-wrap items-center justify-end gap-x-4 gap-y-2 ' +
+  'flex flex-wrap items-center justify-end gap-y-2 ' +
   '[&_button]:inline-flex [&_button]:min-h-6 [&_button]:min-w-6 [&_button]:items-center ' +
   '[&_a]:inline-flex [&_a]:min-h-6 [&_a]:min-w-6 [&_a]:items-center ' +
   // Every screen writes its own row links, and they had drifted: some
-  // underlined flush against the text, some not at all. Set here so they
-  // match without fourteen files having to agree.
-  '[&_button]:underline-offset-4 [&_a]:underline-offset-4';
-
-/**
- * Row actions, with a hairline between them.
- *
- * Three links separated only by a gap read as one phrase. In English the
- * capitals and the longer words carry it. In Arabic the words are shorter and
- * set tighter: the roles screen showed three across one cell, and because the
- * middle one is a noun they read as one instruction rather than as three
- * things a person may do. A rule is not a symbol standing in for a word;
- * separating is what a rule is for.
- *
- * Fragments are unwrapped first. Every screen returns its actions as one, and
- * `Children.toArray` counts a fragment as a single child, so without this the
- * separators would never appear anywhere.
- */
-function Separated({ children }: { children: ReactNode }) {
-  const actions = unwrap(children);
-
-  if (actions.length < 2) {
-    return <>{children}</>;
-  }
-
-  return (
-    <>
-      {actions.map((action, index) => (
-        <Fragment key={index}>
-          {index > 0 ? (
-            <span aria-hidden="true" className="h-3.5 w-px shrink-0 bg-border-strong" />
-          ) : null}
-
-          {action}
-        </Fragment>
-      ))}
-    </>
-  );
-}
-
-/** Children, with fragments flattened and blanks dropped. */
-function unwrap(node: ReactNode): ReactNode[] {
-  return Children.toArray(node).flatMap((child) =>
-    isValidElement(child) && child.type === Fragment
-      ? unwrap((child.props as { children?: ReactNode }).children)
-      : [child],
-  );
-}
+  // underlined flush against the text, some not at all. Set here so they match
+  // without fourteen files having to agree.
+  '[&_button]:underline-offset-4 [&_a]:underline-offset-4 ' +
+  // A hairline between one action and the next. Three links separated only by
+  // a gap read as one phrase: in Arabic the words are shorter and set tighter,
+  // and the roles screen showed three across one cell where the middle one is
+  // a noun, so "edit permissions deactivate" read as a single instruction. A
+  // rule is not a symbol standing in for a word; separating is what a rule is
+  // for.
+  //
+  // Drawn as a pseudo-element rather than a border, because the quiet button
+  // sets a transparent border on all four sides and which of the two
+  // declarations won would depend on the order of the generated stylesheet.
+  //
+  // Selected in the DOM rather than in the element tree. The first version
+  // walked React's children and inserted separators between them, and it
+  // produced none anywhere: every screen wraps its actions in a permission
+  // guard, which is an element, so the table saw one child. The guard renders
+  // to nothing, so in the document the buttons are siblings.
+  '[&>*+*]:relative [&>*+*]:ms-4 [&>*+*]:ps-4 ' +
+  "[&>*+*]:before:absolute [&>*+*]:before:inset-y-0.5 [&>*+*]:before:start-0 " +
+  "[&>*+*]:before:w-px [&>*+*]:before:bg-border-strong [&>*+*]:before:content-['']";
 
 export function DataTable<TRow>({
   columns,
@@ -245,7 +218,7 @@ export function DataTable<TRow>({
                 {rowActions ? (
                   <td className="px-3 py-2.5 align-middle">
                     <div className={RowActions}>
-                      <Separated>{rowActions(row)}</Separated>
+                      {rowActions(row)}
                     </div>
                   </td>
                 ) : null}
@@ -281,7 +254,7 @@ export function DataTable<TRow>({
 
             {rowActions ? (
               <div className={`mt-3 border-t border-border pt-3 ${RowActions}`}>
-                <Separated>{rowActions(row)}</Separated>
+                {rowActions(row)}
               </div>
             ) : null}
           </li>
