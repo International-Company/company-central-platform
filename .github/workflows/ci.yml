@@ -276,6 +276,24 @@ jobs:
       - name: Install
         run: npm ci
 
+      # The portal's dependencies were never audited by anything. CI audited the
+      # .NET packages and scanned the container image, and nobody had ever asked
+      # npm. The day the repository became public, GitHub's own scanner reported
+      # forty-three open advisories in them -- including three critical
+      # remote-code-execution flaws in the framework the portal itself runs on,
+      # in a version that had been deployed for weeks.
+      #
+      # Runtime dependencies gate the build at critical. High is reported and
+      # does not block, because the one open high (postcss, reachable only at
+      # build time) is fixable only by a major framework upgrade, and a gate
+      # nobody can satisfy is a gate somebody removes.
+      - name: Vulnerable dependency audit
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --audit-level=critical
+          npm audit --omit=dev --audit-level=high || echo "::warning::A high-severity advisory is open in a runtime dependency."
+          npm audit --audit-level=high || echo "::warning::A high-severity advisory is open in a build-time dependency."
+
       # The generated types must match the committed contract. If a backend
       # change altered a response and nobody regenerated, this fails here rather
       # than in front of a user — which is the entire reason the types are
