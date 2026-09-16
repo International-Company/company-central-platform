@@ -3,9 +3,8 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { AppShell } from '@/components/layout/app-shell';
 import { PermissionProvider } from '@/lib/permissions';
-import { callPlatform } from '@/lib/platform-client';
+import { readMyPermissions } from '@/lib/my-permissions';
 import { readSession } from '@/lib/session';
-import type { MyPermissionsDto } from '@/types/platform';
 import { isLocale } from '@/i18n/config';
 
 /**
@@ -53,22 +52,17 @@ export default async function PortalLayout({
   // Straight to the Platform rather than through this application's own BFF
   // route: this is already the server, and a server component calling its own
   // HTTP endpoint is a round trip through the network to reach code in the same
-  // process.
+  // process. The read is deduplicated across the render, so a page that needs
+  // the same answer to decide which reads to issue does not ask again.
   //
   // A failure leaves the set empty, which hides controls rather than showing
   // ones the Platform would refuse. The screens still work — reading is what
   // most of them do — and the person sees fewer buttons rather than a broken
   // page. Hiding is UX; the Platform decides.
-  const permissions = await callPlatform<MyPermissionsDto>({
-    path: '/api/v1/me/permissions',
-
-    // Rendering, so no refresh may be attempted: rotating the token here would
-    // spend it and then be unable to store what it got back.
-    duringRender: true,
-  });
+  const permissions = await readMyPermissions();
 
   return (
-    <PermissionProvider granted={permissions.data?.permissions ?? []}>
+    <PermissionProvider granted={permissions}>
       <AppShell
         locale={isLocale(locale) ? locale : 'ar'}
         navigation={[

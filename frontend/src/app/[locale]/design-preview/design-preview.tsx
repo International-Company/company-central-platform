@@ -72,12 +72,39 @@ const text = {
     showSection: 'إظهار',
     hideSection: 'إخفاء',
     mainNav: 'التنقل الرئيسي',
-    dashboardDescription: 'أين تقف المنصة الآن.',
-    nextSteps: 'الخطوات التالية',
+    dashboardDescription: 'حالة المنصة الآن، وما ينتظر قرارك. قُرئت الساعة 09:12.',
     unavailable: 'غير متاح',
     unavailableHint: 'لا تملك صلاحية قراءة هذا الرقم.',
     figures: ['المستخدمون', 'الموظفون', 'الوحدات التنظيمية', 'الأدوار'],
-    steps: ['أنشئ الهيكل التنظيمي. لا يمكن إنشاء موظف قبل وجود وحدة.', 'أضف الموظفين إلى وحداتهم.', 'فعّل التحقّق بخطوتين. بدونه لا يمكنك منح الأدوار.', 'أنشئ حسابات المستخدمين وامنحهم الأدوار.'],
+    dash: {
+      attention: 'ما يحتاج إلى انتباهك',
+      allClear: 'لا شيء يحتاج إلى إجراء الآن.',
+      lines: [
+        { level: 'إجراء', tone: 'danger', text: 'حدثان توقّف تسليمهما نهائيًا ولن تُعاد محاولتهما.' },
+        { level: 'إجراء', tone: 'danger', text: 'مهمة خلفية واحدة أخفقت في آخر تشغيل.' },
+        { level: 'للعلم', tone: 'warning', text: '3 إشعارات لم تقرأها بعد.' },
+        { level: 'إعداد', tone: 'neutral', text: 'الوحدات موجودة ولا يوجد موظفون. أضف الموظفين إلى وحداتهم.' },
+      ],
+      tasks: 'ما ينتظر قرارك',
+      tasksAll: 'كل المهام',
+      noTasks: 'لا توجد مهمة تنتظر قرارك.',
+      noDue: 'بلا موعد',
+      overdue: 'متأخرة',
+      taskRows: [
+        { step: 'اعتماد المدير المباشر', context: 'الموارد البشرية، طلب إجازة', due: 'تستحق 18 سبتمبر 2026', overdue: false },
+        { step: 'مراجعة المشتريات', context: 'المالية، أمر شراء', due: 'تستحق 14 سبتمبر 2026', overdue: true },
+        { step: 'تأكيد الصلاحية', context: 'المنصة، منح دور', due: null, overdue: false },
+      ],
+      figures: 'المنصة بالأرقام',
+      operations: 'حالة التشغيل',
+      operationsAll: 'تفاصيل التشغيل',
+      operationFigures: [
+        { label: 'غير مُسلَّم', value: '12' },
+        { label: 'توقّف تسليمه', value: '2' },
+        { label: 'مهام متعثرة', value: '1' },
+        { label: 'اشتراكات موقوفة', value: '0' },
+      ],
+    },
     sections: ['الأشخاص والتنظيم', 'الصلاحيات والأمان'],
   },
   en: {
@@ -122,12 +149,39 @@ const text = {
     showSection: 'Show',
     hideSection: 'Hide',
     mainNav: 'Main navigation',
-    dashboardDescription: 'Where the Platform stands.',
-    nextSteps: 'Next steps',
+    dashboardDescription: 'Where the Platform stands, and what is waiting on you. Read at 09:12.',
     unavailable: 'Not available',
     unavailableHint: 'You do not hold the permission to read this figure.',
     figures: ['Users', 'Employees', 'Organizational units', 'Roles'],
-    steps: ['Build the organizational structure. No employee can exist before a unit does.', 'Add employees to their units.', 'Turn on two-factor authentication. Without it you cannot grant roles.', 'Create user accounts and grant them roles.'],
+    dash: {
+      attention: 'Needs your attention',
+      allClear: 'Nothing needs doing right now.',
+      lines: [
+        { level: 'Act', tone: 'danger', text: '2 events were given up on and will not be retried.' },
+        { level: 'Act', tone: 'danger', text: 'One background job failed on its last run.' },
+        { level: 'Note', tone: 'warning', text: '3 notifications you have not read.' },
+        { level: 'Setup', tone: 'neutral', text: 'The units exist but no employee does. Add employees to their units.' },
+      ],
+      tasks: 'Waiting on your decision',
+      tasksAll: 'All tasks',
+      noTasks: 'No task is waiting on your decision.',
+      noDue: 'No deadline',
+      overdue: 'Overdue',
+      taskRows: [
+        { step: 'Line manager approval', context: 'Human resources, leave request', due: 'Due 18 September 2026', overdue: false },
+        { step: 'Procurement review', context: 'Finance, purchase order', due: 'Due 14 September 2026', overdue: true },
+        { step: 'Confirm the grant', context: 'Platform, role assignment', due: null, overdue: false },
+      ],
+      figures: 'The Platform in numbers',
+      operations: 'How the machinery is running',
+      operationsAll: 'Operations in detail',
+      operationFigures: [
+        { label: 'Undelivered', value: '12' },
+        { label: 'Given up on', value: '2' },
+        { label: 'Failing jobs', value: '1' },
+        { label: 'Suspended subscriptions', value: '0' },
+      ],
+    },
     sections: ['People and organization', 'Access and security'],
   },
 } as const;
@@ -188,20 +242,43 @@ export function DesignPreview({
         <>
           <PageHeader title={t.nav[0] ?? ''} description={t.dashboardDescription} />
           <DashboardSummary
-            heading={t.nav[0] ?? ''}
-            nextStepsHeading={t.nextSteps}
-            unavailable={t.unavailable}
-            unavailableHint={t.unavailableHint}
+            labels={{
+              attention: t.dash.attention,
+              allClear: t.dash.allClear,
+              tasks: t.dash.tasks,
+              tasksAll: t.dash.tasksAll,
+              noTasks: t.dash.noTasks,
+              noDue: t.dash.noDue,
+              overdue: t.dash.overdue,
+              figures: t.dash.figures,
+              operations: t.dash.operations,
+              operationsAll: t.dash.operationsAll,
+              unavailable: t.unavailable,
+              unavailableHint: t.unavailableHint,
+            }}
+            attention={t.dash.lines.map((line, index) => ({
+              key: `preview-line-${index}`,
+              href: `/preview-attention-${index}`,
+              text: line.text,
+              levelLabel: line.level,
+              tone: line.tone,
+            }))}
+            tasks={t.dash.taskRows.map((task, index) => ({
+              id: `preview-task-${index}`,
+              href: '/preview-tasks',
+              step: task.step,
+              context: task.context,
+              due: task.due,
+              overdue: task.overdue,
+            }))}
+            tasksHref="/preview-tasks"
             figures={t.figures.map((label, index) => ({
               href: `/preview-figure-${index}`,
               label,
               value: index === 3 ? null : ['248', '1,312', '37'][index] ?? null,
             }))}
-            steps={t.steps.map((step, index) => ({
-              href: `/preview-step-${index}`,
-              text: step,
-              number: String(index + 1),
-            }))}
+            operations={t.dash.operationFigures.map((figure) => ({ ...figure }))}
+            operationsHref="/preview-operations"
           />
         </>
       ) : null}

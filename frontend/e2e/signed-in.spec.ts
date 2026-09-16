@@ -34,6 +34,32 @@ test.describe('the portal', () => {
     await expect(page).not.toHaveURL(/\/login/);
   });
 
+  test('the dashboard reports the Platform rather than describing itself', async ({
+    page,
+  }, testInfo) => {
+    await page.goto(`/${locale(testInfo.project.name)}/dashboard`);
+
+    // The four bands, each of which is a read of something real. The screen it
+    // replaced showed four counts and four permanent instructions, so it looked
+    // identical whether the Platform was idle or three days behind.
+    for (const heading of [
+      /ما يحتاج إلى انتباهك|Needs your attention/,
+      /ما ينتظر قرارك|Waiting on your decision/,
+      /المنصة بالأرقام|The Platform in numbers/,
+      /حالة التشغيل|How the machinery is running/,
+    ]) {
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    }
+
+    // The administrator holds every permission, so nothing here may read as
+    // unavailable. This is the assertion that catches the failure the new
+    // screen made possible: it decides which reads to issue from the permission
+    // names, and a name that stopped matching the Platform's catalogue would
+    // skip every read and report the whole Platform as unreadable, without one
+    // error anywhere.
+    await expect(page.getByText(/غير متاح|Not available/)).toHaveCount(0);
+  });
+
   test('mirrors the layout for the locale', async ({ page }, testInfo) => {
     const expected = testInfo.project.name === 'ar' ? 'rtl' : 'ltr';
 

@@ -365,20 +365,45 @@
     "noEventsDescription": "No security events were recorded in this range."
   },
   "dashboard": {
-    "description": "Where the Platform stands.",
     "users": "Users",
-    "activeUsers": "Active accounts",
     "employees": "Employees",
     "units": "Organizational units",
     "roles": "Roles",
-    "view": "View",
     "unavailable": "Not available",
     "unavailableHint": "You do not hold the permission to read this figure.",
-    "nextSteps": "Next steps",
-    "stepOrganization": "Build the organizational structure. No employee can exist before a unit does.",
-    "stepEmployees": "Add employees to their units.",
-    "stepSecurity": "Turn on two-factor authentication. Without it you cannot grant roles.",
-    "stepUsers": "Create user accounts and grant them roles."
+    "description": "Where the Platform stands, and what is waiting on you.",
+    "readAt": "Read at {time}. Nothing on this page refreshes itself.",
+    "attention": {
+      "heading": "Needs your attention",
+      "deadLettered": "{count, plural, one {One event was given up on and will not be retried.} other {# events were given up on and will not be retried.}}",
+      "outboxBehind": "Event delivery is behind: {count, plural, one {one event is waiting} other {# events are waiting}}, {minutes, plural, one {the oldest for a minute} other {the oldest for # minutes}}.",
+      "failingJobs": "{count, plural, one {One background job failed on its last run.} other {# background jobs failed on their last run.}}",
+      "suspendedSubscriptions": "{count, plural, one {One subscription is suspended after repeated delivery failures.} other {# subscriptions are suspended after repeated delivery failures.}}",
+      "securityEvents": "{count, plural, one {One high-severity security event in the last twenty-four hours.} other {# high-severity security events in the last twenty-four hours.}}",
+      "mfaOff": "Two-step verification is off for your account. You cannot grant roles without it.",
+      "unreadNotifications": "{count, plural, one {One notification you have not read.} other {# notifications you have not read.}}",
+      "noUnits": "There is no organizational structure yet. No employee can exist before a unit does.",
+      "noEmployees": "The units exist but no employee does. Add employees to their units.",
+      "oneUser": "Yours is the only account. Create user accounts and grant them roles."
+    },
+    "level": {
+      "act": "Act",
+      "watch": "Note",
+      "setup": "Setup"
+    },
+    "allClear": "Nothing needs doing right now.",
+    "tasks": "Waiting on your decision",
+    "tasksAll": "All tasks",
+    "noTasks": "No task is waiting on your decision.",
+    "noDue": "No deadline",
+    "overdue": "Overdue",
+    "due": "Due {date}",
+    "taskContext": "{application}, {process}",
+    "figures": "The Platform in numbers",
+    "operations": "How the machinery is running",
+    "operationsAll": "Operations in detail",
+    "failingJobsFigure": "Failing jobs",
+    "suspendedFigure": "Suspended subscriptions"
   },
   "workflow": {
     "title": "My tasks",
