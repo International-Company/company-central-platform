@@ -29,7 +29,9 @@
     "sectionPeople": "الأشخاص والتنظيم",
     "sectionOperations": "العمليات",
     "sectionAccess": "الصلاحيات والأمان",
-    "sectionPlatform": "المنصة"
+    "sectionPlatform": "المنصة",
+    "showSection": "إظهار",
+    "hideSection": "إخفاء"
   },
   "common": {
     "search": "بحث",

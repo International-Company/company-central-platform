@@ -69,6 +69,8 @@ const text = {
     menu: 'القائمة',
     close: 'إغلاق',
     skip: 'تخطٍّ إلى المحتوى',
+    showSection: 'إظهار',
+    hideSection: 'إخفاء',
     mainNav: 'التنقل الرئيسي',
     dashboardDescription: 'أين تقف المنصة الآن.',
     nextSteps: 'الخطوات التالية',
@@ -117,6 +119,8 @@ const text = {
     menu: 'Menu',
     close: 'Close',
     skip: 'Skip to content',
+    showSection: 'Show',
+    hideSection: 'Hide',
     mainNav: 'Main navigation',
     dashboardDescription: 'Where the Platform stands.',
     nextSteps: 'Next steps',
@@ -176,6 +180,8 @@ export function DesignPreview({
         signOut: t.signOut,
         language: t.language,
         skipToContent: t.skip,
+        showSection: t.showSection,
+        hideSection: t.hideSection,
       }}
     >
       {view === 'dashboard' ? (

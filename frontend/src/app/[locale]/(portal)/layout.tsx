@@ -102,6 +102,8 @@ export default async function PortalLayout({
           // Was tCommon('search'), so the first thing a keyboard user heard
           // on every page was the word for a search box that is not there.
           skipToContent: tCommon('skipToContent'),
+          showSection: t('showSection'),
+          hideSection: t('hideSection'),
         }}
       >
         {children}

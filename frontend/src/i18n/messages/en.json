@@ -29,7 +29,9 @@
     "sectionPeople": "People and organization",
     "sectionOperations": "Operations",
     "sectionAccess": "Access and security",
-    "sectionPlatform": "Platform"
+    "sectionPlatform": "Platform",
+    "showSection": "Show",
+    "hideSection": "Hide"
   },
   "common": {
     "search": "Search",
