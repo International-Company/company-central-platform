@@ -15,17 +15,41 @@ import { EmptyValue } from '@/components/shared/empty-value';
 /**
  * Audit search.
  *
- * **Nothing is fetched until a date range is chosen**, and the range is not
- * defaulted to something convenient. That mirrors the Platform, which requires
- * it: an unbounded query over a table designed to grow forever is an outage
- * caused by someone opening a screen, and a caller who omitted the dates would
- * otherwise believe they had searched everything — which in an investigation is
- * worse than an error.
+ * **Nothing is fetched until somebody asks**, and no search is ever unbounded.
+ * That mirrors the Platform, which requires a range: an unbounded query over a
+ * table designed to grow forever is an outage caused by someone opening a
+ * screen, and an investigator who omitted the dates would otherwise believe
+ * they had searched everything — which is worse than an error.
  *
- * The screen therefore opens empty, with the fields waiting. That is a
- * deliberate cost: one extra action before the first result, in exchange for
- * never quietly answering the wrong question.
+ * **The fields start on the last seven days** rather than empty. The reason
+ * for the empty screen was that an implicit range is a lie; a range written
+ * into the two boxes in front of the reader is not implicit, and it can be
+ * changed before anything is searched. What it replaces is a screen that
+ * opened as two blank boxes in a format the browser chooses and this
+ * application cannot set, which is not a question most people can answer.
  */
+function daysAgo(days: number): Date {
+  const when = new Date();
+
+  when.setDate(when.getDate() - days);
+
+  return when;
+}
+
+/**
+ * A local date and time in the form `datetime-local` accepts.
+ *
+ * Not `toISOString`, which converts to UTC: in a country three hours ahead
+ * that would put the default range three hours out, and the reader would have
+ * no way of telling from looking at it.
+ */
+function localInput(when: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+
+  return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`
+    + `T${pad(when.getHours())}:${pad(when.getMinutes())}`;
+}
+
 export function AuditScreen() {
   const t = useTranslations('audit');
   const tCommon = useTranslations('common');
@@ -33,8 +57,11 @@ export function AuditScreen() {
   const tErrors = useTranslations('errors');
   const format = useFormatter();
 
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  // Seven days back to now, in the format the control takes. Computed once on
+  // mount rather than at module load, which would freeze the range at whenever
+  // the bundle was first evaluated.
+  const [from, setFrom] = useState(() => localInput(daysAgo(7)));
+  const [to, setTo] = useState(() => localInput(new Date()));
 
   const [result, setResult] = useState<PagedResult<AuditEventDto> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -176,7 +203,7 @@ export function AuditScreen() {
         role="search"
         data-print-hidden
       >
-        <div className="min-w-44 flex-1">
+        <div className="w-full max-w-[13rem]">
           <Field
             label={t('from')}
             type="datetime-local"
@@ -187,7 +214,7 @@ export function AuditScreen() {
           />
         </div>
 
-        <div className="min-w-44 flex-1">
+        <div className="w-full max-w-[13rem]">
           <Field
             label={t('to')}
             type="datetime-local"

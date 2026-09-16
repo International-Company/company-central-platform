@@ -47,7 +47,7 @@ export function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="text-sm font-semibold text-text"
+        className="text-sm font-medium text-text"
       >
         {label}
         {required && requiredLabel ? (
@@ -66,7 +66,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={
-          'h-10 rounded-sm bg-surface px-3 text-sm text-text ' +
+          'h-9 rounded-sm bg-surface px-3 text-sm text-text ' +
           'placeholder:text-text-muted focus:border-primary-700 ' +
           // A field in error is marked by weight, not by a second colour: a
           // border twice as heavy in the deepest blue, and the message beneath

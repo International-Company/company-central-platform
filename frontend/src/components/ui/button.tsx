@@ -57,7 +57,7 @@ const variants: Record<Variant, string> = {
 
 const sizes: Record<Size, string> = {
   sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-5 text-sm',
+  md: 'h-9 px-4 text-sm',
 };
 
 // No horizontal padding: a text action aligns with the text around it. Kept
@@ -65,7 +65,7 @@ const sizes: Record<Size, string> = {
 // resolve by stylesheet order, not by the order they are written in.
 const quietSizes: Record<Size, string> = {
   sm: 'h-8 text-sm',
-  md: 'h-10 text-sm',
+  md: 'h-9 text-sm',
 };
 
 export function Button({

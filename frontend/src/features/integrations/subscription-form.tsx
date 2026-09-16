@@ -161,7 +161,7 @@ export function SubscriptionForm({
             id="subscription-application"
             value={applicationId}
             onChange={(event) => setApplicationId(event.target.value)}
-            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+            className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
           >
             <option value="">{t('subscriptionChooseApplication')}</option>
 

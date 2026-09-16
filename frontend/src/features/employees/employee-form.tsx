@@ -179,7 +179,7 @@ export function EmployeeForm({
           value={unitId}
           onChange={(event) => setUnitId(event.target.value)}
           aria-invalid={fields['unitId'] ? true : undefined}
-          className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
           required
         >
           {units.map((unit) => (

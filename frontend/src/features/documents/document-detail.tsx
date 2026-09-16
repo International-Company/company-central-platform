@@ -332,7 +332,7 @@ export function DocumentDetail({
               </select>
             </label>
 
-            <div className="min-w-72 flex-1">
+            <div className="w-full max-w-sm">
               <Field
                 label={t('subjectId')}
                 value={subjectId}

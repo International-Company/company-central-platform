@@ -22,7 +22,11 @@
 export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger';
 
 const tones: Record<StatusTone, string> = {
-  neutral: 'border-border-strong bg-surface text-text-secondary',
+  // No box. A column where every row carries a bordered chip is a column of
+  // boxes before it is a column of states, and the one state nobody has to act
+  // on is the one that should not be drawing the eye. It keeps the padding, so
+  // the words still line up with the boxed ones beside them.
+  neutral: 'border-transparent bg-transparent text-text-secondary',
   success: 'border-primary-200 bg-positive-surface text-positive',
   warning: 'border-caution bg-caution-surface font-semibold text-caution',
   danger: 'border-attention bg-attention font-semibold text-text-on-primary',

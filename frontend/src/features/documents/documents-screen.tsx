@@ -190,7 +190,7 @@ export function DocumentsScreen() {
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
 
       <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-64 flex-1">
+        <div className="w-full max-w-sm">
           <Field
             label={t('search')}
             value={term}

@@ -20,12 +20,12 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
+    <div className="mb-7 flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b border-border pb-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold leading-tight text-text">{title}</h1>
+        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-text">{title}</h1>
 
         {description ? (
-          <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-text-secondary">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
             {description}
           </p>
         ) : null}

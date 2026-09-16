@@ -280,7 +280,7 @@ export function ApplicationCredentials({
         />
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="min-w-64 flex-1">
+          <div className="w-full max-w-sm">
             <Field
               label={t('label')}
               value={label}

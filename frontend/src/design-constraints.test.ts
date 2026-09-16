@@ -353,6 +353,40 @@ describe('no symbols stand in for words', () => {
   });
 });
 
+describe('controls are one height', () => {
+  it('never hand-rolls a field taller than the shared one', () => {
+    // Sixteen inputs across twelve screens were written by hand at h-10 while
+    // the shared Field and Button were h-10 too; when those came down to h-9
+    // the hand-rolled ones stayed, and a toolbar with a nine and a ten in it
+    // looks assembled rather than designed. The mismatch is a pixel nobody
+    // reports and everybody sees.
+    //
+    // Matched on the class that marks a bordered control, so a `h-10` on a
+    // header or a drawer is not caught by this.
+    const offenders: string[] = [];
+
+    for (const file of sourceFiles()) {
+      const code = codeOf(file);
+
+      for (const attribute of code.matchAll(/className=(?:"([^"]*)"|'([^']*)')/g)) {
+        const tokens = (attribute[1] ?? attribute[2] ?? '').split(/\s+/);
+
+        if (!tokens.includes('border-border-strong')) {
+          continue;
+        }
+
+        const height = tokens.find((token) => /^h-\d+$/.test(token));
+
+        if (height && height !== 'h-9') {
+          offenders.push(`${file}: ${height}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('corners stay square', () => {
   it('uses no large or pill-shaped radius', () => {
     // Heavily rounded corners on every surface are the most recognisable

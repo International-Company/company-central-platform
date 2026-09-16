@@ -297,7 +297,7 @@ export function UserRolesDialog({
             id="grant-role"
             value={roleId}
             onChange={(event) => setRoleId(event.target.value)}
-            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+            className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
           >
             {roles.map((role) => (
               <option key={role.id} value={role.id}>
@@ -316,7 +316,7 @@ export function UserRolesDialog({
             id="grant-scope"
             value={scope}
             onChange={(event) => setScope(event.target.value as Scope)}
-            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+            className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
           >
             <option value="All">{t('scopeAll')}</option>
             <option value="UnitAndBelow">{t('scopeUnitAndBelow')}</option>
@@ -338,7 +338,7 @@ export function UserRolesDialog({
               id="grant-scope-unit"
               value={scopeUnitId}
               onChange={(event) => setScopeUnitId(event.target.value)}
-              className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+              className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
             >
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id}>

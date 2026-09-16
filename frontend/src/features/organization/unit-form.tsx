@@ -182,7 +182,7 @@ export function UnitForm({
               id="unit-type"
               value={unitType}
               onChange={(event) => setUnitType(event.target.value as UnitType)}
-              className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+              className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
             >
               {UnitTypes.map((type) => (
                 <option key={type} value={type}>

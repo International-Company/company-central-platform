@@ -234,7 +234,7 @@ export function EmployeesScreen() {
         role="search"
         data-print-hidden
       >
-        <div className="flex min-w-56 flex-1 flex-col gap-1.5">
+        <div className="flex w-full max-w-sm flex-col gap-1.5">
           <label
             htmlFor="employee-search"
             className="text-sm font-medium text-text"
@@ -248,7 +248,7 @@ export function EmployeesScreen() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={t('searchPlaceholder')}
-            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm"
+            className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm"
           />
         </div>
 

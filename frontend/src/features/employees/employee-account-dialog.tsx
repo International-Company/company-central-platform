@@ -105,7 +105,7 @@ export function EmployeeAccountDialog({
           id="employee-account"
           value={userId}
           onChange={(event) => setUserId(event.target.value)}
-          className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
         >
           <option value="">{t('unlink')}</option>
 

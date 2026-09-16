@@ -207,7 +207,7 @@ export function EmployeeAttributes({
 
       <IfPermitted permission="platform.employees.manage">
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="min-w-56 flex-1">
+          <div className="w-full max-w-xs">
             <Field
               label={t('attributeKey')}
               value={key}
@@ -217,7 +217,7 @@ export function EmployeeAttributes({
             />
           </div>
 
-          <div className="min-w-56 flex-1">
+          <div className="w-full max-w-xs">
             <Field
               label={t('attributeValue')}
               value={value}

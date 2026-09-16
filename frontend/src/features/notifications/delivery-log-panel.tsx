@@ -177,7 +177,7 @@ export function DeliveryLogPanel() {
             setPage(1);
             setStatus(event.target.value);
           }}
-          className="h-10 max-w-56 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          className="h-9 max-w-56 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
         >
           <option value="">{tCommon('filter')}</option>
           <option value="Failed">{t('statusFailed')}</option>

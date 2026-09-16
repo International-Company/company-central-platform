@@ -15,6 +15,12 @@ import type { Locale } from '@/i18n/config';
 /**
  * Sample content for the design preview. Development only; see page.tsx.
  *
+ * **The sample timestamps are dates, not dates with times.** The screens format
+ * theirs through Intl, which returns Arabic with the direction marks that make
+ * a date and a time read as one thing; a timestamp typed by hand has neither,
+ * so it rendered time-first in Arabic and made the preview show a defect that
+ * no screen has. A sample that lies about the design is worse than no sample.
+ *
  * Written in both languages directly rather than through the catalogue: it is
  * not a screen anybody uses, and putting invented people into the message
  * files would ship them to production with the real text.
@@ -188,20 +194,20 @@ const text = {
 
 const rows: Record<Locale, Row[]> = {
   ar: [
-    { id: '1', name: 'أحمد الحربي', username: 'a.alharbi', unit: 'الإدارة المالية', status: 'active', lastSignIn: '2026-09-14 09:12' },
-    { id: '2', name: 'سارة القحطاني', username: 's.alqahtani', unit: 'الموارد البشرية', status: 'active', lastSignIn: '2026-09-14 08:47' },
-    { id: '3', name: 'خالد المطيري', username: 'k.almutairi', unit: 'المشتريات', status: 'locked', lastSignIn: '2026-09-11 16:03' },
+    { id: '1', name: 'أحمد الحربي', username: 'a.alharbi', unit: 'الإدارة المالية', status: 'active', lastSignIn: '2026-09-14' },
+    { id: '2', name: 'سارة القحطاني', username: 's.alqahtani', unit: 'الموارد البشرية', status: 'active', lastSignIn: '2026-09-14' },
+    { id: '3', name: 'خالد المطيري', username: 'k.almutairi', unit: 'المشتريات', status: 'locked', lastSignIn: '2026-09-11' },
     { id: '4', name: 'نورة الشهري', username: 'n.alshehri', unit: 'تقنية المعلومات', status: 'pending', lastSignIn: '' },
-    { id: '5', name: 'فيصل الدوسري', username: 'f.aldosari', unit: 'الشؤون القانونية', status: 'disabled', lastSignIn: '2026-08-02 11:30' },
-    { id: '6', name: 'ريم العتيبي', username: 'r.alotaibi', unit: 'الإدارة المالية', status: 'active', lastSignIn: '2026-09-13 14:21' },
+    { id: '5', name: 'فيصل الدوسري', username: 'f.aldosari', unit: 'الشؤون القانونية', status: 'disabled', lastSignIn: '2026-08-02' },
+    { id: '6', name: 'ريم العتيبي', username: 'r.alotaibi', unit: 'الإدارة المالية', status: 'active', lastSignIn: '2026-09-13' },
   ],
   en: [
-    { id: '1', name: 'Ahmed Al-Harbi', username: 'a.alharbi', unit: 'Finance', status: 'active', lastSignIn: '2026-09-14 09:12' },
-    { id: '2', name: 'Sara Al-Qahtani', username: 's.alqahtani', unit: 'Human Resources', status: 'active', lastSignIn: '2026-09-14 08:47' },
-    { id: '3', name: 'Khalid Al-Mutairi', username: 'k.almutairi', unit: 'Procurement', status: 'locked', lastSignIn: '2026-09-11 16:03' },
+    { id: '1', name: 'Ahmed Al-Harbi', username: 'a.alharbi', unit: 'Finance', status: 'active', lastSignIn: '2026-09-14' },
+    { id: '2', name: 'Sara Al-Qahtani', username: 's.alqahtani', unit: 'Human Resources', status: 'active', lastSignIn: '2026-09-14' },
+    { id: '3', name: 'Khalid Al-Mutairi', username: 'k.almutairi', unit: 'Procurement', status: 'locked', lastSignIn: '2026-09-11' },
     { id: '4', name: 'Noura Al-Shehri', username: 'n.alshehri', unit: 'Information Technology', status: 'pending', lastSignIn: '' },
-    { id: '5', name: 'Faisal Al-Dosari', username: 'f.aldosari', unit: 'Legal', status: 'disabled', lastSignIn: '2026-08-02 11:30' },
-    { id: '6', name: 'Reem Al-Otaibi', username: 'r.alotaibi', unit: 'Finance', status: 'active', lastSignIn: '2026-09-13 14:21' },
+    { id: '5', name: 'Faisal Al-Dosari', username: 'f.aldosari', unit: 'Legal', status: 'disabled', lastSignIn: '2026-08-02' },
+    { id: '6', name: 'Reem Al-Otaibi', username: 'r.alotaibi', unit: 'Finance', status: 'active', lastSignIn: '2026-09-13' },
   ],
 };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Children, Fragment, isValidElement } from 'react';
 import type { ReactNode } from 'react';
 
 /**
@@ -79,9 +80,58 @@ export interface DataTableProps<TRow> {
  * They are simply large enough to hit.
  */
 const RowActions =
-  'flex flex-wrap items-center justify-end gap-x-5 gap-y-2 ' +
+  'flex flex-wrap items-center justify-end gap-x-4 gap-y-2 ' +
   '[&_button]:inline-flex [&_button]:min-h-6 [&_button]:min-w-6 [&_button]:items-center ' +
-  '[&_a]:inline-flex [&_a]:min-h-6 [&_a]:min-w-6 [&_a]:items-center';
+  '[&_a]:inline-flex [&_a]:min-h-6 [&_a]:min-w-6 [&_a]:items-center ' +
+  // Every screen writes its own row links, and they had drifted: some
+  // underlined flush against the text, some not at all. Set here so they
+  // match without fourteen files having to agree.
+  '[&_button]:underline-offset-4 [&_a]:underline-offset-4';
+
+/**
+ * Row actions, with a hairline between them.
+ *
+ * Three links separated only by a gap read as one phrase. In English the
+ * capitals and the longer words carry it. In Arabic the words are shorter and
+ * set tighter: the roles screen showed three across one cell, and because the
+ * middle one is a noun they read as one instruction rather than as three
+ * things a person may do. A rule is not a symbol standing in for a word;
+ * separating is what a rule is for.
+ *
+ * Fragments are unwrapped first. Every screen returns its actions as one, and
+ * `Children.toArray` counts a fragment as a single child, so without this the
+ * separators would never appear anywhere.
+ */
+function Separated({ children }: { children: ReactNode }) {
+  const actions = unwrap(children);
+
+  if (actions.length < 2) {
+    return <>{children}</>;
+  }
+
+  return (
+    <>
+      {actions.map((action, index) => (
+        <Fragment key={index}>
+          {index > 0 ? (
+            <span aria-hidden="true" className="h-3.5 w-px shrink-0 bg-border-strong" />
+          ) : null}
+
+          {action}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** Children, with fragments flattened and blanks dropped. */
+function unwrap(node: ReactNode): ReactNode[] {
+  return Children.toArray(node).flatMap((child) =>
+    isValidElement(child) && child.type === Fragment
+      ? unwrap((child.props as { children?: ReactNode }).children)
+      : [child],
+  );
+}
 
 export function DataTable<TRow>({
   columns,
@@ -106,8 +156,12 @@ export function DataTable<TRow>({
     <>
       {/* Wide screens: a real table. Bounded and scrollable on its own so the
           page never scrolls sideways. */}
+      {/* No box and no tinted header band. A rule under the headings and a
+          hairline between rows is what a table needs to be read; drawing a
+          border around the whole thing and filling the header makes it a
+          spreadsheet dropped into the page. */}
       <div
-        className="hidden overflow-x-auto border border-border bg-surface sm:block"
+        className="hidden overflow-x-auto sm:block"
         // Focusable so the scroll region is reachable by keyboard — a scrollable
         // area that only a mouse can move is unusable without one.
         tabIndex={0}
@@ -118,7 +172,7 @@ export function DataTable<TRow>({
           <caption className="sr-only">{caption}</caption>
 
           <thead>
-            <tr className="border-b border-border-strong bg-surface-sunken">
+            <tr className="border-b border-border-strong">
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -133,7 +187,7 @@ export function DataTable<TRow>({
                       : undefined
                   }
                   className={
-                    'px-4 py-3 text-xs font-semibold text-text-secondary ' +
+                    'whitespace-nowrap px-3 pb-2 pt-1 text-xs font-semibold text-text-secondary ' +
                     (column.numeric ? 'text-end' : 'text-start') +
                     (column.secondary ? ' hidden md:table-cell' : '')
                   }
@@ -161,7 +215,7 @@ export function DataTable<TRow>({
               ))}
 
               {rowActions ? (
-                <th scope="col" className="px-4 py-3 text-end text-xs font-semibold text-text-secondary">
+                <th scope="col" className="whitespace-nowrap px-3 pb-2 pt-1 text-end text-xs font-semibold text-text-secondary">
                   {labels.actions}
                 </th>
               ) : null}
@@ -172,14 +226,14 @@ export function DataTable<TRow>({
             {rows.map((row) => (
               <tr
                 key={rowKey(row)}
-                className="border-b border-border last:border-b-0 hover:bg-primary-50"
+                className="border-b border-border hover:bg-primary-50"
               >
                 {columns.map((column) => (
                   <td
                     key={column.key}
                     {...(column.numeric ? { 'data-numeric': true } : {})}
                     className={
-                      'px-4 py-3 text-text ' +
+                      'px-3 py-2.5 align-middle text-text ' +
                       (column.numeric ? 'text-end' : 'text-start') +
                       (column.secondary ? ' hidden md:table-cell' : '')
                     }
@@ -189,8 +243,10 @@ export function DataTable<TRow>({
                 ))}
 
                 {rowActions ? (
-                  <td className="px-4 py-3">
-                    <div className={RowActions}>{rowActions(row)}</div>
+                  <td className="px-3 py-2.5 align-middle">
+                    <div className={RowActions}>
+                      <Separated>{rowActions(row)}</Separated>
+                    </div>
                   </td>
                 ) : null}
               </tr>
@@ -224,8 +280,8 @@ export function DataTable<TRow>({
             </dl>
 
             {rowActions ? (
-              <div className={`mt-2 border-t border-border pt-2 ${RowActions}`}>
-                {rowActions(row)}
+              <div className={`mt-3 border-t border-border pt-3 ${RowActions}`}>
+                <Separated>{rowActions(row)}</Separated>
               </div>
             ) : null}
           </li>
@@ -262,9 +318,12 @@ function SortIndicator({
   // to others, and it is one more symbol on a screen that is meant to have
   // none; the word is unambiguous in both languages and a screen reader reads
   // the same text everybody else sees.
+  // In brackets, like "(Required)" beside a field label. Set plainly beside the
+  // heading it read as part of it: "Name Ascending" is a column called Name
+  // Ascending until you have worked out that it is not.
   return (
     <span className="text-xs font-normal text-text-muted">
-      {ascending ? labels.sortAscending : labels.sortDescending}
+      ({ascending ? labels.sortAscending : labels.sortDescending})
     </span>
   );
 }
@@ -281,16 +340,20 @@ export function EmptyState({
   return (
     // No illustration. An empty state is a sentence explaining what is missing
     // and, where useful, the button that fixes it (§9.5).
-    <div className="border border-border bg-surface px-6 py-6">
+    //
+    // Centred between two rules rather than boxed and start-aligned: a bordered
+    // block with its text against the start edge is the shape of an error
+    // banner, and "no results" is not an error.
+    <div className="border-y border-border px-6 py-12 text-center">
       <p className="text-sm font-semibold text-text">{title}</p>
 
       {description ? (
-        <p className="mt-1 text-sm text-text-secondary">
+        <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-text-secondary">
           {description}
         </p>
       ) : null}
 
-      {action ? <div className="mt-4">{action}</div> : null}
+      {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
 }

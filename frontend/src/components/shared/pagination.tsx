@@ -43,7 +43,7 @@ export function Pagination({
 
   return (
     <div
-      className="mt-3 flex flex-wrap items-center justify-between gap-3"
+      className="mt-4 flex flex-wrap items-center justify-between gap-3"
       data-print-hidden
     >
       {/* Announced politely: a screen-reader user who pages through a table

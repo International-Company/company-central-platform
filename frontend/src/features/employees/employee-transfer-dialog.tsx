@@ -131,7 +131,7 @@ export function EmployeeTransferDialog({
           id="transfer-unit"
           value={unitId}
           onChange={(event) => setUnitId(event.target.value)}
-          className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
         >
           {units.map((unit) => (
             <option key={unit.id} value={unit.id}>
@@ -154,7 +154,7 @@ export function EmployeeTransferDialog({
           id="transfer-position"
           value={positionId}
           onChange={(event) => setPositionId(event.target.value)}
-          className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
         >
           <option value="">{t('noPosition')}</option>
 
@@ -180,7 +180,7 @@ export function EmployeeTransferDialog({
           id="transfer-manager"
           value={managerId}
           onChange={(event) => setManagerId(event.target.value)}
-          className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+          className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
         >
           <option value="">{t('noManager')}</option>
 

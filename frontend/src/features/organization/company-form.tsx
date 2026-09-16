@@ -162,7 +162,7 @@ export function CompanyForm({
             id="company-locale"
             value={defaultLocale}
             onChange={(event) => setDefaultLocale(event.target.value)}
-            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+            className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
           >
             <option value="ar">{t('localeAr')}</option>
             <option value="en">{t('localeEn')}</option>

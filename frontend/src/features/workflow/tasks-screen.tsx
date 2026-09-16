@@ -261,7 +261,7 @@ export function TasksScreen() {
             id="task-action"
             value={action}
             onChange={(event) => setAction(event.target.value)}
-            className="h-10 rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+            className="h-9 rounded-sm border border-border-strong bg-surface px-3 text-sm text-text"
           >
             {(acting?.allowedActions ?? []).map((name) => (
               <option key={name} value={name}>
