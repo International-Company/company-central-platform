@@ -2,6 +2,11 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from '@playwright/test';
 
+// `process.cwd()`, not the module's own directory: Playwright compiles these
+// specs to CommonJS, and a single `import.meta` reference makes its file ESM and
+// breaks the whole run before one test starts. Playwright runs from the frontend
+// directory, which is where the gallery belongs anyway.
+
 /**
  * A picture of every screen, in both languages, from the real application.
  *
@@ -33,7 +38,7 @@ const screens = [
   'audit',
 ] as const;
 
-const directory = join(import.meta.dirname, '..', 'e2e-gallery');
+const directory = join(process.cwd(), 'e2e-gallery');
 
 test.describe('gallery', () => {
   test.beforeAll(() => {
