@@ -132,6 +132,11 @@ export default async function DashboardPage({
     href: `/${locale}${item.path}`,
     text: t(`attention.${item.key}` as never, item.values as never),
     levelLabel: t(`level.${item.level}` as never),
+
+    // The screen it is dealt with on, named from the navigation rather than
+    // written again here: the two would drift, and the reader would be sent to
+    // a screen called one thing by a link calling it another.
+    destination: tNav(`${destinations[item.path]}` as never),
     tone: tones[item.level],
   }));
 
@@ -189,9 +194,10 @@ export default async function DashboardPage({
     <>
       <PageHeader
         title={tNav('dashboard')}
-        description={`${t('description')} ${t('readAt', {
+        description={t('description')}
+        meta={t('readAt', {
           time: format.dateTime(new Date(), { timeStyle: 'short' }),
-        })}`}
+        })}
       />
 
       <DashboardSummary
@@ -236,6 +242,22 @@ export default async function DashboardPage({
     </>
   );
 }
+
+/**
+ * Which screen each condition is dealt with on.
+ *
+ * Keyed by the path the condition carries, so a condition added without a
+ * destination is a type error rather than a blank at the end of a row.
+ */
+const destinations: Record<string, string> = {
+  '/operations': 'operations',
+  '/integrations': 'integrations',
+  '/security': 'security',
+  '/notifications': 'notifications',
+  '/organization': 'organization',
+  '/employees': 'employees',
+  '/users': 'users',
+};
 
 const tones: Record<AttentionLevel, StatusTone> = {
   act: 'danger',

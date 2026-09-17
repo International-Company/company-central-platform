@@ -13,10 +13,20 @@ import type { ReactNode } from 'react';
 export function PageHeader({
   title,
   description,
+  meta,
   action,
 }: {
   title: string;
   description?: string;
+
+  /**
+   * A fact about the page rather than something to do with it: the time it was
+   * read, a count, a range. It was being appended to the description, which
+   * made one long run-on sentence out of two unrelated statements, and it
+   * prints, which the action does not.
+   */
+  meta?: ReactNode;
+
   action?: ReactNode;
 }) {
   return (
@@ -31,7 +41,11 @@ export function PageHeader({
         ) : null}
       </div>
 
-      {action ? <div data-print-hidden>{action}</div> : null}
+      <div className="flex shrink-0 items-baseline gap-6">
+        {meta ? <p className="text-xs text-text-muted">{meta}</p> : null}
+
+        {action ? <div data-print-hidden>{action}</div> : null}
+      </div>
     </div>
   );
 }

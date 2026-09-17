@@ -78,7 +78,8 @@ const text = {
     showSection: 'إظهار',
     hideSection: 'إخفاء',
     mainNav: 'التنقل الرئيسي',
-    dashboardDescription: 'حالة المنصة الآن، وما ينتظر قرارك. قُرئت الساعة 09:12.',
+    dashboardDescription: 'حالة المنصة الآن، وما ينتظر قرارك.',
+    readAt: 'قُرئت الساعة 09:12. لا شيء في هذه الصفحة يحدّث نفسه.',
     unavailable: 'غير متاح',
     unavailableHint: 'لا تملك صلاحية قراءة هذا الرقم.',
     figures: ['المستخدمون', 'الموظفون', 'الوحدات التنظيمية', 'الأدوار'],
@@ -86,10 +87,10 @@ const text = {
       attention: 'ما يحتاج إلى انتباهك',
       allClear: 'لا شيء يحتاج إلى إجراء الآن.',
       lines: [
-        { level: 'إجراء', tone: 'danger', text: 'حدثان توقّف تسليمهما نهائيًا ولن تُعاد محاولتهما.' },
-        { level: 'إجراء', tone: 'danger', text: 'مهمة خلفية واحدة أخفقت في آخر تشغيل.' },
-        { level: 'للعلم', tone: 'warning', text: '3 إشعارات لم تقرأها بعد.' },
-        { level: 'إعداد', tone: 'neutral', text: 'الوحدات موجودة ولا يوجد موظفون. أضف الموظفين إلى وحداتهم.' },
+        { level: 'إجراء', tone: 'danger', text: 'حدثان توقّف تسليمهما نهائيًا ولن تُعاد محاولتهما.', destination: 'التشغيل' },
+        { level: 'إجراء', tone: 'danger', text: 'مهمة خلفية واحدة أخفقت في آخر تشغيل.', destination: 'التشغيل' },
+        { level: 'للعلم', tone: 'warning', text: '3 إشعارات لم تقرأها بعد.', destination: 'الإشعارات' },
+        { level: 'إعداد', tone: 'neutral', text: 'الوحدات موجودة ولا يوجد موظفون. أضف الموظفين إلى وحداتهم.', destination: 'الموظفون' },
       ],
       tasks: 'ما ينتظر قرارك',
       tasksAll: 'كل المهام',
@@ -155,7 +156,8 @@ const text = {
     showSection: 'Show',
     hideSection: 'Hide',
     mainNav: 'Main navigation',
-    dashboardDescription: 'Where the Platform stands, and what is waiting on you. Read at 09:12.',
+    dashboardDescription: 'Where the Platform stands, and what is waiting on you.',
+    readAt: 'Read at 09:12. Nothing on this page refreshes itself.',
     unavailable: 'Not available',
     unavailableHint: 'You do not hold the permission to read this figure.',
     figures: ['Users', 'Employees', 'Organizational units', 'Roles'],
@@ -163,10 +165,10 @@ const text = {
       attention: 'Needs your attention',
       allClear: 'Nothing needs doing right now.',
       lines: [
-        { level: 'Act', tone: 'danger', text: '2 events were given up on and will not be retried.' },
-        { level: 'Act', tone: 'danger', text: 'One background job failed on its last run.' },
-        { level: 'Note', tone: 'warning', text: '3 notifications you have not read.' },
-        { level: 'Setup', tone: 'neutral', text: 'The units exist but no employee does. Add employees to their units.' },
+        { level: 'Act', tone: 'danger', text: '2 events were given up on and will not be retried.', destination: 'Operations' },
+        { level: 'Act', tone: 'danger', text: 'One background job failed on its last run.', destination: 'Operations' },
+        { level: 'Note', tone: 'warning', text: '3 notifications you have not read.', destination: 'Notifications' },
+        { level: 'Setup', tone: 'neutral', text: 'The units exist but no employee does. Add employees to their units.', destination: 'Employees' },
       ],
       tasks: 'Waiting on your decision',
       tasksAll: 'All tasks',
@@ -246,7 +248,11 @@ export function DesignPreview({
     >
       {view === 'dashboard' ? (
         <>
-          <PageHeader title={t.nav[0] ?? ''} description={t.dashboardDescription} />
+          <PageHeader
+            title={t.nav[0] ?? ''}
+            description={t.dashboardDescription}
+            meta={t.readAt}
+          />
           <DashboardSummary
             labels={{
               attention: t.dash.attention,
@@ -267,6 +273,7 @@ export function DesignPreview({
               href: `/preview-attention-${index}`,
               text: line.text,
               levelLabel: line.level,
+              destination: line.destination,
               tone: line.tone,
             }))}
             tasks={t.dash.taskRows.map((task, index) => ({
