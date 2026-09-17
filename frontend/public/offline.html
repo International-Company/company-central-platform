@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#13304d" />
+    <title>لا يوجد اتصال</title>
+
+    <!--
+      Served by the service worker when a page cannot be reached, so it is
+      standalone by necessity: no stylesheet, no font file, no script. Anything
+      it asked for would be the one request that is failing.
+
+      Both languages, because the worker answers before any page has run and
+      nothing here knows which one the reader wanted.
+
+      Written in the design's own terms: white and blue, near-square corners,
+      no icon and no symbol standing in for a word.
+    -->
+    <style>
+      :root {
+        --blue: #13304d;
+        --text: #141a21;
+        --secondary: #4f5d6b;
+        --border: #dde2e8;
+      }
+
+      html {
+        font-size: 16px;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: #ffffff;
+        color: var(--text);
+        font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        width: 100%;
+        max-width: 30rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        margin: 0.75rem 0 0;
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--secondary);
+      }
+
+      .en {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        direction: ltr;
+        text-align: left;
+        font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      }
+
+      button {
+        margin-top: 1.75rem;
+        height: 2.25rem;
+        padding: 0 1rem;
+        border: 1px solid var(--blue);
+        border-radius: 2px;
+        background: var(--blue);
+        color: #ffffff;
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      button:focus-visible {
+        outline: 2px solid #2f6fb5;
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h1>لا يوجد اتصال</h1>
+      <p>
+        هذه المنصة تقرأ كل شيء من الخادم في اللحظة التي تطلبه فيها، فلا يوجد
+        شيء لعرضه دون اتصال. لا شيء مما كنت تعمل عليه قد ضاع.
+      </p>
+
+      <button type="button" onclick="location.reload()">أعد المحاولة</button>
+
+      <div class="en">
+        <h1>No connection</h1>
+        <p>
+          This Platform reads everything from the server at the moment you ask
+          for it, so there is nothing to show you offline. Nothing you were
+          working on has been lost.
+        </p>
+
+        <button type="button" onclick="location.reload()">Try again</button>
+      </div>
+    </main>
+  </body>
+</html>

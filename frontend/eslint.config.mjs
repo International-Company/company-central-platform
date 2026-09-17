@@ -29,6 +29,40 @@ export default tseslint.config(
   },
 
   {
+    // The service worker. It runs in a worker global scope, which has neither
+    // `window` nor `document`, and does have `self`, `caches` and `clients`.
+    // Declared rather than switched off: a mistyped name is still an error,
+    // and in that file an error is a request handled wrongly.
+    files: ['public/sw.js'],
+
+    languageOptions: {
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
+
+  {
+    // Tools run by hand from a terminal, which drive a browser and report what
+    // they did.
+    files: ['scripts/**/*.mjs'],
+
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        document: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
+
+  {
     files: ['**/*.ts', '**/*.tsx'],
 
     languageOptions: {

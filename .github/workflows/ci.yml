@@ -537,3 +537,49 @@ jobs:
           exit-code: 1
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+
+      # The image that actually serves the portal, which nothing built here
+      # until now. Next's standalone output does not include `public/`, and the
+      # Dockerfile's own comment said it did: the service worker, the offline
+      # page and the application's icons would have been missing from every
+      # deployment while being served perfectly by `npm start`, by every
+      # developer's machine and by the end-to-end suite, all three of which read
+      # them straight from the working tree.
+      - name: Build portal image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: false
+          load: true
+          tags: ccp-portal:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: The portal image serves what it was built to serve
+        run: |
+          set -euo pipefail
+
+          docker run --rm --detach --name portal -p 8080:8080             -e PLATFORM_API_URL=http://localhost:1 ccp-portal:${{ github.sha }}
+
+          for _ in $(seq 1 30); do
+            if curl -sf http://localhost:8080/ar/login > /dev/null; then break; fi
+            sleep 2
+          done
+
+          # Rendered pages and files on disk are served by two different
+          # mechanisms, and only one of them was ever checked.
+          failed=()
+          for path in /ar/login /ar/manifest.webmanifest /sw.js /offline.html                       /icons/icon-192.png /icons/icon-512.png                       /icons/icon-maskable-512.png /icons/apple-touch-icon.png; do
+            status="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080${path}")"
+            echo "  ${status}  ${path}"
+            if [ "$status" != "200" ]; then failed+=("$path"); fi
+          done
+
+          docker logs portal 2>&1 | tail -20
+          docker rm --force portal > /dev/null
+
+          if [ "${#failed[@]}" -gt 0 ]; then
+            echo "The image does not serve: ${failed[*]}" >&2
+            exit 1
+          fi

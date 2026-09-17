@@ -46,8 +46,17 @@ USER node
 
 # `standalone` holds the server and its traced dependencies; `static` and
 # `public` are served from disk and are not traced into it.
+#
+# **`public` was named in this comment and never copied.** It did not matter
+# while the directory did not exist. It matters now: the service worker, the
+# offline page and the application's icons live there, so without this line the
+# Platform would install as an application with no icon, register no worker,
+# and show the browser's own error when the network went -- while working
+# perfectly in development, in `next start`, and in the end-to-end suite, all
+# three of which serve the directory straight from the working tree.
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
 
 EXPOSE 8080
 

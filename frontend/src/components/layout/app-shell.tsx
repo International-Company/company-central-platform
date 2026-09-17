@@ -117,7 +117,7 @@ export function AppShell({
           {/* The locale travels with the request. Without it the handler
               fell back to Arabic, so an English reader signing out landed
               on a sign-in page in a language they had not chosen. */}
-          <form action={`/api/auth/sign-out?locale=${locale}`} method="post">
+          <form action={`/api/auth/sign-out?locale=${locale}`} method="post" onSubmit={forgetCaches}>
             <button
               type="submit"
               className="whitespace-nowrap rounded-sm border border-primary-300 px-3 py-1 hover:border-text-on-primary"
@@ -183,7 +183,7 @@ export function AppShell({
             <div className="flex items-center justify-between gap-4 border-t border-border px-5 py-4 text-sm">
               <LocaleSwitch current={locale} label={labels.language} tone="light" />
 
-              <form action={`/api/auth/sign-out?locale=${locale}`} method="post">
+              <form action={`/api/auth/sign-out?locale=${locale}`} method="post" onSubmit={forgetCaches}>
                 <button
                   type="submit"
                   className="whitespace-nowrap rounded-sm border border-border-strong px-3 py-1 text-text hover:border-primary-700"
@@ -197,6 +197,25 @@ export function AppShell({
       ) : null}
     </div>
   );
+}
+
+/**
+ * Empties whatever the service worker kept, as the person signs out.
+ *
+ * It keeps nothing private -- build output, the icons and the offline page --
+ * and this is here so that stays true. A worker's cache outlives the session
+ * that filled it and is shared by whoever signs in next on the same machine,
+ * so the moment somebody leaves is the moment to prove the claim rather than
+ * to trust it.
+ *
+ * Never blocks the sign-out. The form is already submitting, the message is
+ * one-way, and a browser without a worker registered simply has nothing to
+ * tell.
+ */
+function forgetCaches() {
+  if (typeof navigator !== 'undefined' && navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage('sign-out');
+  }
 }
 
 /** Consecutive items sharing a section, in the order they were given. */
