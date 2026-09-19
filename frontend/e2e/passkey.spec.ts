@@ -86,7 +86,12 @@ test.describe('signing in with a passkey', () => {
 
     // The row, which only exists if the Platform verified the attestation and
     // stored the key.
-    await expect(page.getByText('End to end laptop')).toBeVisible({ timeout: 20_000 });
+    //
+    // `.first()`, because the table renders each row twice: once as a table for
+    // a wide screen and once as a stacked list for a phone. The first version
+    // of this line failed on a strict-mode violation with two matches, which
+    // was the feature working and the selector not knowing it.
+    await expect(page.getByText('End to end laptop').first()).toBeVisible({ timeout: 20_000 });
 
     // --- sign out, and sign back in with it -------------------------------
     await page.getByRole('button', { name: signOut }).first().click();

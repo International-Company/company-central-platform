@@ -1,0 +1,51 @@
+# Secret scanning configuration.
+#
+# **This file only ever narrows what is excused, never what is scanned.** It
+# extends the default rule set rather than replacing it, so every rule gitleaks
+# ships with still runs. A configuration that replaced the defaults would turn
+# the scanner into a decoration, quietly, and the build would stay green.
+#
+# The exclusion is written as a path allowlist rather than as a rule with the
+# same id as a default one. Declaring `[[rules]] id = "generic-api-key"` here
+# would *replace* that rule instead of narrowing it, and a rule replaced by one
+# with no pattern detects nothing anywhere — the opposite of the intent, and
+# invisible.
+#
+# Every entry names its paths and its reason. An allowlist without a reason is
+# an allowlist nobody can review later.
+
+title = "Company Central Platform"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+WebAuthn test vectors, and the script that captures them.
+
+They hold a public key, a signature, a credential identifier and two
+challenges, taken from Chrome's own implementation so that the Platform's
+verifier is tested against what a browser really produces rather than against a
+fixture written by the same understanding that wrote the verifier.
+
+None of it is a secret, and none of it could be:
+
+  - the public key is public by definition, and verifies signatures rather than
+    making them;
+  - the signature is over a challenge that was spent the moment it was used, so
+    it authenticates nothing and replays as nothing;
+  - the credential identifier is what an authenticator hands to any site that
+    asks for it;
+  - the two challenges are base64url of the readable ASCII strings
+    "for-registration-test-vector" and "for-authentication-test-vector", which
+    is what tripped the high-entropy rule.
+
+The private key existed for a few seconds inside a headless browser and was
+never written anywhere. Regenerate with
+frontend/scripts/capture-webauthn-vectors.mjs.
+"""
+
+paths = [
+  '''tests/Modules/CCP\.Modules\.Identity\.UnitTests/webauthn-vectors\.json''',
+  '''frontend/scripts/capture-webauthn-vectors\.mjs''',
+]
