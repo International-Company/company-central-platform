@@ -129,6 +129,32 @@ public sealed class UserListScopeTests
         public Task<User?> FindUserByIdAsync(Guid userId, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<WebAuthnCredential?> FindWebAuthnCredentialAsync(
+            string credentialId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<WebAuthnCredential>> GetWebAuthnCredentialsAsync(
+            Guid userId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<WebAuthnCredential?> FindWebAuthnCredentialByIdAsync(
+            Guid id, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public void AddWebAuthnCredential(WebAuthnCredential credential)
+            => throw new NotSupportedException();
+
+        public Task<WebAuthnChallenge?> FindWebAuthnChallengeAsync(
+            string value, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public void AddWebAuthnChallenge(WebAuthnChallenge challenge)
+            => throw new NotSupportedException();
+
+        public Task<int> DeleteExpiredWebAuthnChallengesAsync(
+            DateTimeOffset before, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<User?> FindUserByUsernameAsync(string username, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

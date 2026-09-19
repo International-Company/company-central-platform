@@ -58,6 +58,14 @@ export default tseslint.config(
         console: 'readonly',
         document: 'readonly',
         process: 'readonly',
+
+        // These run inside page.evaluate, so they are browser globals in a
+        // file Node executes. Declared rather than switched off: a typo in one
+        // of them is still worth catching.
+        navigator: 'readonly',
+        location: 'readonly',
+        btoa: 'readonly',
+        atob: 'readonly',
       },
     },
   },

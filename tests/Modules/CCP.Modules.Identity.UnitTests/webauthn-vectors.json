@@ -1,0 +1,19 @@
+{
+  "relyingPartyId": "localhost",
+  "origin": "http://localhost:5199",
+  "userHandle": "EjRWeJCrze8SNFZ4kKvN7w",
+  "registration": {
+    "challenge": "Zm9yLXJlZ2lzdHJhdGlvbi10ZXN0LXZlY3Rvcg",
+    "credentialId": "XK35seVRgs0E90S0OkcACA6CzZm6UA12gKLiUN18efU",
+    "clientDataJson": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiWm05eUxYSmxaMmx6ZEhKaGRHbHZiaTEwWlhOMExYWmxZM1J2Y2ciLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxOTkiLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+    "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVikSZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NFAAAAAQECAwQFBgcIAQIDBAUGBwgAIFyt-bHlUYLNBPdEtDpHAAgOgs2ZulANdoCi4lDdfHn1pQECAyYgASFYINFpDlA5-o0C2dTpGfO1AJNe4Odabiu_-byNsJTUePk_Ilggdv2wYEDbC9DwOim31rmRcpFTBb8k0mhn2bRpFobZjU8"
+  },
+  "authentication": {
+    "challenge": "Zm9yLWF1dGhlbnRpY2F0aW9uLXRlc3QtdmVjdG9y",
+    "credentialId": "XK35seVRgs0E90S0OkcACA6CzZm6UA12gKLiUN18efU",
+    "clientDataJson": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWm05eUxXRjFkR2hsYm5ScFkyRjBhVzl1TFhSbGMzUXRkbVZqZEc5eSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE5OSIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+    "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAg",
+    "signature": "MEQCIFUf7EKdR7uTpOCGvNi1yBZz3yDEM38GJhO0zH_rbTMZAiBrCh7GgrvfCjX5iizMfYso9dhbeCeL16MDM6tt9RNSqw",
+    "userHandle": "EjRWeJCrze8SNFZ4kKvN7w"
+  }
+}

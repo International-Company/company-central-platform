@@ -71,3 +71,61 @@ public sealed record AuthenticationResultDto(
     int ExpiresInSeconds,
     string TokenType,
     CurrentUserDto User);
+
+// ---------------------------------------------------------------------------
+// Passkeys
+// ---------------------------------------------------------------------------
+
+/// <summary>
+/// What the browser needs in order to create a passkey, in the shape
+/// <c>navigator.credentials.create</c> expects once the caller has turned the
+/// base64url strings back into bytes.
+/// </summary>
+public sealed record PasskeyRegistrationOptionsDto(
+    string Challenge,
+    string RelyingPartyId,
+    string RelyingPartyName,
+
+    /// <summary>The account, as the authenticator will remember it.</summary>
+    string UserId,
+    string Username,
+    string DisplayName,
+
+    /// <summary>
+    /// COSE algorithm identifiers this Platform can verify, best first. Sent
+    /// rather than assumed: an authenticator picks the first it supports, and
+    /// one that picked an algorithm the Platform cannot check would produce a
+    /// passkey that fails at every sign-in.
+    /// </summary>
+    IReadOnlyList<int> Algorithms,
+
+    /// <summary>
+    /// Credentials this account already has. The authenticator refuses to make
+    /// a second one for itself, so somebody adding a passkey twice from the
+    /// same device is told by their own device rather than by a conflict from
+    /// the server.
+    /// </summary>
+    IReadOnlyList<string> ExcludeCredentials,
+
+    int TimeoutMilliseconds);
+
+/// <summary>
+/// What the browser needs in order to sign in with a passkey.
+/// <para>
+/// No list of credentials, and no username was asked for. The authenticator
+/// finds the passkey itself, so an anonymous caller learns nothing about which
+/// accounts exist or which of them have one.
+/// </para>
+/// </summary>
+public sealed record PasskeySignInOptionsDto(
+    string Challenge,
+    string RelyingPartyId,
+    int TimeoutMilliseconds);
+
+/// <summary>One passkey on somebody's account, as their security screen shows it.</summary>
+public sealed record PasskeyDto(
+    Guid Id,
+    string Name,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastUsedAt);
+

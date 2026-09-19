@@ -1,5 +1,6 @@
 using CCP.Kernel.Api.Modules;
 using CCP.Kernel.Application.Modules;
+using CCP.Modules.Identity.Application.Passkeys;
 using CCP.Modules.Identity.Application.Passwords;
 using CCP.Modules.Identity.Application.Users;
 using Microsoft.AspNetCore.Routing;
@@ -45,6 +46,15 @@ public sealed class IdentityModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<GetUserHandler>();
         services.AddScoped<GetMySessionsHandler>();
         services.AddScoped<GetMyLoginHistoryHandler>();
+
+        // Passkeys. The verifier itself needs no infrastructure beyond the
+        // options, but it is registered by the Infrastructure layer with the
+        // rest of the cryptography.
+        services.AddScoped<BeginPasskeyRegistrationHandler>();
+        services.AddScoped<CompletePasskeyRegistrationHandler>();
+        services.AddScoped<BeginPasskeySignInHandler>();
+        services.AddScoped<CompletePasskeySignInHandler>();
+        services.AddScoped<PasskeyQueryHandlers>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder versionGroup)
@@ -52,6 +62,7 @@ public sealed class IdentityModule : IPlatformModule, IModuleEndpoints
         versionGroup.MapAuthenticationEndpoints();
         versionGroup.MapPasswordEndpoints();
         versionGroup.MapUserEndpoints();
+        versionGroup.MapPasskeyEndpoints();
         versionGroup.MapJwksEndpoints();
     }
 }

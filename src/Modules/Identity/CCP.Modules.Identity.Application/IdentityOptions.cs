@@ -48,6 +48,8 @@ public sealed class IdentityOptions
 
     public PasswordPolicy Password { get; set; } = PasswordPolicy.Default;
 
+    public WebAuthnOptions WebAuthn { get; set; } = new();
+
     public LockoutPolicy Lockout { get; set; } = LockoutPolicy.Default;
 
     /// <summary>JWT issuer, validated on every token.</summary>
@@ -88,4 +90,120 @@ public sealed class IdentityOptions
     /// </para>
     /// </summary>
     public string? SigningKey { get; set; }
+}
+
+/// <summary>
+/// Where passkeys are allowed to come from.
+/// <para>
+/// <b>None of this is a secret, and all of it is load-bearing.</b> A passkey is
+/// bound by the browser to one domain, so these two values decide which pages
+/// may ask for one. Get them wrong and nothing works; make them too broad and
+/// the phishing resistance that is the point of a passkey is what you have
+/// given away.
+/// </para>
+/// </summary>
+public sealed class WebAuthnOptions
+{
+    /// <summary>
+    /// The domain the credential belongs to, with no scheme and no port.
+    /// <para>
+    /// Baked into every passkey at registration and unchangeable afterwards:
+    /// moving the Platform to another domain does not move the passkeys, and
+    /// everybody enrols again. Worth deciding once, on the name the Platform
+    /// will keep.
+    /// </para>
+    /// </summary>
+    public string RelyingPartyId { get; set; } = "localhost";
+
+    /// <summary>What the device calls this Platform when it asks the person.</summary>
+    public string RelyingPartyName { get; set; } = "Company Central Platform";
+
+    /// <summary>
+    /// The full origins the sign-in page is served from, scheme and port
+    /// included.
+    /// <para>
+    /// Checked exactly. A wildcard here would accept an assertion collected by
+    /// any page on any subdomain, which is most of what a passkey exists to
+    /// prevent.
+    /// </para>
+    /// </summary>
+    public IList<string> Origins { get; set; } = ["http://localhost:3000"];
+
+    /// <summary>
+    /// How long a challenge stays answerable. Minutes, because a challenge
+    /// nobody has answered by now is one nobody is going to, and every one
+    /// still outstanding is one somebody could be working on.
+    /// </summary>
+    public TimeSpan ChallengeLifetime { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Whether a person may sign in with a passkey at all.
+    /// <para>
+    /// A switch rather than a belief. If something about this ever has to be
+    /// turned off in a hurry, the alternative is a deployment.
+    /// </para>
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Every origin must belong to the relying party, or no browser will hand
+    /// over anything.
+    /// <para>
+    /// Checked at startup rather than discovered at the first sign-in. The
+    /// symptom of a mismatch is the browser refusing with a message the server
+    /// never sees, which is close to unattributable from the Platform's side.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<string> Misconfigurations()
+    {
+        var problems = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(RelyingPartyId))
+        {
+            problems.Add("Identity:WebAuthn:RelyingPartyId is empty.");
+
+            return problems;
+        }
+
+        if (RelyingPartyId.Contains("://", StringComparison.Ordinal) || RelyingPartyId.Contains(':'))
+        {
+            problems.Add(
+                $"Identity:WebAuthn:RelyingPartyId is '{RelyingPartyId}'. It is a domain, with no scheme and no port.");
+        }
+
+        if (Origins.Count == 0)
+        {
+            problems.Add("Identity:WebAuthn:Origins is empty, so no page may ask for a passkey.");
+        }
+
+        foreach (string origin in Origins)
+        {
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out Uri? parsed))
+            {
+                problems.Add($"Identity:WebAuthn:Origins contains '{origin}', which is not an absolute URL.");
+
+                continue;
+            }
+
+            bool belongs = string.Equals(parsed.Host, RelyingPartyId, StringComparison.OrdinalIgnoreCase)
+                || parsed.Host.EndsWith("." + RelyingPartyId, StringComparison.OrdinalIgnoreCase);
+
+            if (!belongs)
+            {
+                problems.Add(
+                    $"Identity:WebAuthn:Origins contains '{origin}', whose host is not '{RelyingPartyId}' "
+                    + "or a subdomain of it. No browser will return a passkey to it.");
+            }
+
+            // Everywhere but localhost, which browsers treat as secure so that
+            // development is possible at all.
+            if (parsed.Scheme != Uri.UriSchemeHttps
+                && !string.Equals(parsed.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add($"Identity:WebAuthn:Origins contains '{origin}', which is not HTTPS.");
+            }
+        }
+
+        return problems;
+    }
 }

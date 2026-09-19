@@ -7,6 +7,7 @@ using CCP.Modules.Identity.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace CCP.Modules.Identity.Infrastructure;
 
@@ -30,6 +31,12 @@ public static class IdentityInfrastructureRegistration
             .AddOptions<IdentityOptions>()
             .Bind(configuration.GetSection(IdentityOptions.SectionName))
             .ValidateOnStart();
+
+        // Passkeys are bound to a domain by the browser, and a mismatch between
+        // the relying party and the origins the portal is served from fails in
+        // the browser with a message the server never sees. Checked at startup,
+        // where every problem can be named.
+        services.AddSingleton<IValidateOptions<IdentityOptions>, WebAuthnOptionsValidator>();
 
         services
             .AddOptions<Argon2Options>()
@@ -80,6 +87,10 @@ public static class IdentityInfrastructureRegistration
         services.AddSingleton<Contracts.IPlatformTokenMinter>(
             sp => sp.GetRequiredService<JwtTokenService>());
         services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
+
+        // The passkey checks. A singleton, and stateless: it holds the relying
+        // party's identity and nothing about any request.
+        services.AddSingleton<IWebAuthnVerifier, WebAuthnVerifier>();
         services.AddSingleton<IJwksProvider, JwksProvider>();
 
         // Breached-password screening. Registered with a typed HttpClient so it

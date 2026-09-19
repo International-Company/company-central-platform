@@ -28,6 +28,10 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
 
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+    public DbSet<WebAuthnCredential> WebAuthnCredentials => Set<WebAuthnCredential>();
+
+    public DbSet<WebAuthnChallenge> WebAuthnChallenges => Set<WebAuthnChallenge>();
+
     public DbSet<Session> Sessions => Set<Session>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -43,6 +47,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
         ConfigureSessions(modelBuilder);
         ConfigureRefreshTokens(modelBuilder);
         ConfigureLoginAttempts(modelBuilder);
+        ConfigurePasskeys(modelBuilder);
 
         // The outbox is mapped into this context so a staged event commits in
         // the same transaction as the change that produced it. Writing it
@@ -92,6 +97,52 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             // Domain events are dispatched through the outbox, never stored.
             entity.Ignore(e => e.DomainEvents);
         });
+
+    private static void ConfigurePasskeys(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<WebAuthnCredential>(entity =>
+        {
+            entity.ToTable("webauthn_credentials");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CredentialId).HasMaxLength(512).IsRequired();
+            entity.Property(e => e.PublicKey).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(64).IsRequired();
+
+            // Unique across the Platform rather than per user. An authenticator
+            // hands out the same identifier every time it is asked about a
+            // credential it holds, so the same physical device registered
+            // against two accounts would otherwise produce two rows that a
+            // sign-in — which arrives with an identifier and no username —
+            // cannot choose between.
+            entity.HasIndex(e => e.CredentialId).IsUnique();
+
+            // The list on somebody's security screen, and the check for whether
+            // this account has any passkey at all.
+            entity.HasIndex(e => new { e.UserId, e.RevokedAt });
+        });
+
+        modelBuilder.Entity<WebAuthnChallenge>(entity =>
+        {
+            entity.ToTable("webauthn_challenges");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Value).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Ceremony).HasConversion<int>().IsRequired();
+
+            // Looked up by value on every ceremony, and the uniqueness matters
+            // as much as the speed: two rows with one value would make "spend
+            // it" ambiguous, and a challenge that can be spent twice is a
+            // challenge that can be replayed once.
+            entity.HasIndex(e => e.Value).IsUnique();
+
+            // Sweeping the expired ones. They are useless the moment they lapse
+            // and there are as many of them as there are sign-in attempts.
+            entity.HasIndex(e => e.ExpiresAt);
+        });
+    }
 
     private static void ConfigureCredentials(ModelBuilder modelBuilder)
     {

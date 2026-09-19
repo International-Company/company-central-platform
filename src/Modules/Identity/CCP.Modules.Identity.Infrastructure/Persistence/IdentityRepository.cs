@@ -69,6 +69,40 @@ public sealed class IdentityRepository(IdentityDbContext dbContext) : IIdentityR
 
     public void AddCredential(UserCredential credential) => dbContext.Credentials.Add(credential);
 
+    // --- Passkeys ----------------------------------------------------------
+
+    public Task<WebAuthnCredential?> FindWebAuthnCredentialAsync(
+        string credentialId, CancellationToken cancellationToken = default)
+        => dbContext.WebAuthnCredentials
+            .FirstOrDefaultAsync(c => c.CredentialId == credentialId, cancellationToken);
+
+    public async Task<IReadOnlyList<WebAuthnCredential>> GetWebAuthnCredentialsAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+        => await dbContext.WebAuthnCredentials
+            .Where(c => c.UserId == userId && c.RevokedAt == null)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public Task<WebAuthnCredential?> FindWebAuthnCredentialByIdAsync(
+        Guid id, CancellationToken cancellationToken = default)
+        => dbContext.WebAuthnCredentials.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+    public void AddWebAuthnCredential(WebAuthnCredential credential)
+        => dbContext.WebAuthnCredentials.Add(credential);
+
+    public Task<WebAuthnChallenge?> FindWebAuthnChallengeAsync(
+        string value, CancellationToken cancellationToken = default)
+        => dbContext.WebAuthnChallenges.FirstOrDefaultAsync(c => c.Value == value, cancellationToken);
+
+    public void AddWebAuthnChallenge(WebAuthnChallenge challenge)
+        => dbContext.WebAuthnChallenges.Add(challenge);
+
+    public Task<int> DeleteExpiredWebAuthnChallengesAsync(
+        DateTimeOffset before, CancellationToken cancellationToken = default)
+        => dbContext.WebAuthnChallenges
+            .Where(c => c.ExpiresAt < before)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public async Task<IReadOnlyList<PasswordHistoryEntry>> GetPasswordHistoryAsync(
         Guid userId,
         int count,

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Field, FormMessage } from '@/components/ui/field';
+import { PasskeySignIn } from '@/features/auth/passkey-sign-in';
 
 /**
  * Sign-in.
@@ -167,6 +168,10 @@ export default function LoginPage() {
       >
         {t('forgotPassword')}
       </a>
+
+      {/* Appears only on a device that can actually verify a person, which is
+          a question only the browser can answer. */}
+      <PasskeySignIn separatorLabel={t('or')} />
     </form>
   );
 }

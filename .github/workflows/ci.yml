@@ -361,6 +361,17 @@ jobs:
       CCP_Identity__Bootstrap__DisplayName: "End To End"
       CCP_Identity__Bootstrap__InitialPassword: "e2e-not-a-real-secret-2026"
 
+      # The whole suite signs in as one account from one address, which is
+      # exactly the shape the strict limit exists to stop: ten attempts a
+      # minute against a single username. Adding passkeys roughly doubled the
+      # sign-ins, so the browser tests were about to start failing on a control
+      # working correctly.
+      #
+      # Raised here and nowhere else. The limiter has its own tests, and
+      # proving it again by having it break unrelated ones proves nothing.
+      CCP_RateLimits__Authentication: "200"
+      CCP_RateLimits__AuthenticationPerAddress: "400"
+
       E2E_USERNAME: "e2e-admin"
       E2E_PASSWORD: "e2e-not-a-real-secret-2026"
       E2E_BASE_URL: "http://localhost:3000"

@@ -50,6 +50,10 @@ export type RoleDetailDto = Schemas['RoleDetailDto'];
 export type UserRoleDto = Schemas['UserRoleDto'];
 export type MyPermissionsDto = Schemas['MyPermissionsDto'];
 export type MfaStatusDto = Schemas['MfaStatusDto'];
+
+export type PasskeyDto = Schemas['PasskeyDto'];
+export type PasskeyRegistrationOptionsDto = Schemas['PasskeyRegistrationOptionsDto'];
+export type PasskeySignInOptionsDto = Schemas['PasskeySignInOptionsDto'];
 export type MfaEnrolmentDto = Schemas['MfaEnrolmentDto'];
 export type MfaVerificationDto = Schemas['MfaVerificationDto'];
 export type RecoveryCodesDto = Schemas['RecoveryCodesDto'];

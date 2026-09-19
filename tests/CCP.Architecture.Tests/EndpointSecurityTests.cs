@@ -72,6 +72,19 @@ public sealed class EndpointSecurityTests
             "api/v1/auth/login",
             "api/v1/auth/refresh",
 
+            // Signing in with a passkey, and the challenge that makes it
+            // possible. Anonymous for the same reason sign-in is: it is where
+            // somebody holding no token gets one.
+            //
+            // Reviewed rather than waved through, because it is the newest
+            // door into the Platform. It asks for no username, so it cannot be
+            // used to discover which accounts exist; the challenge is random,
+            // server-issued and spent on first use, so a captured exchange
+            // cannot be replayed; the response is worthless without the private
+            // key, which never leaves the person's device; and both carry the
+            // same strict rate limit as password sign-in.
+            "api/v1/auth/passkey",
+
             // Password recovery: someone who has forgotten their password
             // cannot authenticate, so these cannot require it. Both are
             // enumeration-safe, and both need strict per-IP rate limits in

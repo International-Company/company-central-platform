@@ -8,6 +8,7 @@ Reference: [ARCHITECTURE.md §12](../../ARCHITECTURE.md) (Security), §13 (Authe
 |---|---|---|
 | [`authentication.md`](authentication.md) — flows, tokens, sessions, key rotation | 2 | Written |
 | [`mfa.md`](mfa.md) — TOTP, recovery codes, secret storage, step-up | 5 | Written |
+| [`passkeys.md`](passkeys.md) — signing in with a fingerprint: what is stored, what is checked, how it is configured | 2 | Written |
 | [`rate-limiting.md`](rate-limiting.md) — per-endpoint classes and partitioning | 5 | Written |
 | [`secrets-management.md`](secrets-management.md) — where secrets live per environment, and rotation | 5 | Written |
 | [`security-headers.md`](security-headers.md) — headers, CORS, and the bug the design prevents | 5 | Written |

@@ -7,6 +7,7 @@ import { Field, FormMessage } from '@/components/ui/field';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { PasskeysPanel } from './passkeys-panel';
 import { SessionsPanel } from './sessions-panel';
 import { SecurityEventsPanel } from './security-events-panel';
 import type { MfaEnrolmentDto, MfaStatusDto, RecoveryCodesDto } from '@/types/platform';
@@ -251,6 +252,11 @@ export function SecurityScreen() {
       {/* One's own security below one's own second factor, then the Platform's
           log — which needs a permission and is therefore not everyone's. The
           order is by who it belongs to: you, then the company. */}
+      {/* Between the second factor above and the sessions below: it is a
+          credential, and the screen reads from what proves who you are to
+          where you are signed in. */}
+      <PasskeysPanel />
+
       <SessionsPanel />
 
       <SecurityEventsPanel />

@@ -57,6 +57,54 @@ public interface IIdentityRepository
 
     void AddPasswordResetToken(PasswordResetToken token);
 
+    // --- Passkeys ----------------------------------------------------------
+
+    /// <summary>
+    /// Finds a passkey by the identifier the authenticator sends, revoked ones
+    /// included.
+    /// <para>
+    /// Revoked ones too, deliberately: a sign-in with a removed passkey is a
+    /// refusal and not a mystery, and the row is what makes the difference
+    /// between "this credential was removed" and "this credential never
+    /// existed" — a distinction worth having in the security log even though
+    /// the caller is told the same thing either way.
+    /// </para>
+    /// </summary>
+    Task<WebAuthnCredential?> FindWebAuthnCredentialAsync(
+        string credentialId, CancellationToken cancellationToken = default);
+
+    /// <summary>Somebody's passkeys, newest first. Removed ones are not listed.</summary>
+    Task<IReadOnlyList<WebAuthnCredential>> GetWebAuthnCredentialsAsync(
+        Guid userId, CancellationToken cancellationToken = default);
+
+    Task<WebAuthnCredential?> FindWebAuthnCredentialByIdAsync(
+        Guid id, CancellationToken cancellationToken = default);
+
+    void AddWebAuthnCredential(WebAuthnCredential credential);
+
+    /// <summary>
+    /// Finds a challenge by its value, whatever state it is in.
+    /// <para>
+    /// The state is the handler's to judge, because "expired" and "already
+    /// spent" are different facts and a repository that filtered them out would
+    /// leave the handler unable to tell either from "never issued".
+    /// </para>
+    /// </summary>
+    Task<WebAuthnChallenge?> FindWebAuthnChallengeAsync(
+        string value, CancellationToken cancellationToken = default);
+
+    void AddWebAuthnChallenge(WebAuthnChallenge challenge);
+
+    /// <summary>
+    /// Deletes challenges that lapsed before the given moment.
+    /// <para>
+    /// One row per sign-in attempt, useful for five minutes. Without this the
+    /// table grows for ever and the only thing in it is rubbish.
+    /// </para>
+    /// </summary>
+    Task<int> DeleteExpiredWebAuthnChallengesAsync(
+        DateTimeOffset before, CancellationToken cancellationToken = default);
+
     // --- Sessions ----------------------------------------------------------
 
     Task<Session?> FindSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);

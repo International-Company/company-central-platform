@@ -193,4 +193,66 @@ public static class IdentityErrors
         "IDENTITY.CURRENT_PASSWORD_INCORRECT",
         "The current password is incorrect.",
         "currentPassword");
+
+    // --- Passkeys ----------------------------------------------------------
+
+    /// <summary>
+    /// The single response for every failed passkey sign-in: an unknown
+    /// credential, a spent challenge, a signature that does not verify, an
+    /// authenticator that did not verify the person, a revoked passkey, a
+    /// counter that went backwards, and an account that may not sign in.
+    /// <para>
+    /// Uniform for the same reason <see cref="InvalidCredentials"/> is. A
+    /// passkey sign-in takes no username, so the only thing an attacker could
+    /// learn from a detailed refusal is which credential identifiers exist —
+    /// and that is precisely what they would want to know.
+    /// </para>
+    /// </summary>
+    public static readonly Error InvalidPasskeyAssertion = Error.Unauthenticated(
+        "IDENTITY.INVALID_PASSKEY",
+        "This passkey could not be used to sign in.");
+
+    /// <summary>
+    /// Raised while registering, where the caller is known and telling them
+    /// what is wrong costs nothing.
+    /// </summary>
+    public static readonly Error InvalidPasskeyRegistration = Error.Validation(
+        "IDENTITY.INVALID_PASSKEY_REGISTRATION",
+        "The passkey could not be registered. The authenticator's response did not verify.");
+
+    public static readonly Error PasskeyAlreadyRegistered = Error.Conflict(
+        "IDENTITY.PASSKEY_ALREADY_REGISTERED",
+        "This device already has a passkey for an account on this Platform.");
+
+    /// <summary>
+    /// The authenticator did not verify the person — no fingerprint, no face,
+    /// no device passcode.
+    /// <para>
+    /// Refused rather than accepted as a weaker credential. A passkey is allowed
+    /// to stand in for a password and a code together only because the device
+    /// checks a human first; one that does not is a key in a pocket, and
+    /// storing it beside the others would quietly make the strongest thing on
+    /// the Platform the weakest.
+    /// </para>
+    /// </summary>
+    public static readonly Error PasskeyUserVerificationRequired = Error.Validation(
+        "IDENTITY.PASSKEY_USER_VERIFICATION_REQUIRED",
+        "This device did not verify who you are. Set up a fingerprint, a face or a device passcode, then try again.");
+
+    public static readonly Error PasskeyNotFound = Error.NotFound(
+        "IDENTITY.PASSKEY_NOT_FOUND",
+        "The passkey does not exist.");
+
+    public static readonly Error PasskeyRevoked = Error.Unauthenticated(
+        "IDENTITY.PASSKEY_REVOKED",
+        "This passkey has been removed.");
+
+    /// <summary>
+    /// The authenticator's signature counter did not advance, which is what a
+    /// cloned authenticator looks like. Distinct from the others because it is
+    /// the one refusal worth investigating rather than retrying.
+    /// </summary>
+    public static readonly Error PasskeyCounterWentBackwards = Error.Unauthenticated(
+        "IDENTITY.PASSKEY_COUNTER_WENT_BACKWARDS",
+        "This passkey may have been copied. It has been refused.");
 }

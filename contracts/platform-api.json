@@ -632,6 +632,173 @@
         }
       }
     },
+    "/api/v1/auth/passkey/options": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Issues a one-time challenge for signing in with a passkey.",
+        "description": "**Anonymous.** No token is needed to call this.",
+        "operationId": "BeginPasskeySignIn",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeySignInOptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Signs in with a passkey, and starts a session.",
+        "description": "**Anonymous.** No token is needed to call this.",
+        "operationId": "CompletePasskeySignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletePasskeySignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/passkeys": {
+      "get": {
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Lists the passkeys registered to the caller.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "GetMyPasskeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PasskeyDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Stores a passkey the caller's device has just created.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "CompletePasskeyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletePasskeyRegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/passkeys/options": {
+      "post": {
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Issues a one-time challenge for adding a passkey, after checking the password.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "BeginPasskeyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeginPasskeyRegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyRegistrationOptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/passkeys/{id}": {
+      "delete": {
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Removes one of the caller's passkeys.",
+        "description": "**Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.",
+        "operationId": "RemoveMyPasskey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/.well-known/jwks.json": {
       "get": {
         "tags": [
@@ -5032,6 +5199,17 @@
           }
         }
       },
+      "BeginPasskeyRegistrationRequest": {
+        "required": [
+          "currentPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          }
+        }
+      },
       "CancelInstanceRequest": {
         "type": "object",
         "properties": {
@@ -5102,6 +5280,55 @@
           },
           "isActive": {
             "type": "boolean"
+          }
+        }
+      },
+      "CompletePasskeyRegistrationRequest": {
+        "required": [
+          "name",
+          "clientDataJson",
+          "attestationObject"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "clientDataJson": {
+            "type": "string"
+          },
+          "attestationObject": {
+            "type": "string"
+          }
+        }
+      },
+      "CompletePasskeySignInRequest": {
+        "required": [
+          "credentialId",
+          "clientDataJson",
+          "authenticatorData",
+          "signature",
+          "userHandle"
+        ],
+        "type": "object",
+        "properties": {
+          "credentialId": {
+            "type": "string"
+          },
+          "clientDataJson": {
+            "type": "string"
+          },
+          "authenticatorData": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "userHandle": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7923,6 +8150,118 @@
           },
           "hasNext": {
             "type": "boolean"
+          }
+        }
+      },
+      "PasskeyDto": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "PasskeyRegistrationOptionsDto": {
+        "required": [
+          "challenge",
+          "relyingPartyId",
+          "relyingPartyName",
+          "userId",
+          "username",
+          "displayName",
+          "algorithms",
+          "excludeCredentials",
+          "timeoutMilliseconds"
+        ],
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "relyingPartyId": {
+            "type": "string"
+          },
+          "relyingPartyName": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "algorithms": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          "excludeCredentials": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeoutMilliseconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PasskeySignInOptionsDto": {
+        "required": [
+          "challenge",
+          "relyingPartyId",
+          "timeoutMilliseconds"
+        ],
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "relyingPartyId": {
+            "type": "string"
+          },
+          "timeoutMilliseconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

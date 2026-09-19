@@ -400,6 +400,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/passkey/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issues a one-time challenge for signing in with a passkey.
+         * @description **Anonymous.** No token is needed to call this.
+         */
+        post: operations["BeginPasskeySignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signs in with a passkey, and starts a session.
+         * @description **Anonymous.** No token is needed to call this.
+         */
+        post: operations["CompletePasskeySignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lists the passkeys registered to the caller.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        get: operations["GetMyPasskeys"];
+        put?: never;
+        /**
+         * Stores a passkey the caller's device has just created.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        post: operations["CompletePasskeyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/passkeys/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issues a one-time challenge for adding a passkey, after checking the password.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        post: operations["BeginPasskeyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/passkeys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes one of the caller's passkeys.
+         * @description **Requires:** an authenticated caller, and no permission. This endpoint acts only on the caller's own records.
+         */
+        delete: operations["RemoveMyPasskey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/.well-known/jwks.json": {
         parameters: {
             query?: never;
@@ -2363,6 +2467,9 @@ export interface components {
             tokenType: string;
             user: components["schemas"]["CurrentUserDto"];
         };
+        BeginPasskeyRegistrationRequest: {
+            currentPassword: string;
+        };
         CancelInstanceRequest: {
             reason?: null | string;
         };
@@ -2382,6 +2489,18 @@ export interface components {
             name: components["schemas"]["LocalizedNameDto"];
             defaultLocale: string;
             isActive: boolean;
+        };
+        CompletePasskeyRegistrationRequest: {
+            name: string;
+            clientDataJson: string;
+            attestationObject: string;
+        };
+        CompletePasskeySignInRequest: {
+            credentialId: string;
+            clientDataJson: string;
+            authenticatorData: string;
+            signature: string;
+            userHandle: null | string;
         };
         ConfigureProviderRequest: {
             /** Format: int32 */
@@ -3072,6 +3191,33 @@ export interface components {
             totalPages?: number | string;
             hasPrevious?: boolean;
             hasNext?: boolean;
+        };
+        PasskeyDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+        };
+        PasskeyRegistrationOptionsDto: {
+            challenge: string;
+            relyingPartyId: string;
+            relyingPartyName: string;
+            userId: string;
+            username: string;
+            displayName: string;
+            algorithms: (number | string)[];
+            excludeCredentials: string[];
+            /** Format: int32 */
+            timeoutMilliseconds: number | string;
+        };
+        PasskeySignInOptionsDto: {
+            challenge: string;
+            relyingPartyId: string;
+            /** Format: int32 */
+            timeoutMilliseconds: number | string;
         };
         PermissionDeclarationRequest: {
             name: string;
@@ -4002,6 +4148,138 @@ export interface operations {
         responses: {
             /** @description OK */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BeginPasskeySignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeySignInOptionsDto"];
+                };
+            };
+        };
+    };
+    CompletePasskeySignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompletePasskeySignInRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticationResultDto"];
+                };
+            };
+        };
+    };
+    GetMyPasskeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyDto"][];
+                };
+            };
+        };
+    };
+    CompletePasskeyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompletePasskeyRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyDto"];
+                };
+            };
+        };
+    };
+    BeginPasskeyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeginPasskeyRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyRegistrationOptionsDto"];
+                };
+            };
+        };
+    };
+    RemoveMyPasskey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
