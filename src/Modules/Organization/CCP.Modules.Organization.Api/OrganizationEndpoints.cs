@@ -408,6 +408,42 @@ public static class OrganizationEndpoints
             .WithName("SearchEmployees")
             .WithSummary("Lists employees, optionally scoped to a unit and everything beneath it.");
 
+        employees.MapGet("/{id:guid}", async (
+            Guid id,
+            HttpContext context,
+            [FromServices] GetEmployeeHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<EmployeeDto> result =
+                await handler.HandleAsync(new GetEmployeeQuery(id), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.employees.view"))
+            .Produces<EmployeeDto>(StatusCodes.Status200OK)
+            .WithName("GetEmployee")
+            .WithSummary("Reads one employee.");
+
+        employees.MapGet("/by-user/{userId:guid}", async (
+            Guid userId,
+            HttpContext context,
+            [FromServices] GetEmployeeByUserHandler handler,
+            [FromServices] RequestContextAccessor requestContext,
+            CancellationToken cancellationToken) =>
+        {
+            Result<EmployeeDto> result =
+                await handler.HandleAsync(new GetEmployeeByUserQuery(userId), cancellationToken);
+
+            return result.ToHttpResult(context, requestContext);
+        })
+            .RequireAuthorization()
+            .WithMetadata(new RequirePermissionAttribute("platform.employees.view"))
+            .Produces<EmployeeDto>(StatusCodes.Status200OK)
+            .WithName("GetEmployeeByUser")
+            .WithSummary("Reads the employee behind a sign-in account, if there is one.");
+
         employees.MapPost("/", async (
             CreateEmployeeRequest request,
             HttpContext context,

@@ -1736,6 +1736,72 @@
         }
       }
     },
+    "/api/v1/organization/employees/{id}": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Reads one employee.",
+        "description": "**Requires:** `platform.employees.view`",
+        "operationId": "GetEmployee",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/organization/employees/by-user/{userId}": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Reads the employee behind a sign-in account, if there is one.",
+        "description": "**Requires:** `platform.employees.view`",
+        "operationId": "GetEmployeeByUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organization/employees/{id}/transfer": {
       "post": {
         "tags": [

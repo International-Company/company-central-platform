@@ -44,6 +44,11 @@ public sealed class OrganizationModule : IPlatformModule, IModuleEndpoints
         services.AddScoped<LinkEmployeeUserHandler>();
         services.AddScoped<SearchEmployeesHandler>();
 
+        // Reading one employee, and reading the employee behind an account.
+        // Both were missing until a business application needed them.
+        services.AddScoped<GetEmployeeHandler>();
+        services.AddScoped<GetEmployeeByUserHandler>();
+
         // The typed extension bag: business applications attach their own
         // metadata to a person without a Platform schema change.
         services.AddScoped<SetEmployeeAttributeHandler>();

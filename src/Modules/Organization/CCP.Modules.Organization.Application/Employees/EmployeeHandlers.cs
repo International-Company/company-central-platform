@@ -329,6 +329,96 @@ public sealed class LinkEmployeeUserHandler(
     }
 }
 
+/// <summary>Reading one employee, by the Platform's own identifier for them.</summary>
+public sealed record GetEmployeeQuery(Guid EmployeeId);
+
+/// <summary>Reading the employee behind a sign-in account.</summary>
+public sealed record GetEmployeeByUserQuery(Guid UserId);
+
+/// <summary>
+/// One employee.
+/// <para>
+/// <b>Added because the first business application to integrate could not
+/// do without it.</b> The Platform could list employees and could not fetch
+/// one: an application that had stored an employee identifier — which is what
+/// every application that assigns anything to a person does — had to page
+/// through a search to find them again. Listing without reading is a gap that
+/// each integration discovers separately and works around differently.
+/// </para>
+/// <para>
+/// The unit and position codes are resolved here, as the search resolves them,
+/// so a caller showing an employee needs one request rather than three.
+/// </para>
+/// </summary>
+public sealed class GetEmployeeHandler(IOrganizationRepository repository)
+{
+    public async Task<Result<EmployeeDto>> HandleAsync(
+        GetEmployeeQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        Employee? employee = await repository.FindEmployeeAsync(query.EmployeeId, cancellationToken);
+
+        return employee is null
+            ? Result.Failure<EmployeeDto>(OrganizationErrors.EmployeeNotFound)
+            : Result.Success(await DescribeAsync(repository, employee, cancellationToken));
+    }
+
+    /// <summary>
+    /// Resolves the codes a caller would otherwise have to fetch separately.
+    /// Shared with the by-user lookup, so the two cannot describe the same
+    /// employee differently.
+    /// </summary>
+    internal static async Task<EmployeeDto> DescribeAsync(
+        IOrganizationRepository repository,
+        Employee employee,
+        CancellationToken cancellationToken)
+    {
+        Domain.Units.OrganizationUnit? unit =
+            await repository.FindUnitAsync(employee.UnitId, cancellationToken);
+
+        Domain.Positions.Position? position = employee.PositionId is { } positionId
+            ? await repository.FindPositionAsync(positionId, cancellationToken)
+            : null;
+
+        return OrganizationMapper.ToDto(employee, unit?.Code ?? string.Empty, position?.Code);
+    }
+}
+
+/// <summary>
+/// The employee behind an account.
+/// <para>
+/// <b>The bridge between who signed in and who they are in the company.</b>
+/// Authentication answers with a user; everything an application actually does
+/// with a person — assigning an asset, routing an approval, reading their unit
+/// — needs the employee. Without this, an application holding a user id had no
+/// way across, and <c>EmployeeDto.userId</c> was a field nothing could search
+/// by.
+/// </para>
+/// <para>
+/// Not every account has an employee, and that is a real answer rather than an
+/// error: contractors, service accounts and the bootstrap administrator exist
+/// without one. It is reported as not found, and the caller decides what that
+/// means for them.
+/// </para>
+/// </summary>
+public sealed class GetEmployeeByUserHandler(IOrganizationRepository repository)
+{
+    public async Task<Result<EmployeeDto>> HandleAsync(
+        GetEmployeeByUserQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        Employee? employee = await repository.FindEmployeeByUserAsync(query.UserId, cancellationToken);
+
+        return employee is null
+            ? Result.Failure<EmployeeDto>(OrganizationErrors.EmployeeNotFound)
+            : Result.Success(await GetEmployeeHandler.DescribeAsync(repository, employee, cancellationToken));
+    }
+}
+
 /// <summary>Searching employees.</summary>
 /// <param name="ScopePathPrefixes">
 /// The organizational paths the caller is permitted to reach, from their

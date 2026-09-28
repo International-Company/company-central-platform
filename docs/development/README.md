@@ -7,6 +7,7 @@
 | [`getting-started.md`](getting-started.md) | Clone to a running Platform, both halves, with the twelve migration histories and the first administrator |
 | [`adding-a-module.md`](adding-a-module.md) | The shape eleven modules share, the rules that are enforced by build-failing tests, and the three places a new module has to be wired in |
 | [`integration-guide.md`](integration-guide.md) | How to connect a business system to the Platform, without reading Platform source |
+| [`usooli-integration.md`](usooli-integration.md) | The Asset System (أصولي): what was decided, what it calls, and the provider it needs |
 | [`configuration.md`](configuration.md) | Declaring settings and feature flags, and why a setting refuses a value that looks like a secret |
 
 ## Not written, and honestly so
