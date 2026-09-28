@@ -63,6 +63,13 @@ using Serilog;
 // behaviour belongs in the kernel or in a module.
 // ============================================================================
 
+// Before anything reads configuration. `getting-started.md` says to copy
+// `.env.example` to `.env`, and until now nothing read one, so following the
+// instructions exactly produced "No database connection is configured" naming
+// the file that had just been created. A real environment variable still wins,
+// and this does nothing at all in production.
+string? envFile = DotEnvFile.Load();
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // ---------------------------------------------------------------------------
@@ -163,7 +170,11 @@ builder.Services.AddHostedService<OutboxRetentionSweep>();
 string resolvedConnectionString = ConnectionStringResolver.Resolve(builder.Configuration)
     ?? throw new InvalidOperationException(
         "No database connection is configured. Set CCP_ConnectionStrings__Platform, or "
-        + "DATABASE_URL if your platform publishes one. See .env.example.");
+        + "DATABASE_URL if your platform publishes one. Locally, copy .env.example to "
+        + ".env in the repository root, which is read on start outside production"
+        + (envFile is null
+            ? " — no .env was found from " + Directory.GetCurrentDirectory() + "."
+            : " — " + envFile + " was read and does not set it."));
 
 // Every context, factory and raw connection inherits the Platform's limits from
 // the string itself, because a rule that has to be repeated at twenty-two
