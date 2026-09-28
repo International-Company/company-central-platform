@@ -43,8 +43,10 @@ public sealed record CompletePasskeySignInRequest(
 /// with the credential.
 /// </para>
 /// <para>
-/// All four return 404 when passkeys are switched off, rather than 403. A
-/// feature that is not enabled here is a feature that is not here.
+/// All four return 404 when passkeys are not usable, rather than 403. A
+/// feature that is not here is not here — and "not usable" covers both a
+/// deployment that turned them off and one that never said where they live,
+/// because the difference is invisible to a caller and should be.
 /// </para>
 /// </summary>
 public static class PasskeyEndpoints
@@ -68,7 +70,7 @@ public static class PasskeyEndpoints
             [FromServices] IOptions<IdentityOptions> options,
             CancellationToken cancellationToken) =>
         {
-            if (!options.Value.WebAuthn.Enabled)
+            if (!options.Value.WebAuthn.IsUsable)
             {
                 return Results.NotFound();
             }
@@ -93,7 +95,7 @@ public static class PasskeyEndpoints
             [FromServices] IOptions<IdentityOptions> options,
             CancellationToken cancellationToken) =>
         {
-            if (!options.Value.WebAuthn.Enabled)
+            if (!options.Value.WebAuthn.IsUsable)
             {
                 return Results.NotFound();
             }
@@ -162,7 +164,7 @@ public static class PasskeyEndpoints
             [FromServices] IOptions<IdentityOptions> options,
             CancellationToken cancellationToken) =>
         {
-            if (!options.Value.WebAuthn.Enabled)
+            if (!options.Value.WebAuthn.IsUsable)
             {
                 return Results.NotFound();
             }
@@ -195,7 +197,7 @@ public static class PasskeyEndpoints
             [FromServices] IOptions<IdentityOptions> options,
             CancellationToken cancellationToken) =>
         {
-            if (!options.Value.WebAuthn.Enabled)
+            if (!options.Value.WebAuthn.IsUsable)
             {
                 return Results.NotFound();
             }

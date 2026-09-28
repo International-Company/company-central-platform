@@ -112,8 +112,13 @@ public sealed class WebAuthnOptions
     /// everybody enrols again. Worth deciding once, on the name the Platform
     /// will keep.
     /// </para>
+    /// <para>
+    /// <b>Empty by default.</b> Development gets its value from
+    /// <c>appsettings.Development.json</c> rather than from here, for the
+    /// reason given on <see cref="Origins"/>.
+    /// </para>
     /// </summary>
-    public string RelyingPartyId { get; set; } = "localhost";
+    public string RelyingPartyId { get; set; } = string.Empty;
 
     /// <summary>What the device calls this Platform when it asks the person.</summary>
     public string RelyingPartyName { get; set; } = "Company Central Platform";
@@ -126,8 +131,22 @@ public sealed class WebAuthnOptions
     /// any page on any subdomain, which is most of what a passkey exists to
     /// prevent.
     /// </para>
+    /// <para>
+    /// <b>Empty, and it has to be.</b> This list held
+    /// <c>http://localhost:3000</c> as a default, and that took the Platform
+    /// down: .NET's configuration binder does not replace a collection that
+    /// already has items, it adds to it. A deployment setting
+    /// <c>Origins__0</c> to its own address ended up with both, the startup
+    /// check refused a plain-HTTP origin in production, and the API stopped
+    /// serving. A non-empty default on a collection is a value nobody can
+    /// remove through configuration, and one they cannot see is still there.
+    /// </para>
+    /// <para>
+    /// Development gets its origin from <c>appsettings.Development.json</c>,
+    /// where a deployment's own settings replace it cleanly.
+    /// </para>
     /// </summary>
-    public IList<string> Origins { get; set; } = ["http://localhost:3000"];
+    public IList<string> Origins { get; set; } = [];
 
     /// <summary>
     /// How long a challenge stays answerable. Minutes, because a challenge
@@ -146,6 +165,28 @@ public sealed class WebAuthnOptions
     public bool Enabled { get; set; } = true;
 
     /// <summary>
+    /// Whether anybody has said where passkeys live.
+    /// <para>
+    /// Both halves or neither: a relying party with no origin cannot be asked
+    /// for a credential, and an origin with no relying party has nothing to
+    /// bind one to.
+    /// </para>
+    /// </summary>
+    public bool IsConfigured
+        => !string.IsNullOrWhiteSpace(RelyingPartyId) && Origins.Count > 0;
+
+    /// <summary>
+    /// Whether the Platform should offer passkeys at all.
+    /// <para>
+    /// A deployment that says nothing about them gets a Platform that starts
+    /// and does not offer them, rather than one that refuses to start. They are
+    /// one way in among several, and an unconfigured one is a feature that is
+    /// off.
+    /// </para>
+    /// </summary>
+    public bool IsUsable => Enabled && IsConfigured;
+
+    /// <summary>
     /// Every origin must belong to the relying party, or no browser will hand
     /// over anything.
     /// <para>
@@ -158,9 +199,22 @@ public sealed class WebAuthnOptions
     {
         var problems = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(RelyingPartyId))
+        bool hasRelyingParty = !string.IsNullOrWhiteSpace(RelyingPartyId);
+
+        // Nothing said at all. Not an error: passkeys are simply not set up,
+        // and refusing to start would take every other way in down with them.
+        if (!hasRelyingParty && Origins.Count == 0)
         {
-            problems.Add("Identity:WebAuthn:RelyingPartyId is empty.");
+            return problems;
+        }
+
+        // Half of it is somebody having tried, and the symptom of leaving it
+        // half-done is a button that quietly does nothing.
+        if (!hasRelyingParty)
+        {
+            problems.Add(
+                "Identity:WebAuthn:Origins is set and RelyingPartyId is not. "
+                + "A passkey has to be bound to a domain.");
 
             return problems;
         }
@@ -173,7 +227,9 @@ public sealed class WebAuthnOptions
 
         if (Origins.Count == 0)
         {
-            problems.Add("Identity:WebAuthn:Origins is empty, so no page may ask for a passkey.");
+            problems.Add(
+                "Identity:WebAuthn:RelyingPartyId is set and Origins is empty, "
+                + "so no page may ask for a passkey.");
         }
 
         foreach (string origin in Origins)

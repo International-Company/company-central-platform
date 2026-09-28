@@ -376,6 +376,14 @@ jobs:
       CCP_Identity__Bootstrap__DisplayName: "End To End"
       CCP_Identity__Bootstrap__InitialPassword: "e2e-not-a-real-secret-2026"
 
+      # Passkeys need to know where they live, and the browser tests register
+      # one. Set here rather than left to appsettings.Development.json, so the
+      # suite does not depend on `dotnet run` picking up a launch profile --
+      # which is how it currently ends up in Development, and is not something
+      # a test suite should rest on.
+      CCP_Identity__WebAuthn__RelyingPartyId: "localhost"
+      CCP_Identity__WebAuthn__Origins__0: "http://localhost:3000"
+
       # The whole suite signs in as one account from one address, which is
       # exactly the shape the strict limit exists to stop: ten attempts a
       # minute against a single username. Adding passkeys roughly doubled the
