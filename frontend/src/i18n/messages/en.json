@@ -641,7 +641,10 @@
     "rolesHint": "An application holds the same roles as a person, at the same scopes, and may do only what they allow.",
     "role": "Role",
     "roleCode": "Code",
-    "scope": "Scope"
+    "scope": "Scope",
+    "grantRole": "Grant role",
+    "noRolesToGrant": "There is no role to grant. Create one on the Roles screen first, holding only the permissions this application needs.",
+    "cannotGrantUnheld": "You cannot grant a permission you do not hold yourself. That is a deliberate limit, not a fault."
   },
   "integrations": {
     "title": "Integrations",

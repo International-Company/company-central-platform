@@ -60,6 +60,34 @@ test.describe('the portal', () => {
     await expect(page.getByText(/غير متاح|Not available/)).toHaveCount(0);
   });
 
+  test('an application can be given a role from the screen that lists them', async ({
+    page,
+  }, testInfo) => {
+    // **The control this asserts did not exist.** The endpoint did, and the
+    // route through the portal did, and the panel listed what an application
+    // held with no way to add to it — so registering an application and making
+    // it able to do anything were two tasks, one of which had no screen. Found
+    // by somebody stopping halfway through it.
+    const current = locale(testInfo.project.name);
+
+    await page.goto(`/${current}/applications`);
+
+    // The Platform's own registration is always there, seeded at startup.
+    await page
+      .getByRole('button', { name: /بيانات الاعتماد|Credentials/ })
+      .first()
+      .click();
+
+    await expect(
+      page.getByRole('button', { name: /^(إسناد الدور|Grant role)$/ }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // And the two things it needs in order to mean anything: which role, and
+    // how far it reaches.
+    await expect(page.locator('#grant-app-role')).toBeVisible();
+    await expect(page.locator('#grant-app-scope')).toBeVisible();
+  });
+
   test('mirrors the layout for the locale', async ({ page }, testInfo) => {
     const expected = testInfo.project.name === 'ar' ? 'rtl' : 'ltr';
 
