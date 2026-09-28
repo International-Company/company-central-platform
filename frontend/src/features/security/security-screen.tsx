@@ -7,6 +7,7 @@ import { Field, FormMessage } from '@/components/ui/field';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { QrCode } from '@/components/shared/qr-code';
 import { PasskeysPanel } from './passkeys-panel';
 import { SessionsPanel } from './sessions-panel';
 import { SecurityEventsPanel } from './security-events-panel';
@@ -274,9 +275,12 @@ export function SecurityScreen() {
       >
         <p className="text-sm text-text-secondary">{t('enrolStep1')}</p>
 
-        {/* The key in text rather than only a QR image. A code that can only be
-            scanned excludes anyone using a desktop authenticator, and anyone
-            whose camera cannot read the screen they are reading it from. */}
+        {/* Both, and in this order. The key in text is what a desktop
+            authenticator takes, and what somebody whose camera cannot read the
+            screen they are reading it from has to fall back on — so it stays
+            first and it stays complete. The square below it is for the far
+            commoner case: a phone, and a hundred and fifty-nine characters
+            nobody types correctly. */}
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-text">{t('manualKey')}</span>
 
@@ -287,6 +291,14 @@ export function SecurityScreen() {
             {enrolment?.manualEntryKey}
           </code>
         </div>
+
+        {enrolment ? (
+          <div className="flex flex-col items-center gap-2">
+            <QrCode value={enrolment.provisioningUri} label={t('scanCodeLabel')} />
+
+            <p className="text-xs text-text-secondary">{t('scanCode')}</p>
+          </div>
+        ) : null}
 
         <p className="text-sm text-text-secondary">{t('enrolStep2')}</p>
 

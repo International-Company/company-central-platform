@@ -392,7 +392,9 @@
     "removePasskey": "Remove device",
     "removePasskeyConfirm": "{name} will no longer be able to sign in to your account. You can add it again whenever you like.",
     "noPasskeys": "No device registered",
-    "noPasskeysDescription": "Add this device to sign in with your fingerprint instead of typing your password."
+    "noPasskeysDescription": "Add this device to sign in with your fingerprint instead of typing your password.",
+    "scanCode": "Or scan this square with your authenticator app instead of typing the key.",
+    "scanCodeLabel": "A setup square holding the same key written above it."
   },
   "dashboard": {
     "users": "Users",
