@@ -41,14 +41,23 @@ services:
   # S3-compatible object storage for the Documents module (ADR-014).
   # Production uses the cloud provider's object storage; the API is the same.
   minio:
-    # quay.io, not Docker Hub. MinIO withdrew the `latest` tag from Docker Hub,
-    # so `minio/minio:latest` now fails to pull with "repository does not
-    # exist" -- which is what Docker Hub says about a tag that is gone, and
-    # reads like a permissions problem. Quay is MinIO's own registry.
-    image: quay.io/minio/minio:latest
+    # **MinIO's own images are no longer public.** Docker Hub first, then
+    # quay.io: an anonymous pull of either now answers "unauthorized", at
+    # `latest` and at pinned release tags alike.
+    #
+    # `bitnamilegacy` is Bitnami's archive of what they stopped publishing, and
+    # it is a real MinIO rather than a test double. The distinction is not
+    # academic: the S3 mocks built for testing validate no signature at all,
+    # and two of the Documents module's assertions are precisely that an
+    # unsigned request is refused and that a pre-signed URL expires.
+    #
+    # Frozen, and so a stopgap until the cloud provider decision (Q4).
+    #
+    # No `command:`. This image's entrypoint starts MinIO itself, and an
+    # argument here would replace the script that does it.
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     container_name: ccp-minio
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ccp_dev
       MINIO_ROOT_PASSWORD: ccp_dev_local_only
@@ -56,9 +65,13 @@ services:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web console
     volumes:
-      - minio-data:/data
+      - minio-data:/bitnami/minio/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      # A port that answers, not a service that is ready, and the difference is
+      # worth stating: this says MinIO is listening, not that it has finished
+      # starting. Nothing in this file waits on it, and a check written around
+      # a tool the image may not ship would fail for the wrong reason.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000"]
       interval: 5s
       timeout: 3s
       retries: 10

@@ -69,22 +69,37 @@ jobs:
       # claims cannot be checked any other way: that a pre-signed URL works,
       # that it expires, and that the bucket is unreadable without one.
       #
-      # A step rather than a service container, because MinIO needs its
-      # "server /data" arguments and the services syntax has nowhere to put
-      # them. The image and the command are the ones in docker-compose.yml, so
-      # what CI exercises is what a developer runs.
+      # A step rather than a service container, so the image and the wait loop
+      # are the ones in docker-compose.yml and what CI exercises is what a
+      # developer runs.
       #
-      # From quay.io rather than Docker Hub: MinIO withdrew the `latest` tag
-      # there, so `docker pull minio/minio` fails with "repository does not
-      # exist" -- which is Docker Hub's message for a tag that is gone, and
-      # reads like a permissions problem. Quay is MinIO's own registry and still
-      # carries it.
+      # **MinIO's images are no longer public anywhere.** They went from Docker
+      # Hub to quay.io once already, and then quay.io stopped serving them too:
+      # an anonymous pull of `quay.io/minio/minio` now answers "unauthorized",
+      # and so does `minio/minio` on Docker Hub, at `latest` and at pinned
+      # release tags alike. That is a business decision by MinIO and not
+      # something a tag change works around.
+      #
+      # `bitnamilegacy` is Bitnami's archive of the images they stopped
+      # publishing, and it is a real MinIO. That matters more than convenience:
+      # two of the assertions this service exists for are that an unsigned
+      # request is refused and that a pre-signed URL expires, and the
+      # purpose-built S3 test doubles -- adobe/s3mock among them -- validate no
+      # signature at all. Swapping to one would leave those two tests passing
+      # against a server that permits everything.
+      #
+      # It is frozen, and therefore a stopgap. The real answer arrives with the
+      # cloud provider decision (Q4), whose object storage the Documents module
+      # already speaks to.
+      #
+      # No `server /data`: this image's entrypoint runs MinIO itself, and an
+      # argument here replaces the command that does it.
       - name: Start object storage
         env:
           MINIO_ROOT_USER: ci_only_not_a_real_key
           MINIO_ROOT_PASSWORD: ci_only_not_a_real_secret
         run: |
-          docker run -d --name ccp-ci-minio -p 9000:9000 -e MINIO_ROOT_USER -e MINIO_ROOT_PASSWORD quay.io/minio/minio:latest server /data
+          docker run -d --name ccp-ci-minio -p 9000:9000 -e MINIO_ROOT_USER -e MINIO_ROOT_PASSWORD bitnamilegacy/minio:2025.7.23-debian-12-r5
 
           for attempt in $(seq 1 40); do
             if curl -sf http://localhost:9000/minio/health/live > /dev/null; then
