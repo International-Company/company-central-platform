@@ -111,7 +111,23 @@
     "fieldRequired": "This field is required.",
     "passwordsDoNotMatch": "The passwords do not match.",
     "invalidCredentials": "The username or password is incorrect. Repeated failures delay further attempts.",
-    "mfaEnrolmentRequired": "This action needs two-factor authentication, and your account has none enrolled. Set it up under Security, then try again."
+    "mfaEnrolmentRequired": "This action needs two-factor authentication, and your account has none enrolled. Set it up under Security, then try again.",
+    "codes": {
+      "alreadyGranted": "This user already holds that role at that scope. Nothing is missing.",
+      "applicationAlreadyGranted": "This application already holds that role at that scope.",
+      "assignmentAlreadyRevoked": "That grant was revoked already.",
+      "assignmentNotFound": "That grant no longer exists. Reload the list to see what stands now.",
+      "cannotGrantToSelf": "You cannot grant or revoke your own roles. Ask another administrator.",
+      "cannotGrantUnheld": "That role carries a permission you do not hold yourself. That is a deliberate limit, not a fault.",
+      "cannotGrantWiderScope": "The scope you asked for is wider than your own.",
+      "expiryInThePast": "The expiry has to be in the future.",
+      "roleInactive": "The role is not active, and an inactive role cannot be granted.",
+      "roleNotFound": "That role no longer exists. Reload the page.",
+      "scopeUnitNotApplicable": "A unit belongs to a Unit or Unit-and-below scope only.",
+      "scopeUnitRequired": "This scope needs a unit, and this user has no employee record to take one from.",
+      "tooManyLiveCredentials": "This application has reached its limit of live keys. Revoke the one being replaced first.",
+      "wouldStrandThePlatform": "This is the last way anybody has of granting roles, and removing it cannot be undone from anywhere. Give somebody else that ability first."
+    }
   },
   "users": {
     "title": "Users",
@@ -622,7 +638,6 @@
     "label": "Label",
     "labelHint": "What this key is for, such as production or the nightly job.",
     "labelRequired": "Give the key a label, so revoking the right one is possible later.",
-    "tooManyCredentials": "This application already holds two live keys. Revoke the one being replaced first.",
     "rotationHint": "An application may hold two live keys at once. Issue the new one, deploy it, then revoke the old one when nothing has used it for long enough to be sure.",
     "clientId": "Client ID",
     "clientSecret": "Client secret",
@@ -643,8 +658,7 @@
     "roleCode": "Code",
     "scope": "Scope",
     "grantRole": "Grant role",
-    "noRolesToGrant": "There is no role to grant. Create one on the Roles screen first, holding only the permissions this application needs.",
-    "cannotGrantUnheld": "You cannot grant a permission you do not hold yourself. That is a deliberate limit, not a fault."
+    "noRolesToGrant": "There is no role to grant. Create one on the Roles screen first, holding only the permissions this application needs."
   },
   "integrations": {
     "title": "Integrations",

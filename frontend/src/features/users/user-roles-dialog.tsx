@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { StepUpDialog, needsStepUp, needsMfaEnrolment } from '@/components/shared/step-up-dialog';
+import { refusalMessage } from '@/lib/refusals';
 import type {
   OrganizationUnitTreeDto,
   ProblemResponse,
@@ -141,10 +142,13 @@ export function UserRolesDialog({
           return;
         }
 
+        // The Platform's own reason first, and before the blanket reading of a
+        // 403. Refusing to grant somebody their own role is a 403 too, and
+        // answering it with "you cannot grant what you do not hold" sends the
+        // reader to check permissions they already have.
         setError(
-          response.status === 403
-            ? t('cannotEscalate')
-            : (body.errors?.[0]?.message ?? tErrors('generic')),
+          refusalMessage(body, tErrors)
+            ?? (response.status === 403 ? t('cannotEscalate') : tErrors('generic')),
         );
 
         return;

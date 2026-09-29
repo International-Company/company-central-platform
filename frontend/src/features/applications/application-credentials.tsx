@@ -7,6 +7,7 @@ import { Field, FormMessage } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/shared/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { StepUpDialog, needsStepUp, needsMfaEnrolment } from '@/components/shared/step-up-dialog';
+import { refusalMessage } from '@/lib/refusals';
 import type {
   ApplicationCredentialDto,
   ApplicationRoleDto,
@@ -176,15 +177,10 @@ export function ApplicationCredentials({
         return;
       }
 
-      // The Platform refuses a grant of anything the granter does not hold
-      // themselves, which is the one refusal worth naming: it is a rule rather
-      // than a fault, and "something went wrong" would send somebody looking
-      // for a broken screen.
-      setError(
-        problem?.code === 'AUTHZ.CANNOT_GRANT_UNHELD_PERMISSION'
-          ? t('cannotGrantUnheld')
-          : tErrors('generic'),
-      );
+      // Named rather than reported as a fault. Refusing to grant what the
+      // granter does not hold is a rule, and "something went wrong" would send
+      // somebody looking for a broken screen.
+      setError(refusalMessage(problem, tErrors) ?? tErrors('generic'));
     } catch {
       setError(tErrors('network'));
     } finally {
@@ -233,11 +229,7 @@ export function ApplicationCredentials({
         return;
       }
 
-      setError(
-        problem?.code === 'AUTHZ.TOO_MANY_LIVE_CREDENTIALS'
-          ? t('tooManyCredentials')
-          : tErrors('generic'),
-      );
+      setError(refusalMessage(problem, tErrors) ?? tErrors('generic'));
     } catch {
       setError(tErrors('network'));
     } finally {
