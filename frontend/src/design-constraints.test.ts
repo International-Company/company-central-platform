@@ -399,3 +399,37 @@ describe('corners stay square', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('no screen asks for a page the Platform will not serve', () => {
+  /**
+   * `PageRequest.MaxPageSize`. The Platform **refuses** a larger page rather
+   * than capping it, and refusing is right: an uncapped page size is a
+   * denial-of-service vector, and silently serving fewer rows than asked for
+   * would be a lie the caller cannot detect.
+   *
+   * **The employees screen asked for 200 and nobody knew for months.** The
+   * Platform rejected the whole request, the screen swallowed the failure, and
+   * the dropdown that links an employee to an account was empty on every
+   * Platform that ever ran it. An empty dropdown reads as "this Platform has no
+   * accounts", so the reader goes looking for the accounts rather than for the
+   * request. Somebody lost a day to it.
+   *
+   * Matching the text is crude and it is the point: it catches the next one at
+   * the moment it is typed, which is the only moment it is cheap.
+   */
+  const maxPageSize = 100;
+
+  it('keeps every literal page size within the cap', () => {
+    const offenders: string[] = [];
+
+    for (const file of sourceFiles()) {
+      for (const match of codeOf(file).matchAll(/pageSize=(\d+)/g)) {
+        if (Number(match[1]) > maxPageSize) {
+          offenders.push(`${file.slice(sourceRoot.length + 1)}: pageSize=${match[1]}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

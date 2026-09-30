@@ -6,6 +6,26 @@ import { FormDialog } from '@/components/shared/form-dialog';
 import type { EmployeeDto, ProblemResponse, UserDto } from '@/types/platform';
 
 /**
+ * How much of the account list this dialog was given.
+ *
+ * **An empty dropdown is indistinguishable from a Platform with no accounts
+ * in it**, and that is what somebody spent a day concluding: the screen asked
+ * for 200 accounts, the Platform refuses any page above 100 rather than
+ * capping it, the failure was swallowed, and the list was empty on every
+ * Platform that ever ran this screen. The number is fixed; saying so when the
+ * list is not whole is what stops the next cause from reading the same way.
+ */
+export type AccountListState =
+  /** Every account the Platform has. */
+  | 'complete'
+
+  /** The first page of them. The one being looked for may not be here. */
+  | 'partial'
+
+  /** None, because the list could not be read at all. */
+  | 'unreadable';
+
+/**
  * Connecting an employee record to an account that signs in.
  *
  * **They are separate things, and the separation is deliberate.** An employee
@@ -20,6 +40,7 @@ import type { EmployeeDto, ProblemResponse, UserDto } from '@/types/platform';
 export function EmployeeAccountDialog({
   employee,
   users,
+  accounts,
   onClose,
   onLinked,
 }: {
@@ -27,6 +48,7 @@ export function EmployeeAccountDialog({
   employee: EmployeeDto | null;
 
   users: readonly UserDto[];
+  accounts: AccountListState;
   onClose: () => void;
   onLinked: () => void;
 }) {
@@ -115,6 +137,14 @@ export function EmployeeAccountDialog({
             </option>
           ))}
         </select>
+
+        {accounts === 'complete' ? null : (
+          <p className="text-xs text-attention">
+            {accounts === 'unreadable'
+              ? t('accountsUnreadable')
+              : t('accountsPartial', { shown: users.length })}
+          </p>
+        )}
       </div>
     </FormDialog>
   );

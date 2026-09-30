@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { IfPermitted, usePermission } from '@/lib/permissions';
 import { EmployeeAttributes } from './employee-attributes';
 import { EmployeeForm } from './employee-form';
-import { EmployeeAccountDialog } from './employee-account-dialog';
+import { EmployeeAccountDialog, type AccountListState } from './employee-account-dialog';
 import { EmployeeTransferDialog } from './employee-transfer-dialog';
 import type {
   EmployeeDto,
@@ -62,6 +62,9 @@ export function EmployeesScreen() {
   // they can be given, and which account they can be attached to.
   const [positions, setPositions] = useState<PositionDto[]>([]);
   const [users, setUsers] = useState<UserDto[]>([]);
+
+  /** Whether the account list is all of them, some of them, or none. */
+  const [accounts, setAccounts] = useState<AccountListState>('complete');
 
   const canManage = usePermission('platform.employees.manage');
 
@@ -113,17 +116,26 @@ export function EmployeesScreen() {
       return;
     }
 
-    // Failure is silent on purpose. The structure is needed only to offer
-    // creation; if it cannot be read, the button stays hidden and the list —
-    // which is what this screen is for — still works.
-    // Failures stay silent by design: this is reference data for actions, and
-    // the list behind them — which is what the screen is for — does not depend
-    // on it. A missing list means an emptier dropdown, not a broken page.
+    // Reference data for the actions this screen offers, not the screen's
+    // own subject. Units and positions failing quietly is right: the button
+    // they feed stays hidden, and the list this screen exists for still works.
+    //
+    // The accounts are different, and getting that wrong cost somebody a day.
+    // They fill the dropdown that links an employee to an account, and an
+    // empty dropdown looks exactly like a Platform with no accounts in it.
+    // There is nothing to compare it against and nothing to click, so the
+    // reader concludes the accounts are missing rather than that the list is.
     void (async () => {
       const [unitResponse, positionResponse, userResponse] = await Promise.all([
         fetch('/api/organization/units').catch(() => null),
         fetch('/api/organization/positions').catch(() => null),
-        fetch('/api/users?page=1&pageSize=200').catch(() => null),
+
+        // 100, because that is the largest page the Platform will serve
+        // (`PageRequest.MaxPageSize`). It asked for 200 and the Platform
+        // refused the whole request rather than capping it -- correctly, since
+        // an uncapped page size is a denial-of-service vector -- so the
+        // dropdown was empty on every Platform, always.
+        fetch('/api/users?page=1&pageSize=100').catch(() => null),
       ]);
 
       if (unitResponse?.ok) {
@@ -135,7 +147,17 @@ export function EmployeesScreen() {
       }
 
       if (userResponse?.ok) {
-        setUsers(((await userResponse.json()) as PagedResult<UserDto>).items);
+        const page = (await userResponse.json()) as PagedResult<UserDto>;
+
+        setUsers(page.items);
+
+        // Said out loud rather than left to be noticed. Beyond one page the
+        // account somebody is looking for may genuinely not be on the list,
+        // and a dropdown cannot show the difference between "not there" and
+        // "not shown".
+        setAccounts(page.hasNext ? 'partial' : 'complete');
+      } else {
+        setAccounts('unreadable');
       }
     })();
   }, [canManage]);
@@ -363,6 +385,7 @@ export function EmployeesScreen() {
       <EmployeeAccountDialog
         employee={linking}
         users={users}
+        accounts={accounts}
         onClose={() => setLinking(null)}
         onLinked={() => {
           setLinking(null);

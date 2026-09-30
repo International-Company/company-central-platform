@@ -226,7 +226,9 @@
     "attributeLooksLikeASecret": "That looks like a credential, and it was not stored. An employee record is exported, backed up and broadly readable; secrets live in the secret store and are named by reference.",
     "attributeKeyInvalid": "A key is written as application.name, using letters, digits, hyphens and underscores.",
     "attributeValueRequired": "An attribute needs a value. Remove it instead of emptying it.",
-    "attributeLimitReached": "This person already carries fifty attributes. Remove one before adding another."
+    "attributeLimitReached": "This person already carries fifty attributes. Remove one before adding another.",
+    "accountsPartial": "Showing {shown} accounts. If the one you want is not here, it may be beyond this list rather than absent.",
+    "accountsUnreadable": "The account list could not be read, so it is empty for that reason and not because there are no accounts. Close this and open it again."
   },
   "roles": {
     "title": "Roles",
